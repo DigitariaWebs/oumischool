@@ -1,20 +1,20 @@
 import { Tabs } from "expo-router";
 import React from "react";
 import {
-  Home,
   Users,
-  BookOpen,
+  Calendar,
+  Clock,
   User,
 } from "lucide-react-native";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { COLORS } from "@/config/colors";
 
-export default function TabLayout() {
+export default function TutorTabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: COLORS.primary.DEFAULT,
+        tabBarActiveTintColor: "#8B5CF6",
         tabBarInactiveTintColor: COLORS.secondary[400],
         headerShown: false,
         tabBarButton: HapticTab,
@@ -35,20 +35,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Accueil",
-          tabBarIcon: ({ color, focused }) => (
-            <Home
-              size={24}
-              color={color}
-              fill={focused ? color : "transparent"}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="children-tab"
-        options={{
-          title: "Enfants",
+          title: "Élèves",
           tabBarIcon: ({ color, focused }) => (
             <Users
               size={24}
@@ -59,11 +46,24 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="resources-tab"
+        name="sessions"
         options={{
-          title: "Ressources",
+          title: "Sessions",
           tabBarIcon: ({ color, focused }) => (
-            <BookOpen
+            <Calendar
+              size={24}
+              color={color}
+              fill={focused ? color : "transparent"}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="availability"
+        options={{
+          title: "Disponibilités",
+          tabBarIcon: ({ color, focused }) => (
+            <Clock
               size={24}
               color={color}
               fill={focused ? color : "transparent"}

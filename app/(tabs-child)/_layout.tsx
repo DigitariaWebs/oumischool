@@ -1,70 +1,76 @@
 import { Tabs } from "expo-router";
 import React from "react";
 import {
-  Home,
-  Users,
   BookOpen,
+  PenLine,
+  TrendingUp,
   User,
 } from "lucide-react-native";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { COLORS } from "@/config/colors";
+import { FONTS } from "@/config/fonts";
 
-export default function TabLayout() {
+export default function ChildTabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: COLORS.primary.DEFAULT,
+        tabBarActiveTintColor: "#3B82F6",
         tabBarInactiveTintColor: COLORS.secondary[400],
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
           backgroundColor: COLORS.neutral.white,
-          borderTopWidth: 1,
-          borderTopColor: COLORS.neutral[200],
-          paddingBottom: 20,
-          paddingTop: 8,
-          height: 77,
+          borderTopWidth: 0,
+          paddingBottom: 24,
+          paddingTop: 12,
+          height: 85,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.06,
+          shadowRadius: 12,
+          elevation: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "600",
+          fontSize: 14,
+          fontWeight: "700",
+          fontFamily: FONTS.fredoka,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Accueil",
-          tabBarIcon: ({ color, focused }) => (
-            <Home
-              size={24}
-              color={color}
-              fill={focused ? color : "transparent"}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="children-tab"
-        options={{
-          title: "Enfants",
-          tabBarIcon: ({ color, focused }) => (
-            <Users
-              size={24}
-              color={color}
-              fill={focused ? color : "transparent"}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="resources-tab"
-        options={{
-          title: "Ressources",
+          title: "Leçons",
           tabBarIcon: ({ color, focused }) => (
             <BookOpen
-              size={24}
+              size={30}
+              color={color}
+              fill={focused ? color : "transparent"}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="exercises"
+        options={{
+          title: "Jeux",
+          tabBarIcon: ({ color, focused }) => (
+            <PenLine
+              size={30}
+              color={color}
+              fill={focused ? color : "transparent"}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="progress"
+        options={{
+          title: "Bravo",
+          tabBarIcon: ({ color, focused }) => (
+            <TrendingUp
+              size={30}
               color={color}
               fill={focused ? color : "transparent"}
             />
@@ -74,10 +80,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profil",
+          title: "Moi",
           tabBarIcon: ({ color, focused }) => (
             <User
-              size={24}
+              size={30}
               color={color}
               fill={focused ? color : "transparent"}
             />

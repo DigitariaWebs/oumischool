@@ -1,98 +1,708 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Dimensions,
+  StatusBar,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  BookOpen,
+  FileText,
+  BrainCircuit,
+  Plus,
+  Calendar,
+  TrendingUp,
+  Sparkles,
+  ChevronRight,
+  Bell,
+  Baby,
+} from "lucide-react-native";
+import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { COLORS } from "@/config/colors";
+import { FONTS } from "@/config/fonts";
+import { useAppSelector } from "@/store/hooks";
+
+const { width } = Dimensions.get("window");
+const CARD_WIDTH = (width - 60) / 2; // 2 cards per row with proper spacing
+
+interface QuickActionProps {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  color: string;
+  onPress: () => void;
+  delay: number;
+}
+
+const QuickActionCard: React.FC<QuickActionProps> = ({
+  icon,
+  title,
+  subtitle,
+  color,
+  onPress,
+  delay,
+}) => (
+  <TouchableOpacity
+    style={styles.quickActionCard}
+    onPress={onPress}
+    activeOpacity={0.7}
+  >
+    <View style={[styles.quickActionIcon, { backgroundColor: color }]}>
+      {icon}
+    </View>
+    <View style={styles.quickActionTextContainer}>
+      <Text style={styles.quickActionTitle} numberOfLines={2}>{title}</Text>
+      <Text style={styles.quickActionSubtitle}>{subtitle}</Text>
+    </View>
+  </TouchableOpacity>
+);
+
+interface FeatureCardProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  color: string;
+  delay: number;
+}
+
+const FeatureCard: React.FC<FeatureCardProps> = ({
+  icon,
+  title,
+  description,
+  color,
+  delay,
+}) => (
+  <Animated.View
+    entering={FadeInDown.delay(delay).duration(600)}
+    style={styles.featureCard}
+  >
+    <View style={[styles.featureIcon, { backgroundColor: color }]}>
+      {icon}
+    </View>
+    <Text style={styles.featureTitle}>{title}</Text>
+    <Text style={styles.featureDescription}>{description}</Text>
+  </Animated.View>
+);
+
+interface ChildCardProps {
+  name: string;
+  grade: string;
+  progress: number;
+  delay: number;
+}
+
+const ChildCard: React.FC<ChildCardProps> = ({
+  name,
+  grade,
+  progress,
+  delay,
+}) => (
+  <Animated.View
+    entering={FadeInRight.delay(delay).duration(600)}
+    style={styles.childCard}
+  >
+    <TouchableOpacity style={styles.childCardContent} activeOpacity={0.7}>
+      <View style={styles.childAvatar}>
+        <Text style={styles.childAvatarText}>{name.charAt(0)}</Text>
+      </View>
+      <View style={styles.childInfo}>
+        <Text style={styles.childName}>{name}</Text>
+        <Text style={styles.childGrade}>{grade}</Text>
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBar}>
+            <View
+              style={[styles.progressFill, { width: `${progress}%` }]}
+            />
+          </View>
+          <Text style={styles.progressText}>{progress}%</Text>
+        </View>
+      </View>
+      <ChevronRight size={20} color={COLORS.neutral[400]} />
+    </TouchableOpacity>
+  </Animated.View>
+);
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const router = useRouter();
+  
+  // Get data from Redux store
+  const user = useAppSelector((state) => state.auth.user);
+  const children = useAppSelector((state) => state.children.children);
+  
+  const userName = user?.name || "Utilisateur";
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const quickActions = [
+    {
+      icon: <Plus size={24} color="white" />,
+      title: "Ajouter un enfant",
+      subtitle: "Nouveau profil",
+      color: COLORS.primary.DEFAULT,
+      onPress: () => router.push("/children"),
+    },
+    {
+      icon: <Calendar size={24} color="white" />,
+      title: "Plan hebdo",
+      subtitle: "Organiser",
+      color: "#3B82F6",
+      onPress: () => router.push("/weekly-plan"),
+    },
+    {
+      icon: <Sparkles size={24} color="white" />,
+      title: "Coach IA",
+      subtitle: "Assistance",
+      color: "#8B5CF6",
+      onPress: () => router.push("/ai-coach"),
+    },
+    {
+      icon: <FileText size={24} color="white" />,
+      title: "Ressources",
+      subtitle: "Explorer",
+      color: "#EAB308",
+      onPress: () => router.push("/resources"),
+    },
+  ];
+
+  const features = [
+    {
+      icon: <BookOpen size={28} color={COLORS.primary.DEFAULT} />,
+      title: "Programme structuré",
+      description: "Curriculum clair avec plan hebdomadaire facile à suivre",
+      color: COLORS.primary[50],
+    },
+    {
+      icon: <FileText size={28} color="#3B82F6" />,
+      title: "Ressources & PDF",
+      description: "Leçons, quiz et exercices imprimables",
+      color: "#DBEAFE",
+    },
+    {
+      icon: <BrainCircuit size={28} color="#8B5CF6" />,
+      title: "IA éducative",
+      description: "Coach qui explique, adapte et recommande",
+      color: "#EDE9FE",
+    },
+  ];
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary.DEFAULT} />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Header with Gradient */}
+        <Animated.View
+          entering={FadeInDown.delay(200).duration(600)}
+          style={styles.headerContainer}
+        >
+          <LinearGradient
+            colors={[COLORS.primary.DEFAULT, COLORS.primary[700]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.headerGradient}
+          >
+            <View style={styles.header}>
+              <View>
+                <Text style={styles.greeting}>Bonjour,</Text>
+                <Text style={styles.userName}>{userName}</Text>
+              </View>
+              <TouchableOpacity style={styles.notificationButton}>
+                <View style={styles.notificationDot} />
+                <Bell size={24} color={COLORS.neutral.white} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Stats Summary */}
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{children.length}</Text>
+                <Text style={styles.statLabel}>Enfants</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>12</Text>
+                <Text style={styles.statLabel}>Leçons</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>68%</Text>
+                <Text style={styles.statLabel}>Progrès</Text>
+              </View>
+            </View>
+          </LinearGradient>
+        </Animated.View>
+
+        {/* Children Section */}
+        <View style={styles.section}>
+          <Animated.View
+            entering={FadeInDown.delay(400).duration(600)}
+            style={styles.sectionHeader}
+          >
+            <Text style={styles.sectionTitle}>Mes enfants</Text>
+            <TouchableOpacity onPress={() => router.push("/children")}>
+              <Text style={styles.seeAllText}>Voir tout</Text>
+            </TouchableOpacity>
+          </Animated.View>
+
+          {children.length > 0 ? (
+            children.map((child, index) => (
+              <ChildCard
+                key={child.id}
+                name={child.name}
+                grade={child.grade}
+                progress={child.progress}
+                delay={500 + index * 100}
+              />
+            ))
+          ) : (
+            <Animated.View
+              entering={FadeInDown.delay(500).duration(600)}
+              style={styles.emptyChildrenState}
+            >
+              <View style={styles.emptyStateIcon}>
+                <Baby size={48} color={COLORS.primary.DEFAULT} />
+              </View>
+              <Text style={styles.emptyStateTitle}>Aucun enfant ajouté</Text>
+              <Text style={styles.emptyStateText}>
+                Commencez par ajouter le profil de votre premier enfant
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyStateButton}
+                onPress={() => router.push("/children")}
+              >
+                <Plus size={20} color="white" />
+                <Text style={styles.emptyStateButtonText}>Ajouter un enfant</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          )}
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.section}>
+          <Animated.Text
+            entering={FadeInDown.delay(700).duration(600)}
+            style={styles.sectionTitle}
+          >
+            Actions rapides
+          </Animated.Text>
+          <View style={styles.quickActionsGrid}>
+            {quickActions.map((action, index) => (
+              <Animated.View
+                key={index}
+                entering={FadeInDown.delay(800 + index * 100).duration(600)}
+                style={styles.quickActionWrapper}
+              >
+                <QuickActionCard
+                  {...action}
+                  delay={0}
+                />
+              </Animated.View>
+            ))}
+          </View>
+        </View>
+
+        {/* Features Section */}
+        <View style={styles.section}>
+          <Animated.Text
+            entering={FadeInDown.delay(1200).duration(600)}
+            style={styles.sectionTitle}
+          >
+            Tout pour réussir
+          </Animated.Text>
+          {features.map((feature, index) => (
+            <FeatureCard
+              key={index}
+              {...feature}
+              delay={1300 + index * 100}
+            />
+          ))}
+        </View>
+
+        {/* CTA Banner */}
+        <Animated.View
+          entering={FadeInDown.delay(1600).duration(600)}
+          style={styles.ctaBanner}
+        >
+          <LinearGradient
+            colors={["#8B5CF6", "#6366F1"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.ctaGradient}
+          >
+            <View style={styles.ctaContent}>
+              <Text style={styles.ctaTitle}>Découvrez le Coach IA</Text>
+              <Text style={styles.ctaDescription}>
+                Obtenez des conseils personnalisés pour votre enfant
+              </Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.ctaButton}
+              onPress={() => router.push("/ai-coach")}
+            >
+              <Text style={styles.ctaButtonText}>Essayer</Text>
+              <ChevronRight size={18} color="#8B5CF6" />
+            </TouchableOpacity>
+          </LinearGradient>
+        </Animated.View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.neutral[50],
   },
-  stepContainer: {
-    gap: 8,
+  scrollContent: {
+    paddingBottom: 24,
+  },
+  // Header
+  headerContainer: {
+    marginBottom: 24,
+  },
+  headerGradient: {
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    paddingTop: 60,
+    paddingBottom: 24,
+    paddingHorizontal: 24,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  greeting: {
+    fontFamily: FONTS.secondary,
+    fontSize: 16,
+    color: COLORS.neutral[100],
+    opacity: 0.9,
+  },
+  userName: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 28,
+    color: COLORS.neutral.white,
+    marginTop: 4,
+  },
+  notificationButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+  },
+  notificationDot: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#EF4444",
+    borderWidth: 2,
+    borderColor: "white",
+  },
+  notificationIcon: {
+    fontSize: 20,
+  },
+  statsContainer: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 16,
+    padding: 16,
+    justifyContent: "space-around",
+  },
+  statItem: {
+    alignItems: "center",
+  },
+  statValue: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 24,
+    color: COLORS.neutral.white,
+    fontWeight: "700",
+  },
+  statLabel: {
+    fontFamily: FONTS.secondary,
+    fontSize: 12,
+    color: COLORS.neutral[100],
+    marginTop: 4,
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  // Section
+  section: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 22,
+    color: COLORS.secondary[900],
+    marginBottom: 16,
+  },
+  seeAllText: {
+    fontFamily: FONTS.secondary,
+    fontSize: 14,
+    color: COLORS.primary.DEFAULT,
+    fontWeight: "600",
+  },
+  // Child Card
+  childCard: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 20,
+    marginBottom: 12,
+    shadowColor: COLORS.secondary.DEFAULT,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  childCardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+  },
+  childAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.primary[100],
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  childAvatarText: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 24,
+    color: COLORS.primary.DEFAULT,
+    fontWeight: "700",
+  },
+  childInfo: {
+    flex: 1,
+  },
+  childName: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 18,
+    color: COLORS.secondary[900],
+    marginBottom: 2,
+  },
+  childGrade: {
+    fontFamily: FONTS.secondary,
+    fontSize: 14,
+    color: COLORS.secondary[500],
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  progressContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  progressBar: {
+    flex: 1,
+    height: 6,
+    backgroundColor: COLORS.neutral[200],
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: COLORS.primary.DEFAULT,
+    borderRadius: 3,
+  },
+  progressText: {
+    fontFamily: FONTS.secondary,
+    fontSize: 12,
+    color: COLORS.secondary[600],
+    fontWeight: "600",
+  },
+  // Quick Actions
+  quickActionsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  quickActionWrapper: {
+    width: CARD_WIDTH,
+  },
+  quickActionCard: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 20,
+    padding: 16,
+    minHeight: 140,
+    shadowColor: COLORS.secondary.DEFAULT,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  quickActionIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  quickActionTextContainer: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  quickActionTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 15,
+    fontWeight: "700",
+    color: COLORS.secondary[900],
+    marginBottom: 4,
+    lineHeight: 20,
+  },
+  quickActionSubtitle: {
+    fontFamily: FONTS.secondary,
+    fontSize: 12,
+    color: COLORS.secondary[500],
+  },
+  // Feature Card
+  featureCard: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 12,
+    shadowColor: COLORS.secondary.DEFAULT,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  featureIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  featureTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 18,
+    color: COLORS.secondary[900],
+    marginBottom: 8,
+  },
+  featureDescription: {
+    fontFamily: FONTS.secondary,
+    fontSize: 14,
+    color: COLORS.secondary[600],
+    lineHeight: 20,
+  },
+  // CTA Banner
+  ctaBanner: {
+    marginHorizontal: 24,
+    marginBottom: 8,
+  },
+  ctaGradient: {
+    borderRadius: 20,
+    padding: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  ctaContent: {
+    flex: 1,
+    marginRight: 12,
+  },
+  ctaTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 18,
+    color: COLORS.neutral.white,
+    marginBottom: 4,
+  },
+  ctaDescription: {
+    fontFamily: FONTS.secondary,
+    fontSize: 13,
+    color: COLORS.neutral[100],
+    opacity: 0.9,
+  },
+  ctaButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.neutral.white,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 4,
+  },
+  ctaButtonText: {
+    fontFamily: FONTS.secondary,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#8B5CF6",
+  },
+  // Empty State
+  emptyChildrenState: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 20,
+    padding: 32,
+    alignItems: "center",
+    shadowColor: COLORS.secondary.DEFAULT,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  emptyStateIcon: {
+    marginBottom: 16,
+  },
+  emptyStateTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 18,
+    color: COLORS.secondary[900],
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptyStateText: {
+    fontFamily: FONTS.secondary,
+    fontSize: 14,
+    color: COLORS.secondary[500],
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  emptyStateButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.primary.DEFAULT,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 16,
+    gap: 8,
+  },
+  emptyStateButtonText: {
+    fontFamily: FONTS.secondary,
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.neutral.white,
   },
 });

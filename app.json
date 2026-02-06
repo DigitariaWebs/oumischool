@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.achrefdev.oumischool"
     },
     "android": {
       "adaptiveIcon": {
@@ -43,6 +44,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7d8c47bf-ca3c-406c-a121-41e772bb40e5"
+      }
+    },
+    "owner": "achrefdev"
   }
 }
