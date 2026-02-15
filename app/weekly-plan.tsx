@@ -219,11 +219,11 @@ export default function WeeklyPlanScreen() {
 
   const totalLessons = weekDays.reduce(
     (sum, day) => sum + day.lessons.length,
-    0
+    0,
   );
   const completedLessons = weekDays.reduce(
     (sum, day) => sum + day.lessons.filter((l) => l.completed).length,
-    0
+    0,
   );
   const weekProgress = Math.round((completedLessons / totalLessons) * 100);
 
@@ -231,10 +231,7 @@ export default function WeeklyPlanScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleBack}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <ArrowLeft size={24} color={COLORS.secondary[900]} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Plan hebdomadaire</Text>
@@ -272,7 +269,9 @@ export default function WeeklyPlanScreen() {
           >
             <View style={styles.weekSummaryHeader}>
               <View>
-                <Text style={styles.weekSummaryTitle}>Semaine du 10-16 Février</Text>
+                <Text style={styles.weekSummaryTitle}>
+                  Semaine du 10-16 Février
+                </Text>
                 <Text style={styles.weekSummarySubtitle}>
                   {completedLessons} sur {totalLessons} leçons complétées
                 </Text>
@@ -284,10 +283,7 @@ export default function WeeklyPlanScreen() {
 
             <View style={styles.weekProgressBar}>
               <View
-                style={[
-                  styles.weekProgressFill,
-                  { width: `${weekProgress}%` },
-                ]}
+                style={[styles.weekProgressFill, { width: `${weekProgress}%` }]}
               />
             </View>
 
@@ -301,9 +297,8 @@ export default function WeeklyPlanScreen() {
                 <Text style={styles.weekStatText}>
                   {weekDays.reduce(
                     (sum, day) =>
-                      sum +
-                      day.lessons.reduce((s, l) => s + l.duration, 0),
-                    0
+                      sum + day.lessons.reduce((s, l) => s + l.duration, 0),
+                    0,
                   )}{" "}
                   min
                 </Text>

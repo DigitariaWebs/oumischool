@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -16,7 +16,6 @@ import {
   BrainCircuit,
   Plus,
   Calendar,
-  TrendingUp,
   Sparkles,
   ChevronRight,
   Bell,
@@ -28,6 +27,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector } from "@/store/hooks";
+import NotificationDrawer from "@/components/NotificationDrawer";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = (width - 60) / 2; // 2 cards per row with proper spacing
@@ -58,7 +58,9 @@ const QuickActionCard: React.FC<QuickActionProps> = ({
       {icon}
     </View>
     <View style={styles.quickActionTextContainer}>
-      <Text style={styles.quickActionTitle} numberOfLines={2}>{title}</Text>
+      <Text style={styles.quickActionTitle} numberOfLines={2}>
+        {title}
+      </Text>
       <Text style={styles.quickActionSubtitle}>{subtitle}</Text>
     </View>
   </TouchableOpacity>
@@ -83,34 +85,44 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
     entering={FadeInDown.delay(delay).duration(600)}
     style={styles.featureCard}
   >
-    <View style={[styles.featureIcon, { backgroundColor: color }]}>
-      {icon}
-    </View>
+    <View style={[styles.featureIcon, { backgroundColor: color }]}>{icon}</View>
     <Text style={styles.featureTitle}>{title}</Text>
     <Text style={styles.featureDescription}>{description}</Text>
   </Animated.View>
 );
 
 interface ChildCardProps {
+  id: string;
   name: string;
   grade: string;
   progress: number;
+  color: string;
   delay: number;
+  onPress: () => void;
 }
 
 const ChildCard: React.FC<ChildCardProps> = ({
+  id,
   name,
   grade,
   progress,
+  color,
   delay,
+  onPress,
 }) => (
   <Animated.View
     entering={FadeInRight.delay(delay).duration(600)}
     style={styles.childCard}
   >
-    <TouchableOpacity style={styles.childCardContent} activeOpacity={0.7}>
-      <View style={styles.childAvatar}>
-        <Text style={styles.childAvatarText}>{name.charAt(0)}</Text>
+    <TouchableOpacity
+      style={styles.childCardContent}
+      activeOpacity={0.7}
+      onPress={onPress}
+    >
+      <View style={[styles.childAvatar, { backgroundColor: color + "40" }]}>
+        <Text style={[styles.childAvatarText, { color: color }]}>
+          {name.charAt(0)}
+        </Text>
       </View>
       <View style={styles.childInfo}>
         <Text style={styles.childName}>{name}</Text>
@@ -118,7 +130,10 @@ const ChildCard: React.FC<ChildCardProps> = ({
         <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
             <View
-              style={[styles.progressFill, { width: `${progress}%` }]}
+              style={[
+                styles.progressFill,
+                { width: `${progress}%`, backgroundColor: color },
+              ]}
             />
           </View>
           <Text style={styles.progressText}>{progress}%</Text>
@@ -131,11 +146,13 @@ const ChildCard: React.FC<ChildCardProps> = ({
 
 export default function HomeScreen() {
   const router = useRouter();
-  
+  const [notificationDrawerVisible, setNotificationDrawerVisible] =
+    useState(false);
+
   // Get data from Redux store
   const user = useAppSelector((state) => state.auth.user);
   const children = useAppSelector((state) => state.children.children);
-  
+
   const userName = user?.name || "Utilisateur";
 
   const quickActions = [
@@ -144,7 +161,7 @@ export default function HomeScreen() {
       title: "Ajouter un enfant",
       subtitle: "Nouveau profil",
       color: COLORS.primary.DEFAULT,
-      onPress: () => router.push("/children"),
+      onPress: () => router.push("/children-tab"),
     },
     {
       icon: <Calendar size={24} color="white" />,
@@ -191,8 +208,11 @@ export default function HomeScreen() {
   ];
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary.DEFAULT} />
+    <SafeAreaView style={styles.container}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={COLORS.primary.DEFAULT}
+      />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -213,7 +233,10 @@ export default function HomeScreen() {
                 <Text style={styles.greeting}>Bonjour,</Text>
                 <Text style={styles.userName}>{userName}</Text>
               </View>
-              <TouchableOpacity style={styles.notificationButton}>
+              <TouchableOpacity
+                style={styles.notificationButton}
+                onPress={() => setNotificationDrawerVisible(true)}
+              >
                 <View style={styles.notificationDot} />
                 <Bell size={24} color={COLORS.neutral.white} />
               </TouchableOpacity>
@@ -246,7 +269,7 @@ export default function HomeScreen() {
             style={styles.sectionHeader}
           >
             <Text style={styles.sectionTitle}>Mes enfants</Text>
-            <TouchableOpacity onPress={() => router.push("/children")}>
+            <TouchableOpacity onPress={() => router.push("/children-tab")}>
               <Text style={styles.seeAllText}>Voir tout</Text>
             </TouchableOpacity>
           </Animated.View>
@@ -255,10 +278,13 @@ export default function HomeScreen() {
             children.map((child, index) => (
               <ChildCard
                 key={child.id}
+                id={child.id}
                 name={child.name}
                 grade={child.grade}
                 progress={child.progress}
+                color={child.color}
                 delay={500 + index * 100}
+                onPress={() => router.push(`/child-details?id=${child.id}`)}
               />
             ))
           ) : (
@@ -275,10 +301,12 @@ export default function HomeScreen() {
               </Text>
               <TouchableOpacity
                 style={styles.emptyStateButton}
-                onPress={() => router.push("/children")}
+                onPress={() => router.push("/children-tab")}
               >
                 <Plus size={20} color="white" />
-                <Text style={styles.emptyStateButtonText}>Ajouter un enfant</Text>
+                <Text style={styles.emptyStateButtonText}>
+                  Ajouter un enfant
+                </Text>
               </TouchableOpacity>
             </Animated.View>
           )}
@@ -299,10 +327,7 @@ export default function HomeScreen() {
                 entering={FadeInDown.delay(800 + index * 100).duration(600)}
                 style={styles.quickActionWrapper}
               >
-                <QuickActionCard
-                  {...action}
-                  delay={0}
-                />
+                <QuickActionCard {...action} delay={0} />
               </Animated.View>
             ))}
           </View>
@@ -317,11 +342,7 @@ export default function HomeScreen() {
             Tout pour réussir
           </Animated.Text>
           {features.map((feature, index) => (
-            <FeatureCard
-              key={index}
-              {...feature}
-              delay={1300 + index * 100}
-            />
+            <FeatureCard key={index} {...feature} delay={1300 + index * 100} />
           ))}
         </View>
 
@@ -342,7 +363,7 @@ export default function HomeScreen() {
                 Obtenez des conseils personnalisés pour votre enfant
               </Text>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.ctaButton}
               onPress={() => router.push("/ai-coach")}
             >
@@ -352,7 +373,12 @@ export default function HomeScreen() {
           </LinearGradient>
         </Animated.View>
       </ScrollView>
-    </View>
+
+      <NotificationDrawer
+        visible={notificationDrawerVisible}
+        onClose={() => setNotificationDrawerVisible(false)}
+      />
+    </SafeAreaView>
   );
 }
 
@@ -482,18 +508,16 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   childAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.primary[100],
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
   childAvatarText: {
     fontFamily: FONTS.fredoka,
-    fontSize: 24,
-    color: COLORS.primary.DEFAULT,
+    fontSize: 20,
     fontWeight: "700",
   },
   childInfo: {
@@ -525,8 +549,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: "100%",
-    backgroundColor: COLORS.primary.DEFAULT,
-    borderRadius: 3,
+    borderRadius: 4,
   },
   progressText: {
     fontFamily: FONTS.secondary,

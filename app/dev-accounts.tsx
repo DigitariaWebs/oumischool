@@ -136,10 +136,9 @@ export default function DevAccountsScreen() {
           style={styles.noteCard}
         >
           <Text style={styles.noteText}>
-            <Text style={styles.noteBold}>Astuce:</Text> Vous pouvez aussi
-            vous connecter via l'écran de connexion en utilisant n'importe
-            quelle adresse email contenant "adam", "sofia", "tutor", ou
-            "mohamed".
+            <Text style={styles.noteBold}>Astuce:</Text> Vous pouvez aussi vous
+            connecter via l'écran de connexion en utilisant n'importe quelle
+            adresse email contenant "adam", "sofia", "tutor", ou "mohamed".
           </Text>
         </Animated.View>
       </ScrollView>

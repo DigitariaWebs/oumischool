@@ -1,11 +1,6 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import {
-  BookOpen,
-  PenLine,
-  TrendingUp,
-  User,
-} from "lucide-react-native";
+import { BookOpen, PenLine, TrendingUp, User } from "lucide-react-native";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { COLORS } from "@/config/colors";

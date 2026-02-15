@@ -58,22 +58,32 @@ export default function RootLayout() {
           <Stack.Screen name="welcome" options={{ headerShown: false }} />
           <Stack.Screen name="sign-in" options={{ headerShown: false }} />
           <Stack.Screen name="sign-up" options={{ headerShown: false }} />
-          <Stack.Screen name="otp-verification" options={{ headerShown: false }} />
-          <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
-          <Stack.Screen name="reset-password" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="otp-verification"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="forgot-password"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="reset-password"
+            options={{ headerShown: false }}
+          />
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs-child)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs-tutor)" options={{ headerShown: false }} />
           <Stack.Screen name="children" options={{ headerShown: false }} />
           <Stack.Screen name="weekly-plan" options={{ headerShown: false }} />
-      <Stack.Screen name="ai-coach" options={{ headerShown: false }} />
-      <Stack.Screen name="resources" options={{ headerShown: false }} />
-      <Stack.Screen name="dev-accounts" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="modal"
-        options={{ presentation: "modal", title: "Modal" }}
-      />
+          <Stack.Screen name="ai-coach" options={{ headerShown: false }} />
+          <Stack.Screen name="resources" options={{ headerShown: false }} />
+          <Stack.Screen name="dev-accounts" options={{ headerShown: false }} />
+          <Stack.Screen name="child-details" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="modal"
+            options={{ presentation: "modal", title: "Modal" }}
+          />
         </StackWithBackHandler>
         <StatusBar style="auto" />
       </ThemeProvider>
@@ -96,7 +106,6 @@ function StackWithBackHandler({ children }: { children: React.ReactNode }) {
     };
 
     BackHandler.addEventListener("hardwareBackPress", onBackPress);
-    return () => BackHandler.removeEventListener("hardwareBackPress", onBackPress);
   }, [router]);
 
   return <Stack>{children}</Stack>;

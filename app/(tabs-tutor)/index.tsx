@@ -25,12 +25,30 @@ import { useAppSelector } from "@/store/hooks";
 
 // Mock tutor data
 const MY_STUDENTS = [
-  { id: 1, name: "Adam B.", grade: "CE2", subject: "Maths", nextSession: "Aujourd'hui 14h" },
-  { id: 2, name: "Sofia M.", grade: "CP", subject: "Français", nextSession: "Demain 10h" },
+  {
+    id: 1,
+    name: "Adam B.",
+    grade: "CE2",
+    subject: "Maths",
+    nextSession: "Aujourd'hui 14h",
+  },
+  {
+    id: 2,
+    name: "Sofia M.",
+    grade: "CP",
+    subject: "Français",
+    nextSession: "Demain 10h",
+  },
 ];
 
 const UPCOMING_SESSIONS = [
-  { id: 1, student: "Adam", subject: "Mathématiques", time: "14:00", duration: 60 },
+  {
+    id: 1,
+    student: "Adam",
+    subject: "Mathématiques",
+    time: "14:00",
+    duration: 60,
+  },
   { id: 2, student: "Sofia", subject: "Français", time: "10:00", duration: 45 },
 ];
 
@@ -105,14 +123,23 @@ export default function TutorDashboardScreen() {
               entering={FadeInRight.delay(500 + index * 100).duration(600)}
               style={styles.studentCard}
             >
-              <TouchableOpacity style={styles.studentCardContent} activeOpacity={0.7}>
+              <TouchableOpacity
+                style={styles.studentCardContent}
+                activeOpacity={0.7}
+              >
                 <View style={styles.studentAvatar}>
-                  <Text style={styles.studentAvatarText}>{student.name.charAt(0)}</Text>
+                  <Text style={styles.studentAvatarText}>
+                    {student.name.charAt(0)}
+                  </Text>
                 </View>
                 <View style={styles.studentInfo}>
                   <Text style={styles.studentName}>{student.name}</Text>
-                  <Text style={styles.studentMeta}>{student.grade} • {student.subject}</Text>
-                  <Text style={styles.nextSession}>Prochaine: {student.nextSession}</Text>
+                  <Text style={styles.studentMeta}>
+                    {student.grade} • {student.subject}
+                  </Text>
+                  <Text style={styles.nextSession}>
+                    Prochaine: {student.nextSession}
+                  </Text>
                 </View>
                 <ChevronRight size={20} color={COLORS.secondary[400]} />
               </TouchableOpacity>
@@ -136,7 +163,9 @@ export default function TutorDashboardScreen() {
             >
               <View style={styles.sessionTime}>
                 <Text style={styles.sessionTimeText}>{session.time}</Text>
-                <Text style={styles.sessionDuration}>{session.duration} min</Text>
+                <Text style={styles.sessionDuration}>
+                  {session.duration} min
+                </Text>
               </View>
               <View style={styles.sessionInfo}>
                 <Text style={styles.sessionStudent}>{session.student}</Text>

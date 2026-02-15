@@ -27,7 +27,7 @@ export default function TutorAvailabilityScreen() {
 
   const toggleSlot = (slot: string) => {
     setSelectedSlots((prev) =>
-      prev.includes(slot) ? prev.filter((s) => s !== slot) : [...prev, slot]
+      prev.includes(slot) ? prev.filter((s) => s !== slot) : [...prev, slot],
     );
   };
 
@@ -75,7 +75,10 @@ export default function TutorAvailabilityScreen() {
                 onPress={() => toggleSlot(slot)}
                 activeOpacity={0.7}
               >
-                <Clock size={20} color={selectedSlots.includes(slot) ? "white" : "#8B5CF6"} />
+                <Clock
+                  size={20}
+                  color={selectedSlots.includes(slot) ? "white" : "#8B5CF6"}
+                />
                 <Text
                   style={[
                     styles.slotText,
@@ -97,7 +100,8 @@ export default function TutorAvailabilityScreen() {
           style={styles.infoCard}
         >
           <Text style={styles.infoText}>
-            Les parents pourront réserver des sessions pendant vos créneaux disponibles.
+            Les parents pourront réserver des sessions pendant vos créneaux
+            disponibles.
           </Text>
         </Animated.View>
       </ScrollView>

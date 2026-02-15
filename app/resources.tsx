@@ -139,7 +139,10 @@ const SubjectChip: React.FC<SubjectChipProps> = ({
     onPress={onPress}
     activeOpacity={0.7}
   >
-    <subject.Icon size={20} color={isSelected ? subject.color : COLORS.secondary[600]} />
+    <subject.Icon
+      size={20}
+      color={isSelected ? subject.color : COLORS.secondary[600]}
+    />
     <Text
       style={[
         styles.subjectChipText,
@@ -159,8 +162,18 @@ interface ResourceCardProps {
 const ResourceCard: React.FC<ResourceCardProps> = ({ resource, delay }) => (
   <Animated.View entering={FadeInDown.delay(delay).duration(400)}>
     <TouchableOpacity style={styles.resourceCard} activeOpacity={0.7}>
-      <View style={[styles.resourceIconContainer, { backgroundColor: resource.color + "15" }]}>
-        <View style={[styles.resourceIcon, { backgroundColor: resource.color + "30" }]}>
+      <View
+        style={[
+          styles.resourceIconContainer,
+          { backgroundColor: resource.color + "15" },
+        ]}
+      >
+        <View
+          style={[
+            styles.resourceIcon,
+            { backgroundColor: resource.color + "30" },
+          ]}
+        >
           <FileText size={24} color={resource.color} />
         </View>
       </View>
@@ -168,7 +181,12 @@ const ResourceCard: React.FC<ResourceCardProps> = ({ resource, delay }) => (
       <View style={styles.resourceContent}>
         <View style={styles.resourceHeader}>
           <View style={styles.resourceBadges}>
-            <View style={[styles.typeBadge, { backgroundColor: resource.color + "15" }]}>
+            <View
+              style={[
+                styles.typeBadge,
+                { backgroundColor: resource.color + "15" },
+              ]}
+            >
               <Text style={[styles.typeBadgeText, { color: resource.color }]}>
                 {resource.type}
               </Text>
@@ -201,7 +219,9 @@ const ResourceCard: React.FC<ResourceCardProps> = ({ resource, delay }) => (
             <TouchableOpacity style={styles.actionButton}>
               <Eye size={18} color={COLORS.primary.DEFAULT} />
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionButton, styles.downloadButton]}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.downloadButton]}
+            >
               <Download size={18} color="white" />
             </TouchableOpacity>
           </View>
@@ -231,10 +251,7 @@ export default function ResourcesScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleBack}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <ArrowLeft size={24} color={COLORS.secondary[900]} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Ressources</Text>

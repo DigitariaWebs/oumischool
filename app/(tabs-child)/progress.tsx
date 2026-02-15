@@ -1,12 +1,15 @@
 import React from "react";
+import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Dimensions,
-} from "react-native";
-import { TrendingUp, Trophy, Star, Calculator, FileText, FlaskConical, BookOpen, Flame } from "lucide-react-native";
+  TrendingUp,
+  Trophy,
+  Star,
+  Calculator,
+  FileText,
+  FlaskConical,
+  BookOpen,
+  Flame,
+} from "lucide-react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -74,11 +77,16 @@ export default function ChildProgressScreen() {
             ].map((badge, index) => (
               <Animated.View
                 key={index}
-                entering={FadeInUp.delay(450 + index * 80).springify().damping(14)}
+                entering={FadeInUp.delay(450 + index * 80)
+                  .springify()
+                  .damping(14)}
                 style={[styles.badge, !badge.earned && styles.badgeLocked]}
               >
                 <View style={styles.badgeIcon}>
-                  <badge.Icon size={36} color={badge.earned ? "#3B82F6" : COLORS.secondary[400]} />
+                  <badge.Icon
+                    size={36}
+                    color={badge.earned ? "#3B82F6" : COLORS.secondary[400]}
+                  />
                 </View>
                 <Text
                   style={[
@@ -104,11 +112,18 @@ export default function ChildProgressScreen() {
           {SUBJECT_PROGRESS.map((item, index) => (
             <Animated.View
               key={item.subject}
-              entering={FadeInUp.delay(700 + index * 100).springify().damping(14)}
+              entering={FadeInUp.delay(700 + index * 100)
+                .springify()
+                .damping(14)}
               style={styles.subjectCard}
             >
               <View style={styles.subjectHeader}>
-                <View style={[styles.subjectIcon, { backgroundColor: item.color + "25" }]}>
+                <View
+                  style={[
+                    styles.subjectIcon,
+                    { backgroundColor: item.color + "25" },
+                  ]}
+                >
                   <item.Icon size={32} color={item.color} />
                 </View>
                 <Text style={styles.subjectName}>{item.subject}</Text>

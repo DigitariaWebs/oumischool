@@ -123,6 +123,7 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
 }) => {
   const [icons, setIcons] = useState<IconItem[]>([]);
   const logoOpacity = useSharedValue(0);
+  const iconCounter = React.useRef(0);
 
   // Check if new position overlaps with existing icons or center logo
   const isOverlapping = React.useCallback(
@@ -199,7 +200,8 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
       const ms = initialPhaseDelay + i * CONFIG.INITIAL_INTERVAL_MS;
       const timeout = setTimeout(() => {
         // Using template literal for ID
-        setIcons((prev) => [...prev, generateRandomIcon(`init-${i}`, prev)]);
+        const id = `icon-${iconCounter.current++}`;
+        setIcons((prev) => [...prev, generateRandomIcon(id, prev)]);
       }, ms);
       timeoutIds.push(timeout);
     }
@@ -225,10 +227,8 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
           return;
         }
 
-        setIcons((prev) => [
-          ...prev,
-          generateRandomIcon(`burst-${burstCount}`, prev),
-        ]);
+        const id = `icon-${iconCounter.current++}`;
+        setIcons((prev) => [...prev, generateRandomIcon(id, prev)]);
         burstCount++;
       }, CONFIG.BURST_INTERVAL_MS);
     }, burstStartTime);

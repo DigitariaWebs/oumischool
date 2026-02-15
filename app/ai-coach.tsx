@@ -9,6 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
+  Modal,
+  FlatList,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeBack } from "@/hooks/useSafeBack";
@@ -24,6 +26,17 @@ import {
   FileText,
   Calculator,
   Globe,
+  User,
+  X,
+  BookOpen,
+  Beaker,
+  TrendingUp,
+  AlertCircle,
+  Lightbulb,
+  Clipboard,
+  Edit,
+  HelpCircle,
+  Search,
 } from "lucide-react-native";
 import Animated, {
   FadeInDown,
@@ -34,15 +47,39 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import {
+  setChildContext,
+  clearContext,
+  addMessage,
+  setIsTyping,
+  initializeChat,
+} from "@/store/slices/aiContextSlice";
+import { getRoleBasedConfig, getIconForPrompt } from "@/utils/chatbotConfig";
+import {
+  generateAIResponse,
+  getContextualPrompt,
+} from "@/utils/aiResponseGenerator";
+import { Message } from "@/src/types";
 
 const { width } = Dimensions.get("window");
 
-interface Message {
-  id: number;
-  type: "user" | "ai";
-  content: string;
-  timestamp: Date;
-}
+const iconComponents: Record<string, any> = {
+  Calculator,
+  FileText,
+  Beaker,
+  BookOpen,
+  TrendingUp,
+  AlertCircle,
+  Lightbulb,
+  Clipboard,
+  Edit,
+  HelpCircle,
+  Search,
+  Ruler,
+  Globe,
+  User,
+};
 
 interface QuickPromptProps {
   Icon: React.ComponentType<{ size?: number; color?: string }>;
@@ -117,28 +154,101 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, delay }) => {
   );
 };
 
+interface ChildSelectorModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onSelectChild: (childId: string) => void;
+}
+
+const ChildSelectorModal: React.FC<ChildSelectorModalProps> = ({
+  visible,
+  onClose,
+  onSelectChild,
+}) => {
+  const children = useAppSelector((state) => state.children.children);
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Sélectionner un enfant</Text>
+            <TouchableOpacity onPress={onClose} style={styles.modalClose}>
+              <X size={24} color={COLORS.secondary[700]} />
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={children}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.childOption}
+                onPress={() => {
+                  onSelectChild(item.id);
+                  onClose();
+                }}
+              >
+                <View
+                  style={[
+                    styles.childAvatar,
+                    { backgroundColor: item.color + "20" },
+                  ]}
+                >
+                  <User size={20} color={item.color} />
+                </View>
+                <View style={styles.childInfo}>
+                  <Text style={styles.childOptionName}>{item.name}</Text>
+                  <Text style={styles.childOptionGrade}>
+                    {item.grade} • {item.progress}% de progression
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 export default function AICoachScreen() {
   const router = useRouter();
   const handleBack = useSafeBack();
+  const dispatch = useAppDispatch();
   const scrollViewRef = useRef<ScrollView>(null);
-  const [inputText, setInputText] = useState("");
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      type: "ai",
-      content:
-        "Bonjour ! Je suis votre coach pédagogique IA. Comment puis-je vous aider aujourd'hui ?",
-      timestamp: new Date(),
-    },
-  ]);
-  const [isTyping, setIsTyping] = useState(false);
 
-  const quickPrompts = [
-    { Icon: Ruler, text: "Explique les fractions" },
-    { Icon: FileText, text: "Exercices de français" },
-    { Icon: Calculator, text: "Tables de multiplication" },
-    { Icon: Globe, text: "Géographie de France" },
-  ];
+  // Redux state
+  const user = useAppSelector((state) => state.auth.user);
+  const children = useAppSelector((state) => state.children.children);
+  const context = useAppSelector((state) => state.aiContext.context);
+  const messagesFromStore = useAppSelector((state) => state.aiContext.messages);
+  const isTypingFromStore = useAppSelector((state) => state.aiContext.isTyping);
+
+  const [inputText, setInputText] = useState("");
+  const [showChildSelector, setShowChildSelector] = useState(false);
+
+  // Get role-based configuration
+  const roleConfig = getRoleBasedConfig(user?.role || "child");
+
+  // Initialize chat on mount
+  useEffect(() => {
+    if (messagesFromStore.length === 0) {
+      dispatch(
+        initializeChat({
+          role: user?.role || "child",
+          welcomeMessage: roleConfig.welcomeMessage,
+        }),
+      );
+    }
+  }, []);
+
+  const messages = messagesFromStore;
+  const isTyping = isTypingFromStore;
 
   const handleSendMessage = (text?: string) => {
     const messageText = text || inputText.trim();
@@ -146,34 +256,73 @@ export default function AICoachScreen() {
 
     // Add user message
     const userMessage: Message = {
-      id: Date.now(),
+      id: `${Date.now()}`,
       type: "user",
       content: messageText,
       timestamp: new Date(),
     };
-    setMessages((prev) => [...prev, userMessage]);
+    dispatch(addMessage(userMessage));
     setInputText("");
-    setIsTyping(true);
+    dispatch(setIsTyping(true));
 
-    // Simulate AI response
+    // Generate AI response
     setTimeout(() => {
+      const aiResponse = generateAIResponse({
+        userMessage: messageText,
+        role: user?.role || "child",
+        context: context,
+        messageHistory: messages,
+      });
+
       const aiMessage: Message = {
-        id: Date.now() + 1,
+        id: `${Date.now() + 1}`,
         type: "ai",
-        content: getAIResponse(messageText),
+        content: aiResponse,
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, aiMessage]);
-      setIsTyping(false);
+      dispatch(addMessage(aiMessage));
+      dispatch(setIsTyping(false));
     }, 1500);
   };
 
-  const getAIResponse = (userMessage: string): string => {
-    // Mock AI responses
-    if (userMessage.toLowerCase().includes("fraction")) {
-      return "Les fractions, c'est simple ! Imagine une pizza.\n\nSi tu la coupes en 4 parts égales, chaque part représente 1/4 (un quart).\n\nLe chiffre du bas (dénominateur) dit en combien de parts on coupe, et celui du haut (numérateur) dit combien on en prend.\n\nExemple : 3/4 = 3 parts sur 4 parts totales.";
+  const handleSelectChild = (childId: string) => {
+    const selectedChild = children.find((c) => c.id === childId);
+    if (selectedChild) {
+      dispatch(
+        setChildContext({
+          childId: selectedChild.id,
+          childData: selectedChild,
+        }),
+      );
+
+      // Send context confirmation message
+      const contextMessage: Message = {
+        id: `${Date.now()}`,
+        type: "ai",
+        content: `Parfait ! Je vais maintenant vous aider avec les informations de ${selectedChild.name}. Que voulez-vous savoir ?`,
+        timestamp: new Date(),
+      };
+      dispatch(addMessage(contextMessage));
     }
-    return "Je suis là pour vous aider ! Posez-moi des questions sur les mathématiques, le français, les sciences ou toute autre matière. Je peux aussi vous suggérer des exercices adaptés.";
+  };
+
+  const handleQuickPrompt = (prompt: any) => {
+    if (prompt.requiresContext && user?.role === "parent" && !context.childId) {
+      setShowChildSelector(true);
+      return;
+    }
+    handleSendMessage(prompt.text);
+  };
+
+  const handleClearContext = () => {
+    dispatch(clearContext());
+    const contextMessage: Message = {
+      id: `${Date.now()}`,
+      type: "ai",
+      content: "Contexte réinitialisé. Comment puis-je vous aider ?",
+      timestamp: new Date(),
+    };
+    dispatch(addMessage(contextMessage));
   };
 
   useEffect(() => {
@@ -193,25 +342,47 @@ export default function AICoachScreen() {
         style={styles.header}
       >
         <View style={styles.headerContent}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={handleBack}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
             <ArrowLeft size={24} color={COLORS.neutral.white} />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
             <View style={styles.aiHeaderAvatar}>
               <Sparkles size={20} color="white" />
             </View>
-            <View>
-              <Text style={styles.headerTitle}>Coach Pédago</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.headerTitle}>
+                {user?.role === "parent"
+                  ? "Assistant Parental"
+                  : user?.role === "tutor"
+                    ? "Assistant Pédagogique"
+                    : "Assistant d'Apprentissage"}
+              </Text>
               <View style={styles.onlineIndicator}>
                 <View style={styles.onlineDot} />
-                <Text style={styles.onlineText}>En ligne</Text>
+                <Text style={styles.onlineText}>
+                  {context.childId && context.childData
+                    ? `Contexte: ${context.childData.name}`
+                    : "En ligne"}
+                </Text>
               </View>
             </View>
           </View>
-          <View style={{ width: 40 }} />
+          {user?.role === "parent" && context.childId && (
+            <TouchableOpacity
+              style={styles.contextButton}
+              onPress={handleClearContext}
+            >
+              <X size={18} color={COLORS.neutral.white} />
+            </TouchableOpacity>
+          )}
+          {user?.role === "parent" && !context.childId && (
+            <TouchableOpacity
+              style={styles.contextButton}
+              onPress={() => setShowChildSelector(true)}
+            >
+              <User size={18} color={COLORS.neutral.white} />
+            </TouchableOpacity>
+          )}
         </View>
       </LinearGradient>
 
@@ -254,27 +425,36 @@ export default function AICoachScreen() {
           )}
 
           {/* Quick Prompts (show when chat is empty) */}
-          {messages.length === 1 && (
+          {messages.length <= 2 && (
             <Animated.View
               entering={FadeInUp.delay(400).duration(600)}
               style={styles.quickPromptsContainer}
             >
-              <Text style={styles.quickPromptsTitle}>
-                Suggestions rapides
-              </Text>
+              <Text style={styles.quickPromptsTitle}>Suggestions rapides</Text>
               <View style={styles.quickPromptsGrid}>
-                {quickPrompts.map((prompt, index) => (
-                  <QuickPrompt
-                    key={index}
-                    Icon={prompt.Icon}
-                    text={prompt.text}
-                    onPress={() => handleSendMessage(prompt.text)}
-                  />
-                ))}
+                {roleConfig.quickPrompts.map((prompt, index) => {
+                  const IconComponent =
+                    iconComponents[getIconForPrompt(prompt.icon)] || Sparkles;
+                  return (
+                    <QuickPrompt
+                      key={prompt.id}
+                      Icon={IconComponent}
+                      text={prompt.text}
+                      onPress={() => handleQuickPrompt(prompt)}
+                    />
+                  );
+                })}
               </View>
             </Animated.View>
           )}
         </ScrollView>
+
+        {/* Child Selector Modal */}
+        <ChildSelectorModal
+          visible={showChildSelector}
+          onClose={() => setShowChildSelector(false)}
+          onSelectChild={handleSelectChild}
+        />
 
         {/* Input */}
         <View style={styles.inputContainer}>
@@ -299,9 +479,7 @@ export default function AICoachScreen() {
               <Send
                 size={20}
                 color={
-                  inputText.trim()
-                    ? COLORS.neutral.white
-                    : COLORS.neutral[400]
+                  inputText.trim() ? COLORS.neutral.white : COLORS.neutral[400]
                 }
               />
             </TouchableOpacity>
@@ -369,11 +547,20 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: "#10B981",
     marginRight: 6,
+    marginBottom: 4,
   },
   onlineText: {
     fontFamily: FONTS.secondary,
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.neutral[100],
+  },
+  contextButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   // Messages
   messagesContainer: {
@@ -552,5 +739,68 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.secondary[400],
     textAlign: "center",
+  },
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: COLORS.neutral.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "70%",
+    paddingBottom: 32,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral[200],
+  },
+  modalTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 20,
+    color: COLORS.secondary[900],
+  },
+  modalClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.neutral[100],
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  childOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral[100],
+  },
+  childAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  childInfo: {
+    flex: 1,
+  },
+  childOptionName: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 16,
+    color: COLORS.secondary[900],
+    marginBottom: 4,
+  },
+  childOptionGrade: {
+    fontFamily: FONTS.secondary,
+    fontSize: 14,
+    color: COLORS.secondary[500],
   },
 });

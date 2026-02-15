@@ -51,20 +51,20 @@ export default function SignInScreen() {
 
   const handleSignIn = () => {
     setIsLoading(true);
-    
+
     setTimeout(() => {
       // Mock login based on email
-      let role: 'parent' | 'child' | 'tutor' = 'parent';
-      
-      if (email.includes('adam') || email.includes('sofia')) {
-        role = 'child';
-      } else if (email.includes('tutor') || email.includes('mohamed')) {
-        role = 'tutor';
+      let role: "parent" | "child" | "tutor" = "parent";
+
+      if (email.includes("adam") || email.includes("sofia")) {
+        role = "child";
+      } else if (email.includes("tutor") || email.includes("mohamed")) {
+        role = "tutor";
       }
-      
+
       // Dispatch mock login action
       dispatch(mockLogin(role));
-      
+
       setIsLoading(false);
       // Redirect to role-specific dashboard
       if (role === "child") {
@@ -127,7 +127,7 @@ export default function SignInScreen() {
             icon={<Lock size={20} color={COLORS.neutral[400]} />}
           />
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.forgotPassword}
             onPress={() => router.push("/forgot-password")}
           >

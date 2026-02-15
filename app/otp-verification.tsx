@@ -94,7 +94,7 @@ export default function OTPVerificationScreen() {
 
   const handleVerify = async () => {
     const otpCode = otp.join("");
-    
+
     if (otpCode.length !== 6) {
       setError("Veuillez entrer le code complet");
       return;

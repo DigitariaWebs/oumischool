@@ -14,9 +14,30 @@ import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 
 const SESSIONS = [
-  { id: 1, date: "Aujourd'hui", student: "Adam", subject: "Maths", time: "14:00", status: "upcoming" },
-  { id: 2, date: "Demain", student: "Sofia", subject: "Français", time: "10:00", status: "upcoming" },
-  { id: 3, date: "Hier", student: "Adam", subject: "Maths", time: "14:00", status: "completed" },
+  {
+    id: 1,
+    date: "Aujourd'hui",
+    student: "Adam",
+    subject: "Maths",
+    time: "14:00",
+    status: "upcoming",
+  },
+  {
+    id: 2,
+    date: "Demain",
+    student: "Sofia",
+    subject: "Français",
+    time: "10:00",
+    status: "upcoming",
+  },
+  {
+    id: 3,
+    date: "Hier",
+    student: "Adam",
+    subject: "Maths",
+    time: "14:00",
+    status: "completed",
+  },
 ];
 
 export default function TutorSessionsScreen() {
@@ -59,7 +80,9 @@ export default function TutorSessionsScreen() {
               </View>
               <View style={styles.sessionDetails}>
                 <Text style={styles.sessionStudent}>{session.student}</Text>
-                <Text style={styles.sessionMeta}>{session.subject} • {session.time}</Text>
+                <Text style={styles.sessionMeta}>
+                  {session.subject} • {session.time}
+                </Text>
               </View>
               {session.status === "upcoming" ? (
                 <TouchableOpacity style={styles.videoButton}>

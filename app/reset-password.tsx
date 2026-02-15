@@ -229,9 +229,7 @@ export default function ResetPasswordScreen() {
               }}
             />
 
-            <Text style={styles.helpText}>
-              Minimum 8 caractères recommandé
-            </Text>
+            <Text style={styles.helpText}>Minimum 8 caractères recommandé</Text>
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>

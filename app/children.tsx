@@ -18,11 +18,7 @@ import {
   ArrowLeft,
   Edit,
 } from "lucide-react-native";
-import Animated, {
-  FadeInDown,
-  FadeIn,
-  Layout,
-} from "react-native-reanimated";
+import Animated, { FadeInDown, FadeIn, Layout } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
@@ -89,10 +85,7 @@ const ChildDetailCard: React.FC<ChildCardProps> = ({
             </View>
           </View>
           <TouchableOpacity
-            style={[
-              styles.editButton,
-              { backgroundColor: child.color + "20" },
-            ]}
+            style={[styles.editButton, { backgroundColor: child.color + "20" }]}
             onPress={() => console.log("Edit child")}
           >
             <Edit size={18} color={child.color} />
@@ -151,10 +144,10 @@ export default function ChildrenScreen() {
   const router = useRouter();
   const handleBack = useSafeBack();
   const childrenFromStore = useAppSelector((state) => state.children.children);
-  
+
   // Map Redux children to local Child interface
   const children: Child[] = childrenFromStore.map((child) => ({
-    id: parseInt(child.id.split('-')[1]),
+    id: parseInt(child.id.split("-")[1]),
     name: child.name,
     grade: child.grade,
     age: child.age,
@@ -169,10 +162,7 @@ export default function ChildrenScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleBack}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <ArrowLeft size={24} color={COLORS.secondary[900]} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Mes enfants</Text>

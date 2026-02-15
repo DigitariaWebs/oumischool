@@ -53,10 +53,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
     >
       <View style={styles.menuItemLeft}>
         <View
-          style={[
-            styles.menuIcon,
-            destructive && styles.menuIconDestructive,
-          ]}
+          style={[styles.menuIcon, destructive && styles.menuIconDestructive]}
         >
           {icon}
         </View>
@@ -69,9 +66,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
           >
             {title}
           </Text>
-          {subtitle && (
-            <Text style={styles.menuItemSubtitle}>{subtitle}</Text>
-          )}
+          {subtitle && <Text style={styles.menuItemSubtitle}>{subtitle}</Text>}
         </View>
       </View>
       <ChevronRight
@@ -140,7 +135,9 @@ export default function ProfileScreen() {
             <View style={styles.avatarContainer}>
               <User size={48} color={COLORS.neutral.white} />
             </View>
-            <Text style={styles.profileName}>{user?.name || "Utilisateur"}</Text>
+            <Text style={styles.profileName}>
+              {user?.name || "Utilisateur"}
+            </Text>
             <Text style={styles.profileRole}>
               {user?.role === "parent"
                 ? "Parent"
@@ -158,7 +155,9 @@ export default function ProfileScreen() {
         >
           <View style={styles.infoRow}>
             <Mail size={20} color={COLORS.secondary[600]} />
-            <Text style={styles.infoText}>{user?.email || "email@example.com"}</Text>
+            <Text style={styles.infoText}>
+              {user?.email || "email@example.com"}
+            </Text>
           </View>
           {user?.phoneNumber && (
             <View style={styles.infoRow}>
@@ -171,11 +170,7 @@ export default function ProfileScreen() {
         {/* Menu Items */}
         <View style={styles.menuSection}>
           {menuItems.map((item, index) => (
-            <MenuItem
-              key={index}
-              {...item}
-              delay={400 + index * 50}
-            />
+            <MenuItem key={index} {...item} delay={400 + index * 50} />
           ))}
         </View>
 

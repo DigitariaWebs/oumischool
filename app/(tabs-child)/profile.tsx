@@ -77,7 +77,9 @@ export default function ChildProfileScreen() {
           {menuItems.map((item, index) => (
             <Animated.View
               key={index}
-              entering={FadeInUp.delay(250 + index * 80).springify().damping(14)}
+              entering={FadeInUp.delay(250 + index * 80)
+                .springify()
+                .damping(14)}
             >
               <Pressable
                 style={({ pressed }) => [

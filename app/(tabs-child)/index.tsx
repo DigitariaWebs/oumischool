@@ -34,9 +34,33 @@ import { FONTS } from "@/config/fonts";
 import { useAppSelector } from "@/store/hooks";
 
 const TODAY_LESSONS = [
-  { id: 1, subject: "Maths", title: "Les fractions", duration: 25, completed: false, Icon: Calculator, color: "#3B82F6" },
-  { id: 2, subject: "Français", title: "Conjugaison", duration: 20, completed: true, Icon: FileText, color: "#EC4899" },
-  { id: 3, subject: "Sciences", title: "L'eau", duration: 30, completed: false, Icon: Droplets, color: "#10B981" },
+  {
+    id: 1,
+    subject: "Maths",
+    title: "Les fractions",
+    duration: 25,
+    completed: false,
+    Icon: Calculator,
+    color: "#3B82F6",
+  },
+  {
+    id: 2,
+    subject: "Français",
+    title: "Conjugaison",
+    duration: 20,
+    completed: true,
+    Icon: FileText,
+    color: "#EC4899",
+  },
+  {
+    id: 3,
+    subject: "Sciences",
+    title: "L'eau",
+    duration: 30,
+    completed: false,
+    Icon: Droplets,
+    color: "#10B981",
+  },
 ];
 
 const springConfig = { damping: 12, stiffness: 150 };
@@ -64,8 +88,12 @@ function BouncyCard({
     >
       <Pressable
         onPress={onPress}
-        onPressIn={() => { scale.value = withSpring(0.96, springConfig); }}
-        onPressOut={() => { scale.value = withSpring(1, springConfig); }}
+        onPressIn={() => {
+          scale.value = withSpring(0.96, springConfig);
+        }}
+        onPressOut={() => {
+          scale.value = withSpring(1, springConfig);
+        }}
         style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1 }]}
       >
         {children}
@@ -157,12 +185,19 @@ export default function ChildDashboardScreen() {
               style={styles.lessonCard}
             >
               <View style={styles.lessonCardContent}>
-                <View style={[styles.lessonIcon, { backgroundColor: lesson.color + "25" }]}>
+                <View
+                  style={[
+                    styles.lessonIcon,
+                    { backgroundColor: lesson.color + "25" },
+                  ]}
+                >
                   <lesson.Icon size={36} color={lesson.color} />
                 </View>
                 <View style={styles.lessonInfo}>
                   <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                  <Text style={styles.lessonMeta}>{lesson.subject} • {lesson.duration} min</Text>
+                  <Text style={styles.lessonMeta}>
+                    {lesson.subject} • {lesson.duration} min
+                  </Text>
                 </View>
                 {lesson.completed ? (
                   <View style={styles.completedBadge}>
@@ -170,7 +205,12 @@ export default function ChildDashboardScreen() {
                     <Text style={styles.completedText}>Fait !</Text>
                   </View>
                 ) : (
-                  <View style={[styles.playButton, { backgroundColor: lesson.color }]}>
+                  <View
+                    style={[
+                      styles.playButton,
+                      { backgroundColor: lesson.color },
+                    ]}
+                  >
                     <Play size={32} color="white" fill="white" />
                   </View>
                 )}

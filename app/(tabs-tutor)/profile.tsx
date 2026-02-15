@@ -66,7 +66,9 @@ export default function TutorProfileScreen() {
               <GraduationCap size={48} color={COLORS.neutral.white} />
             </View>
             <Text style={styles.profileName}>{user?.name || "Tuteur"}</Text>
-            <Text style={styles.profileRole}>Tuteur • {user?.subjects?.join(", ")}</Text>
+            <Text style={styles.profileRole}>
+              Tuteur • {user?.subjects?.join(", ")}
+            </Text>
             <View style={styles.ratingRow}>
               <Star size={18} color="#FBBF24" fill="#FBBF24" />
               <Text style={styles.ratingText}>{user?.rating} / 5</Text>
@@ -78,13 +80,18 @@ export default function TutorProfileScreen() {
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
             <Mail size={20} color={COLORS.secondary[600]} />
-            <Text style={styles.infoText}>{user?.email || "email@example.com"}</Text>
+            <Text style={styles.infoText}>
+              {user?.email || "email@example.com"}
+            </Text>
           </View>
         </View>
 
         <View style={styles.menuSection}>
           {menuItems.map((item, index) => (
-            <Animated.View key={index} entering={FadeInDown.delay(300 + index * 50).duration(400)}>
+            <Animated.View
+              key={index}
+              entering={FadeInDown.delay(300 + index * 50).duration(400)}
+            >
               <TouchableOpacity
                 style={styles.menuItem}
                 onPress={item.onPress}

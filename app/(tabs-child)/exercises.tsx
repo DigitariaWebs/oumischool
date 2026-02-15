@@ -1,12 +1,12 @@
 import React from "react";
+import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-} from "react-native";
-import { PenLine, ChevronRight, Calculator, FileText, Globe } from "lucide-react-native";
+  PenLine,
+  ChevronRight,
+  Calculator,
+  FileText,
+  Globe,
+} from "lucide-react-native";
 import Animated, {
   FadeInDown,
   FadeInUp,
@@ -21,9 +21,30 @@ import { FONTS } from "@/config/fonts";
 import { useAppSelector } from "@/store/hooks";
 
 const EXERCISES = [
-  { id: 1, subject: "Maths", title: "Addition jusqu'à 100", progress: 80, Icon: Calculator, color: "#3B82F6" },
-  { id: 2, subject: "Français", title: "Conjugaison", progress: 60, Icon: FileText, color: "#EC4899" },
-  { id: 3, subject: "Sciences", title: "Les planètes", progress: 0, Icon: Globe, color: "#10B981" },
+  {
+    id: 1,
+    subject: "Maths",
+    title: "Addition jusqu'à 100",
+    progress: 80,
+    Icon: Calculator,
+    color: "#3B82F6",
+  },
+  {
+    id: 2,
+    subject: "Français",
+    title: "Conjugaison",
+    progress: 60,
+    Icon: FileText,
+    color: "#EC4899",
+  },
+  {
+    id: 3,
+    subject: "Sciences",
+    title: "Les planètes",
+    progress: 0,
+    Icon: Globe,
+    color: "#10B981",
+  },
 ];
 
 const springConfig = { damping: 12, stiffness: 150 };
@@ -51,8 +72,12 @@ function BouncyCard({
     >
       <Pressable
         onPress={onPress}
-        onPressIn={() => { scale.value = withSpring(0.96, springConfig); }}
-        onPressOut={() => { scale.value = withSpring(1, springConfig); }}
+        onPressIn={() => {
+          scale.value = withSpring(0.96, springConfig);
+        }}
+        onPressOut={() => {
+          scale.value = withSpring(1, springConfig);
+        }}
       >
         {children}
       </Pressable>
@@ -80,9 +105,7 @@ export default function ChildExercisesScreen() {
             style={styles.headerGradient}
           >
             <Text style={styles.headerTitle}>Mes jeux</Text>
-            <Text style={styles.headerSubtitle}>
-              Continue, {user?.name} !
-            </Text>
+            <Text style={styles.headerSubtitle}>Continue, {user?.name} !</Text>
           </LinearGradient>
         </Animated.View>
 
@@ -94,7 +117,12 @@ export default function ChildExercisesScreen() {
               style={styles.exerciseCard}
             >
               <View style={styles.exerciseContent}>
-                <View style={[styles.exerciseIcon, { backgroundColor: ex.color + "25" }]}>
+                <View
+                  style={[
+                    styles.exerciseIcon,
+                    { backgroundColor: ex.color + "25" },
+                  ]}
+                >
                   <ex.Icon size={36} color={ex.color} />
                 </View>
                 <View style={styles.exerciseInfo}>

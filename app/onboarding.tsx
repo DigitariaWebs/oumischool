@@ -196,7 +196,7 @@ export default function OnboardingScreen() {
               <Text style={styles.sectionHint}>
                 Sélectionnez le niveau actuel de votre enfant
               </Text>
-              
+
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -235,7 +235,7 @@ export default function OnboardingScreen() {
                   </Animated.View>
                 ))}
               </ScrollView>
-              
+
               {childGrade && (
                 <Animated.View
                   entering={FadeInRight.duration(400)}
