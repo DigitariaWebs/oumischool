@@ -1,6 +1,12 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import { Home, Users, BookOpen, User } from "lucide-react-native";
+import {
+  Home,
+  Users,
+  BookOpen,
+  User,
+  GraduationCap,
+} from "lucide-react-native";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { COLORS } from "@/config/colors";
@@ -59,6 +65,19 @@ export default function TabLayout() {
           title: "Ressources",
           tabBarIcon: ({ color, focused }) => (
             <BookOpen
+              size={24}
+              color={color}
+              fill={focused ? color : "transparent"}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="tutors-tab"
+        options={{
+          title: "Tuteurs",
+          tabBarIcon: ({ color, focused }) => (
+            <GraduationCap
               size={24}
               color={color}
               fill={focused ? color : "transparent"}

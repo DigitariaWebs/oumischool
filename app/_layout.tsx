@@ -54,32 +54,17 @@ export default function RootLayout() {
     <Provider store={store}>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <StackWithBackHandler>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="welcome" options={{ headerShown: false }} />
-          <Stack.Screen name="sign-in" options={{ headerShown: false }} />
-          <Stack.Screen name="sign-up" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="otp-verification"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="forgot-password"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="reset-password"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs-child)" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs-tutor)" options={{ headerShown: false }} />
-          <Stack.Screen name="children" options={{ headerShown: false }} />
-          <Stack.Screen name="weekly-plan" options={{ headerShown: false }} />
-          <Stack.Screen name="ai-coach" options={{ headerShown: false }} />
-          <Stack.Screen name="resources" options={{ headerShown: false }} />
-          <Stack.Screen name="dev-accounts" options={{ headerShown: false }} />
-          <Stack.Screen name="child-details" options={{ headerShown: false }} />
+          <Stack.Screen name="index" />
+          <Stack.Screen name="welcome" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="onboarding" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(tabs-child)" />
+          <Stack.Screen name="(tabs-tutor)" />
+          <Stack.Screen name="weekly-plan" />
+          <Stack.Screen name="ai-coach" />
+          <Stack.Screen name="resources" />
+          <Stack.Screen name="dev-accounts" />
           <Stack.Screen
             name="modal"
             options={{ presentation: "modal", title: "Modal" }}
@@ -108,5 +93,5 @@ function StackWithBackHandler({ children }: { children: React.ReactNode }) {
     BackHandler.addEventListener("hardwareBackPress", onBackPress);
   }, [router]);
 
-  return <Stack>{children}</Stack>;
+  return <Stack screenOptions={{ headerShown: false }}>{children}</Stack>;
 }

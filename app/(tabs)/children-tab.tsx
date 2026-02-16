@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,7 +15,7 @@ import {
   BookOpen,
   Edit,
 } from "lucide-react-native";
-import Animated, { FadeInDown, FadeIn, Layout } from "react-native-reanimated";
+import Animated, { FadeInDown, Layout } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
@@ -24,8 +23,6 @@ import { FONTS } from "@/config/fonts";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { addChild } from "@/store/slices/childrenSlice";
 import AddChildModal from "@/components/AddChildModal";
-
-const { width } = Dimensions.get("window");
 
 interface Child {
   id: number;
@@ -215,7 +212,9 @@ export default function ChildrenTab() {
             key={child.id}
             child={child}
             delay={200 + index * 100}
-            onPress={() => router.push(`/child-details?id=child-${child.id}`)}
+            onPress={() =>
+              router.push(`/parent/child/details?id=child-${child.id}`)
+            }
           />
         ))}
 

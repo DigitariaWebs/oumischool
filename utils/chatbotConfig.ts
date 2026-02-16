@@ -1,5 +1,5 @@
 import { UserRole } from "@/store/slices/authSlice";
-import { RoleBasedPrompts, QuickPrompt } from "@/src/types";
+import { RoleBasedPrompts } from "@/types";
 
 export const getRoleBasedConfig = (role: UserRole): RoleBasedPrompts => {
   switch (role) {

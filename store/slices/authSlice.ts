@@ -19,6 +19,9 @@ export interface User {
   subjects?: string[];
   hourlyRate?: number;
   rating?: number;
+  totalStudents?: number;
+  completedSessions?: number;
+  monthlyEarnings?: number;
 }
 
 interface AuthState {
@@ -77,6 +80,9 @@ export const MOCK_ACCOUNTS = {
     subjects: ["Mathématiques", "Sciences"],
     hourlyRate: 25,
     rating: 4.8,
+    totalStudents: 12,
+    completedSessions: 48,
+    monthlyEarnings: 1200,
   },
 };
 

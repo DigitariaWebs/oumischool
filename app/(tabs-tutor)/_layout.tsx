@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import { Users, Calendar, Clock, User } from "lucide-react-native";
+import { Users, Calendar, Clock, User, Inbox } from "lucide-react-native";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { COLORS } from "@/config/colors";
@@ -46,6 +46,19 @@ export default function TutorTabLayout() {
           title: "Sessions",
           tabBarIcon: ({ color, focused }) => (
             <Calendar
+              size={24}
+              color={color}
+              fill={focused ? color : "transparent"}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="requests"
+        options={{
+          title: "Demandes",
+          tabBarIcon: ({ color, focused }) => (
+            <Inbox
               size={24}
               color={color}
               fill={focused ? color : "transparent"}

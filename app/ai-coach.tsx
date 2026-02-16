@@ -12,7 +12,7 @@ import {
   Modal,
   FlatList,
 } from "react-native";
-import { useRouter } from "expo-router";
+
 import { useSafeBack } from "@/hooks/useSafeBack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -56,11 +56,8 @@ import {
   initializeChat,
 } from "@/store/slices/aiContextSlice";
 import { getRoleBasedConfig, getIconForPrompt } from "@/utils/chatbotConfig";
-import {
-  generateAIResponse,
-  getContextualPrompt,
-} from "@/utils/aiResponseGenerator";
-import { Message } from "@/src/types";
+import { generateAIResponse } from "@/utils/aiResponseGenerator";
+import { Message } from "@/types";
 
 const { width } = Dimensions.get("window");
 
@@ -195,13 +192,13 @@ const ChildSelectorModal: React.FC<ChildSelectorModalProps> = ({
               >
                 <View
                   style={[
-                    styles.childAvatar,
+                    styles.childOptionAvatar,
                     { backgroundColor: item.color + "20" },
                   ]}
                 >
                   <User size={20} color={item.color} />
                 </View>
-                <View style={styles.childInfo}>
+                <View style={styles.childOptionInfo}>
                   <Text style={styles.childOptionName}>{item.name}</Text>
                   <Text style={styles.childOptionGrade}>
                     {item.grade} • {item.progress}% de progression
@@ -217,7 +214,6 @@ const ChildSelectorModal: React.FC<ChildSelectorModalProps> = ({
 };
 
 export default function AICoachScreen() {
-  const router = useRouter();
   const handleBack = useSafeBack();
   const dispatch = useAppDispatch();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -231,13 +227,23 @@ export default function AICoachScreen() {
 
   const [inputText, setInputText] = useState("");
   const [showChildSelector, setShowChildSelector] = useState(false);
+  const [currentRole, setCurrentRole] = useState<string | undefined>(
+    user?.role,
+  );
 
   // Get role-based configuration
   const roleConfig = getRoleBasedConfig(user?.role || "child");
 
-  // Initialize chat on mount
+  // Initialize chat on mount or when role changes
   useEffect(() => {
-    if (messagesFromStore.length === 0) {
+    if (messagesFromStore.length === 0 || currentRole !== user?.role) {
+      // Clear previous context when role changes
+      if (currentRole !== user?.role && currentRole !== undefined) {
+        dispatch(clearContext());
+      }
+
+      setCurrentRole(user?.role);
+
       dispatch(
         initializeChat({
           role: user?.role || "child",
@@ -245,7 +251,7 @@ export default function AICoachScreen() {
         }),
       );
     }
-  }, []);
+  }, [user?.role]);
 
   const messages = messagesFromStore;
   const isTyping = isTypingFromStore;
@@ -336,7 +342,13 @@ export default function AICoachScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <LinearGradient
-        colors={["#8B5CF6", "#6366F1"]}
+        colors={
+          user?.role === "parent"
+            ? ["#8B5CF6", "#6366F1"]
+            : user?.role === "tutor"
+              ? ["#10B981", "#059669"]
+              : ["#F59E0B", "#D97706"]
+        }
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -346,17 +358,46 @@ export default function AICoachScreen() {
             <ArrowLeft size={24} color={COLORS.neutral.white} />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <View style={styles.aiHeaderAvatar}>
+            <View
+              style={[
+                styles.aiHeaderAvatar,
+                user?.role === "parent"
+                  ? styles.parentAvatar
+                  : user?.role === "tutor"
+                    ? styles.tutorAvatar
+                    : styles.childAvatar,
+              ]}
+            >
               <Sparkles size={20} color="white" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>
-                {user?.role === "parent"
-                  ? "Assistant Parental"
-                  : user?.role === "tutor"
-                    ? "Assistant Pédagogique"
-                    : "Assistant d'Apprentissage"}
-              </Text>
+              <View style={styles.headerTitleRow}>
+                <Text style={styles.headerTitle}>
+                  {user?.role === "parent"
+                    ? "Assistant Parental"
+                    : user?.role === "tutor"
+                      ? "Assistant Pédagogique"
+                      : "Assistant d'Apprentissage"}
+                </Text>
+                <View
+                  style={[
+                    styles.roleBadge,
+                    user?.role === "parent"
+                      ? styles.parentBadge
+                      : user?.role === "tutor"
+                        ? styles.tutorBadge
+                        : styles.childBadge,
+                  ]}
+                >
+                  <Text style={styles.roleBadgeText}>
+                    {user?.role === "parent"
+                      ? "PARENT"
+                      : user?.role === "tutor"
+                        ? "TUTEUR"
+                        : "ÉLÈVE"}
+                  </Text>
+                </View>
+              </View>
               <View style={styles.onlineIndicator}>
                 <View style={styles.onlineDot} />
                 <Text style={styles.onlineText}>
@@ -424,6 +465,79 @@ export default function AICoachScreen() {
             </Animated.View>
           )}
 
+          {/* Role Capabilities Card (show when chat is fresh) */}
+          {messages.length === 1 && (
+            <Animated.View
+              entering={FadeInUp.delay(200).duration(600)}
+              style={styles.capabilitiesCard}
+            >
+              <Text style={styles.capabilitiesTitle}>
+                {user?.role === "parent"
+                  ? "🎯 Ce que je peux faire pour vous"
+                  : user?.role === "tutor"
+                    ? "📚 Outils à votre disposition"
+                    : "✨ Je peux t'aider avec"}
+              </Text>
+              <View style={styles.capabilitiesList}>
+                {user?.role === "parent" ? (
+                  <>
+                    <Text style={styles.capabilityItem}>
+                      ✓ Analyser les performances de vos enfants
+                    </Text>
+                    <Text style={styles.capabilityItem}>
+                      ✓ Identifier forces et faiblesses
+                    </Text>
+                    <Text style={styles.capabilityItem}>
+                      ✓ Recommandations personnalisées
+                    </Text>
+                    <Text style={styles.capabilityItem}>
+                      ✓ Suivre la progression mensuelle
+                    </Text>
+                    <Text style={styles.capabilityNote}>
+                      💡 Sélectionnez un enfant pour commencer
+                    </Text>
+                  </>
+                ) : user?.role === "tutor" ? (
+                  <>
+                    <Text style={styles.capabilityItem}>
+                      ✓ Créer des plans de leçons
+                    </Text>
+                    <Text style={styles.capabilityItem}>
+                      ✓ Générer des exercices variés
+                    </Text>
+                    <Text style={styles.capabilityItem}>
+                      ✓ Concevoir des quiz et évaluations
+                    </Text>
+                    <Text style={styles.capabilityItem}>
+                      ✓ Trouver des ressources pédagogiques
+                    </Text>
+                    <Text style={styles.capabilityNote}>
+                      💡 Spécifiez le niveau et la matière
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.capabilityItem}>
+                      ✓ Expliquer les concepts difficiles
+                    </Text>
+                    <Text style={styles.capabilityItem}>
+                      ✓ Aide pour tes devoirs
+                    </Text>
+                    <Text style={styles.capabilityItem}>
+                      ✓ Répondre à tes questions
+                    </Text>
+                    <Text style={styles.capabilityItem}>
+                      ✓ Toutes les matières
+                    </Text>
+                    <Text style={styles.capabilityNote}>
+                      💡 Pose-moi n&apos;importe quelle question
+                    </Text>
+                  </>
+                )}
+              </View>
+            </Animated.View>
+          )}
+
           {/* Quick Prompts (show when chat is empty) */}
           {messages.length <= 2 && (
             <Animated.View
@@ -458,34 +572,71 @@ export default function AICoachScreen() {
 
         {/* Input */}
         <View style={styles.inputContainer}>
+          {/* Show parent context requirement */}
+          {user?.role === "parent" && !context.childId && (
+            <TouchableOpacity
+              style={styles.contextRequiredBanner}
+              onPress={() => setShowChildSelector(true)}
+            >
+              <User size={20} color={COLORS.primary.DEFAULT} />
+              <Text style={styles.contextRequiredText}>
+                Sélectionnez un enfant pour poser des questions
+              </Text>
+            </TouchableOpacity>
+          )}
+
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
-              placeholder="Posez votre question..."
+              placeholder={
+                user?.role === "parent"
+                  ? context.childId
+                    ? "Demandez des insights sur cet enfant..."
+                    : "Sélectionnez d'abord un enfant..."
+                  : user?.role === "tutor"
+                    ? "Créez du contenu pédagogique..."
+                    : "Pose ta question..."
+              }
               placeholderTextColor={COLORS.neutral[400]}
               value={inputText}
               onChangeText={setInputText}
               multiline
               maxLength={500}
+              editable={user?.role === "parent" ? !!context.childId : true}
             />
             <TouchableOpacity
               style={[
                 styles.sendButton,
-                !inputText.trim() && styles.sendButtonDisabled,
+                (!inputText.trim() ||
+                  (user?.role === "parent" && !context.childId)) &&
+                  styles.sendButtonDisabled,
               ]}
               onPress={() => handleSendMessage()}
-              disabled={!inputText.trim()}
+              disabled={
+                !inputText.trim() ||
+                (user?.role === "parent" && !context.childId)
+              }
             >
               <Send
                 size={20}
                 color={
-                  inputText.trim() ? COLORS.neutral.white : COLORS.neutral[400]
+                  inputText.trim() &&
+                  (user?.role !== "parent" || context.childId)
+                    ? COLORS.neutral.white
+                    : COLORS.neutral[400]
                 }
               />
             </TouchableOpacity>
           </View>
           <Text style={styles.inputHint}>
-            Powered by IA • Réponses instantanées
+            {user?.role === "parent"
+              ? context.childId
+                ? "Mode Parent • Analyse de performance"
+                : "Mode Parent • Sélection requise"
+              : user?.role === "tutor"
+                ? "Mode Tuteur • Génération de contenu"
+                : "Mode Apprentissage • Aide aux devoirs"}{" "}
+            • IA
           </Text>
         </View>
       </KeyboardAvoidingView>
@@ -522,6 +673,11 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 12,
   },
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   aiHeaderAvatar: {
     width: 44,
     height: 44,
@@ -535,7 +691,37 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.fredoka,
     fontSize: 18,
     color: COLORS.neutral.white,
-    marginBottom: 4,
+  },
+  roleBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.3)",
+  },
+  roleBadgeText: {
+    fontFamily: FONTS.secondary,
+    fontSize: 10,
+    fontWeight: "700",
+    color: COLORS.neutral.white,
+    letterSpacing: 0.5,
+  },
+  parentBadge: {
+    backgroundColor: "rgba(139, 92, 246, 0.4)",
+  },
+  tutorBadge: {
+    backgroundColor: "rgba(16, 185, 129, 0.4)",
+  },
+  childBadge: {
+    backgroundColor: "rgba(245, 158, 11, 0.4)",
+  },
+  parentAvatar: {
+    backgroundColor: "rgba(139, 92, 246, 0.3)",
+  },
+  tutorAvatar: {
+    backgroundColor: "rgba(16, 185, 129, 0.3)",
+  },
+  childAvatar: {
+    backgroundColor: "rgba(245, 158, 11, 0.3)",
   },
   onlineIndicator: {
     flexDirection: "row",
@@ -781,7 +967,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral[100],
   },
-  childAvatar: {
+  childOptionAvatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -789,7 +975,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 12,
   },
-  childInfo: {
+  childOptionInfo: {
     flex: 1,
   },
   childOptionName: {
@@ -802,5 +988,61 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.secondary,
     fontSize: 14,
     color: COLORS.secondary[500],
+  },
+  // Capabilities Card
+  capabilitiesCard: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    shadowColor: COLORS.secondary.DEFAULT,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: COLORS.primary[100],
+  },
+  capabilitiesTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 18,
+    color: COLORS.secondary[900],
+    marginBottom: 16,
+  },
+  capabilitiesList: {
+    gap: 10,
+  },
+  capabilityItem: {
+    fontFamily: FONTS.secondary,
+    fontSize: 14,
+    color: COLORS.secondary[700],
+    lineHeight: 20,
+  },
+  capabilityNote: {
+    fontFamily: FONTS.secondary,
+    fontSize: 13,
+    color: COLORS.primary.DEFAULT,
+    marginTop: 8,
+    fontStyle: "italic",
+  },
+  // Context Required Banner
+  contextRequiredBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.primary[50],
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: COLORS.primary[200],
+  },
+  contextRequiredText: {
+    fontFamily: FONTS.secondary,
+    fontSize: 14,
+    color: COLORS.primary.DEFAULT,
+    fontWeight: "600",
   },
 });

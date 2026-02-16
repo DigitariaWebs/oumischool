@@ -1,5 +1,5 @@
 import { UserRole } from "@/store/slices/authSlice";
-import { AIContext, Message, ChildPerformance } from "@/src/types";
+import { AIContext, Message } from "@/types";
 import { Child } from "@/store/slices/childrenSlice";
 import {
   getPerformanceInsights,

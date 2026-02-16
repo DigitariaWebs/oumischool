@@ -284,7 +284,9 @@ export default function HomeScreen() {
                 progress={child.progress}
                 color={child.color}
                 delay={500 + index * 100}
-                onPress={() => router.push(`/child-details?id=${child.id}`)}
+                onPress={() =>
+                  router.push(`/parent/child/details?id=${child.id}`)
+                }
               />
             ))
           ) : (

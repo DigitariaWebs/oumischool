@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { UserRole } from "./authSlice";
-import { AIContext, RoleBasedPrompts, Message } from "@/src/types";
+import { AIContext, RoleBasedPrompts, Message } from "@/types";
 
 interface AIContextState {
   context: AIContext;

@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -87,31 +88,37 @@ export default function ProfileScreen() {
       icon: <Settings size={20} color={COLORS.secondary[700]} />,
       title: "Paramètres",
       subtitle: "Préférences et notifications",
-      onPress: () => console.log("Settings"),
+      onPress: () => router.push("/parent/profile/settings"),
     },
     {
       icon: <Bell size={20} color={COLORS.secondary[700]} />,
       title: "Notifications",
       subtitle: "Gérer les alertes",
-      onPress: () => console.log("Notifications"),
+      onPress: () => router.push("/parent/profile/notifications"),
+    },
+    {
+      icon: <CreditCard size={20} color={COLORS.secondary[700]} />,
+      title: "Paiements",
+      subtitle: "Gérer les paiements",
+      onPress: () => router.push("/parent/profile/payment"),
     },
     {
       icon: <CreditCard size={20} color={COLORS.secondary[700]} />,
       title: "Abonnement",
       subtitle: "Family • 19€/mois",
-      onPress: () => console.log("Subscription"),
+      onPress: () => router.push("/parent/profile/subscription"),
     },
     {
       icon: <HelpCircle size={20} color={COLORS.secondary[700]} />,
       title: "Aide & Support",
       subtitle: "FAQ et contact",
-      onPress: () => console.log("Help"),
+      onPress: () => router.push("/parent/profile/help"),
     },
     {
       icon: <Shield size={20} color={COLORS.secondary[700]} />,
       title: "Confidentialité",
       subtitle: "Données et sécurité",
-      onPress: () => console.log("Privacy"),
+      onPress: () => router.push("/parent/profile/privacy"),
     },
   ];
 
@@ -133,7 +140,12 @@ export default function ProfileScreen() {
             style={styles.profileGradient}
           >
             <View style={styles.avatarContainer}>
-              <User size={48} color={COLORS.neutral.white} />
+              <Image
+                source={{
+                  uri: user?.avatar || "https://via.placeholder.com/100",
+                }}
+                style={styles.avatarImage}
+              />
             </View>
             <Text style={styles.profileName}>
               {user?.name || "Utilisateur"}
@@ -187,7 +199,7 @@ export default function ProfileScreen() {
         />
 
         {/* Version */}
-        <Text style={styles.versionText}>Oumi'School v1.0.0</Text>
+        <Text style={styles.versionText}>Oumi&apos;School v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -322,6 +334,11 @@ const styles = StyleSheet.create({
     color: COLORS.secondary[500],
   },
   // Version
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 50,
+  },
   versionText: {
     fontFamily: FONTS.secondary,
     fontSize: 12,

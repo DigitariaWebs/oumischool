@@ -1,4 +1,3 @@
-import { UserRole } from "@/store/slices/authSlice";
 import { Child } from "@/store/slices/childrenSlice";
 
 // AI Chatbot Types
@@ -89,4 +88,94 @@ export interface TutorMaterial {
   description: string;
   content?: string;
   createdAt: Date;
+}
+
+// Tutor Types
+export interface Tutor {
+  id: string;
+  name: string;
+  subjects: Subject[];
+  rating: number;
+  reviewsCount: number;
+  bio: string;
+  avatar?: string;
+  hourlyRate: number;
+  availability: string[];
+  languages: string[];
+  experience: number;
+  inPersonAvailable: boolean;
+  inPersonRate?: number;
+}
+
+export interface TutorRecommendation {
+  tutorId: string;
+  childId: string;
+  reason: string; // e.g., "Recommended for Math based on child's performance"
+  subjectId: string;
+}
+
+// Curriculum and Lesson Types
+export interface Lesson {
+  id: string;
+  title: string;
+  order: number;
+  description?: string;
+  duration?: string;
+  resources?: LessonResource[];
+}
+
+export interface LessonResource {
+  id: string;
+  type: "pdf" | "video" | "worksheet" | "interactive";
+  title: string;
+  url: string;
+}
+
+export interface Curriculum {
+  id: string;
+  title: string;
+  subject: string;
+  subjectColor: string;
+  description: string;
+  lessonsCount: number;
+  duration: string;
+  level: string;
+  lessons: Lesson[];
+  tutorId: string;
+}
+
+// Booking Types
+export interface BookingDetails {
+  tutorId: string;
+  childrenIds: string[];
+  mode: "online" | "inPerson";
+  day: string;
+  timeSlot: string;
+  recurring: boolean;
+  totalPrice: number;
+  startDate?: Date;
+}
+
+export interface TutorAvailability {
+  monday: string[];
+  tuesday: string[];
+  wednesday: string[];
+  thursday: string[];
+  friday: string[];
+  saturday: string[];
+  sunday: string[];
+}
+
+export interface TutorMethodology {
+  approach: string;
+  techniques: string[];
+}
+
+export interface TutorReview {
+  id: string;
+  parentName: string;
+  childName: string;
+  rating: number;
+  date: string;
+  comment: string;
 }

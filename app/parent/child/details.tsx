@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Dimensions,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -27,22 +26,15 @@ import {
   Target,
   Zap,
   Trophy,
+  ChevronRight,
 } from "lucide-react-native";
-import Animated, {
-  FadeInDown,
-  useAnimatedStyle,
-  withTiming,
-  useSharedValue,
-} from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { updateChild } from "@/store/slices/childrenSlice";
 import AssignLessonModal from "@/components/AssignLessonModal";
-
-const { width } = Dimensions.get("window");
 
 interface LessonDetails {
   progressHistory: { date: string; progress: number }[];
@@ -202,7 +194,6 @@ const mockLessons: Lesson[] = [
   },
 ];
 
-// Calculate age from date of birth
 const calculateAge = (dateOfBirth: string): number => {
   const today = new Date();
   const birthDate = new Date(dateOfBirth);
@@ -241,12 +232,10 @@ export default function ChildDetailsScreen() {
   const [expandedLesson, setExpandedLesson] = useState<string | null>(null);
   const [assignModalVisible, setAssignModalVisible] = useState(false);
 
-  // Get assigned lesson IDs
   const assignedLessonIds = useMemo(() => {
     return lessons.map((lesson) => lesson.id);
   }, [lessons]);
 
-  // Get child weaknesses and strengths from lesson details
   const childWeaknesses = useMemo(() => {
     const weaknesses: string[] = [];
     lessons.forEach((lesson) => {
@@ -254,7 +243,7 @@ export default function ChildDetailsScreen() {
         weaknesses.push(...lesson.details.performance.weaknesses);
       }
     });
-    return [...new Set(weaknesses)]; // Remove duplicates
+    return [...new Set(weaknesses)];
   }, [lessons]);
 
   const childStrengths = useMemo(() => {
@@ -264,7 +253,7 @@ export default function ChildDetailsScreen() {
         strengths.push(...lesson.details.performance.strengths);
       }
     });
-    return [...new Set(strengths)]; // Remove duplicates
+    return [...new Set(strengths)];
   }, [lessons]);
 
   if (!child) {
@@ -313,7 +302,6 @@ export default function ChildDetailsScreen() {
   };
 
   const handleAssignLessons = (lessonIds: string[]) => {
-    // Create new lesson objects for the assigned lessons
     const newLessons: Lesson[] = lessonIds.map((id) => ({
       id,
       title: `Leçon ${id}`,
@@ -324,9 +312,6 @@ export default function ChildDetailsScreen() {
     }));
 
     setLessons((prev) => [...prev, ...newLessons]);
-
-    // TODO: Update Redux store with new lessons
-    // dispatch(updateChild({ id: childId, updates: { lessons: [...lessons, ...newLessons] } }));
   };
 
   const getStatusColor = (status: Lesson["status"]) => {
@@ -381,199 +366,215 @@ export default function ChildDetailsScreen() {
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
-            size={16}
-            color={star <= level ? COLORS.warning : COLORS.neutral[300]}
-            fill={star <= level ? COLORS.warning : "transparent"}
+            size={18}
+            color={star <= level ? "#F59E0B" : COLORS.neutral[300]}
+            fill={star <= level ? "#F59E0B" : "transparent"}
           />
         ))}
       </View>
     );
   };
 
+  const completedLessons = lessons.filter(
+    (l) => l.status === "completed",
+  ).length;
+  const inProgressLessons = lessons.filter(
+    (l) => l.status === "in-progress",
+  ).length;
+  const overallProgress = Math.round(
+    lessons.reduce((acc, lesson) => acc + lesson.progress, 0) /
+      lessons.length || 0,
+  );
+
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Floating Back Button */}
+        {/* Back Button */}
         <TouchableOpacity
-          onPress={() => router.back()}
           style={styles.floatingBackButton}
+          onPress={() => router.back()}
         >
-          <ChevronLeft size={24} color={COLORS.secondary[900]} />
+          <ChevronLeft size={24} color={COLORS.primary.DEFAULT} />
         </TouchableOpacity>
 
         {/* Profile Card */}
-        <Animated.View entering={FadeInDown.duration(400)}>
-          <LinearGradient
-            colors={[editedColor + "20", editedColor + "10"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.profileCard}
-          >
-            {/* Edit/Save Button */}
+        <Animated.View
+          entering={FadeInDown.duration(400)}
+          style={styles.profileCard}
+        >
+          {!isEditing ? (
             <TouchableOpacity
               style={styles.editButton}
-              onPress={() => (isEditing ? handleSave() : setIsEditing(true))}
+              onPress={() => setIsEditing(true)}
             >
-              {isEditing ? (
-                <Save size={20} color={COLORS.primary.DEFAULT} />
-              ) : (
-                <Edit size={20} color={COLORS.secondary[600]} />
-              )}
+              <Edit size={20} color={COLORS.primary.DEFAULT} />
             </TouchableOpacity>
-
-            {isEditing && (
+          ) : (
+            <View
+              style={{
+                flexDirection: "row",
+                position: "absolute",
+                top: 16,
+                right: 16,
+                zIndex: 10,
+                gap: 8,
+              }}
+            >
               <TouchableOpacity
                 style={styles.cancelEditButton}
                 onPress={handleCancel}
               >
-                <X size={20} color={COLORS.secondary[600]} />
+                <X size={20} color={COLORS.neutral[600]} />
               </TouchableOpacity>
-            )}
+              <TouchableOpacity style={styles.editButton} onPress={handleSave}>
+                <Save size={20} color={COLORS.primary.DEFAULT} />
+              </TouchableOpacity>
+            </View>
+          )}
 
-            <View style={styles.profileHeader}>
-              <View
-                style={[styles.avatar, { backgroundColor: editedColor + "40" }]}
-              >
-                <Text style={[styles.avatarText, { color: editedColor }]}>
-                  {editedName.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-
-              {isEditing && (
-                <View style={styles.colorPicker}>
-                  <Text style={styles.colorPickerLabel}>Couleur</Text>
-                  <View style={styles.colorGrid}>
-                    {AVATAR_COLORS.map((color) => (
-                      <TouchableOpacity
-                        key={color}
-                        style={[
-                          styles.colorOption,
-                          { backgroundColor: color },
-                          editedColor === color && styles.colorOptionSelected,
-                        ]}
-                        onPress={() => setEditedColor(color)}
-                      />
-                    ))}
-                  </View>
-                </View>
-              )}
+          <View style={styles.profileHeader}>
+            <View style={[styles.avatar, { backgroundColor: child.color }]}>
+              <Text style={styles.avatarText}>
+                {child.name.charAt(0).toUpperCase()}
+              </Text>
             </View>
 
-            {isEditing ? (
-              <View style={styles.editForm}>
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Prénom</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={editedName}
-                    onChangeText={setEditedName}
-                    placeholder="Prénom"
-                    placeholderTextColor={COLORS.neutral[400]}
-                  />
+            {isEditing && (
+              <View style={styles.colorPicker}>
+                <Text style={styles.colorPickerLabel}>Couleur</Text>
+                <View style={styles.colorGrid}>
+                  {AVATAR_COLORS.map((color) => (
+                    <TouchableOpacity
+                      key={color}
+                      style={[
+                        styles.colorOption,
+                        { backgroundColor: color },
+                        editedColor === color && styles.colorOptionSelected,
+                      ]}
+                      onPress={() => setEditedColor(color)}
+                    />
+                  ))}
                 </View>
-
-                <View style={styles.inputRow}>
-                  <View style={[styles.inputGroup, { flex: 1 }]}>
-                    <Text style={styles.inputLabel}>Âge</Text>
-                    <View style={styles.ageDisplay}>
-                      <Text style={styles.ageDisplayText}>
-                        {calculateAge(editedDateOfBirth)} ans
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={[styles.inputGroup, { flex: 2 }]}>
-                    <Text style={styles.inputLabel}>Niveau</Text>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      style={styles.gradeScrollView}
-                    >
-                      {GRADES.map((grade) => (
-                        <TouchableOpacity
-                          key={grade}
-                          style={[
-                            styles.gradeChip,
-                            editedGrade === grade && styles.gradeChipSelected,
-                          ]}
-                          onPress={() => setEditedGrade(grade)}
-                        >
-                          <Text
-                            style={[
-                              styles.gradeChipText,
-                              editedGrade === grade &&
-                                styles.gradeChipTextSelected,
-                            ]}
-                          >
-                            {grade}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>{child.name}</Text>
-                <Text style={styles.profileDetails}>
-                  {calculateAge(child.dateOfBirth)} ans • {child.grade}
-                </Text>
               </View>
             )}
+          </View>
 
-            {/* Stats */}
-            <View style={styles.statsContainer}>
-              <View style={styles.statBox}>
-                <BookOpen size={20} color={COLORS.secondary[500]} />
-                <Text style={styles.statValue}>
-                  {child.lessonsCompleted}/{child.totalLessons}
-                </Text>
-                <Text style={styles.statLabel}>Leçons</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statBox}>
-                <Calendar size={20} color={COLORS.secondary[500]} />
-                <Text style={styles.statValue}>{child.weeklyActivity}</Text>
-                <Text style={styles.statLabel}>Cette semaine</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statBox}>
-                <TrendingUp size={20} color={COLORS.primary.DEFAULT} />
-                <Text
-                  style={[styles.statValue, { color: COLORS.primary.DEFAULT }]}
-                >
-                  +{child.monthlyGrowth}%
-                </Text>
-                <Text style={styles.statLabel}>Ce mois</Text>
-              </View>
+          {!isEditing ? (
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{child.name}</Text>
+              <Text style={styles.profileDetails}>
+                {calculateAge(child.dateOfBirth)} ans • {child.grade}
+              </Text>
             </View>
-
-            {/* Progress */}
-            <View style={styles.progressSection}>
-              <View style={styles.progressHeader}>
-                <Text style={styles.progressLabel}>Progression globale</Text>
-                <Text style={styles.progressPercentage}>{child.progress}%</Text>
-              </View>
-              <View style={styles.progressBar}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    {
-                      width: `${child.progress}%`,
-                      backgroundColor: editedColor,
-                    },
-                  ]}
+          ) : (
+            <View style={styles.editForm}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Nom</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editedName}
+                  onChangeText={setEditedName}
+                  placeholder="Nom de l'enfant"
+                  placeholderTextColor={COLORS.neutral[400]}
                 />
               </View>
+
+              <View style={styles.inputRow}>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.inputLabel}>Date de naissance</Text>
+                  <View style={styles.ageDisplay}>
+                    <Text style={styles.ageDisplayText}>
+                      {calculateAge(editedDateOfBirth)} ans
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.inputLabel}>Classe</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.gradeScrollView}
+                  >
+                    {GRADES.map((grade) => (
+                      <TouchableOpacity
+                        key={grade}
+                        style={[
+                          styles.gradeChip,
+                          editedGrade === grade && styles.gradeChipSelected,
+                        ]}
+                        onPress={() => setEditedGrade(grade)}
+                      >
+                        <Text
+                          style={[
+                            styles.gradeChipText,
+                            editedGrade === grade &&
+                              styles.gradeChipTextSelected,
+                          ]}
+                        >
+                          {grade}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
             </View>
-          </LinearGradient>
+          )}
+
+          {/* Stats */}
+          <View style={styles.statsContainer}>
+            <View style={styles.statBox}>
+              <TrendingUp size={24} color={COLORS.primary.DEFAULT} />
+              <Text style={styles.statValue}>{overallProgress}%</Text>
+              <Text style={styles.statLabel}>Progression</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statBox}>
+              <CheckCircle2 size={24} color={COLORS.success} />
+              <Text style={styles.statValue}>{completedLessons}</Text>
+              <Text style={styles.statLabel}>Terminées</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statBox}>
+              <Clock size={24} color={COLORS.warning} />
+              <Text style={styles.statValue}>{inProgressLessons}</Text>
+              <Text style={styles.statLabel}>En cours</Text>
+            </View>
+          </View>
         </Animated.View>
 
-        {/* Recent Activity Section */}
+        {/* Schedule Card */}
+        <Animated.View
+          entering={FadeInDown.delay(100).duration(400)}
+          style={styles.section}
+        >
+          <TouchableOpacity
+            style={styles.scheduleCard}
+            onPress={() => router.push(`/parent/child/schedule?id=${childId}`)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.scheduleCardLeft}>
+              <View style={styles.scheduleIconContainer}>
+                <Calendar size={28} color={COLORS.primary.DEFAULT} />
+              </View>
+              <View>
+                <Text style={styles.scheduleCardTitle}>
+                  Planning des tuteurs
+                </Text>
+                <Text style={styles.scheduleCardSubtitle}>
+                  Voir le calendrier hebdomadaire
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={24} color={COLORS.secondary[400]} />
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* Recent Activity */}
         <Animated.View
           entering={FadeInDown.delay(200).duration(400)}
           style={styles.section}
@@ -615,12 +616,12 @@ export default function ChildDetailsScreen() {
           style={styles.section}
         >
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Leçons assignées</Text>
+            <Text style={styles.sectionTitle}>Leçons en cours</Text>
             <TouchableOpacity
               style={styles.addLessonButton}
               onPress={() => setAssignModalVisible(true)}
             >
-              <Plus size={18} color={COLORS.primary.DEFAULT} />
+              <Plus size={16} color={COLORS.primary.DEFAULT} />
               <Text style={styles.addLessonButtonText}>Assigner</Text>
             </TouchableOpacity>
           </View>
@@ -628,7 +629,7 @@ export default function ChildDetailsScreen() {
           {lessons.map((lesson, index) => (
             <Animated.View
               key={lesson.id}
-              entering={FadeInDown.delay(400 + index * 50).duration(400)}
+              entering={FadeInDown.delay(300 + index * 50).duration(400)}
             >
               <TouchableOpacity
                 style={styles.lessonCard}
@@ -715,10 +716,8 @@ export default function ChildDetailsScreen() {
                   )}
                 </View>
 
-                {/* Expanded Details */}
                 {expandedLesson === lesson.id && lesson.details && (
                   <View style={styles.expandedContent}>
-                    {/* Interest Level */}
                     <View style={styles.detailSection}>
                       <View style={styles.detailHeader}>
                         <Star size={16} color={COLORS.warning} />
@@ -729,7 +728,6 @@ export default function ChildDetailsScreen() {
                       {renderInterestStars(lesson.details.interestLevel)}
                     </View>
 
-                    {/* Progress Over Time */}
                     <View style={styles.detailSection}>
                       <View style={styles.detailHeader}>
                         <TrendingUp size={16} color={COLORS.info} />
@@ -738,26 +736,27 @@ export default function ChildDetailsScreen() {
                         </Text>
                       </View>
                       <View style={styles.progressChart}>
-                        {lesson.details.progressHistory.map((point, idx) => (
+                        {lesson.details.progressHistory.map((item, idx) => (
                           <View key={idx} style={styles.chartBar}>
                             <View style={styles.chartBarContainer}>
                               <View
                                 style={[
                                   styles.chartBarFill,
                                   {
-                                    height: `${point.progress}%`,
-                                    backgroundColor: editedColor,
+                                    height: `${item.progress}%`,
+                                    backgroundColor: getStatusColor(
+                                      lesson.status,
+                                    ),
                                   },
                                 ]}
                               />
                             </View>
-                            <Text style={styles.chartLabel}>{point.date}</Text>
+                            <Text style={styles.chartLabel}>{item.date}</Text>
                           </View>
                         ))}
                       </View>
                     </View>
 
-                    {/* Performance Metrics */}
                     <View style={styles.detailSection}>
                       <View style={styles.detailHeader}>
                         <Target size={16} color={COLORS.success} />
@@ -772,9 +771,9 @@ export default function ChildDetailsScreen() {
                         </View>
                         <View style={styles.metricCard}>
                           <Text style={styles.metricValue}>
-                            {lesson.details.performance.timeSpent}
+                            {lesson.details.performance.timeSpent}m
                           </Text>
-                          <Text style={styles.metricLabel}>Minutes</Text>
+                          <Text style={styles.metricLabel}>Temps</Text>
                         </View>
                         <View style={styles.metricCard}>
                           <Text style={styles.metricValue}>
@@ -784,7 +783,6 @@ export default function ChildDetailsScreen() {
                         </View>
                       </View>
 
-                      {/* Strengths & Weaknesses */}
                       <View style={styles.strengthsWeaknesses}>
                         <View style={styles.strengthsSection}>
                           <Text style={styles.strengthsTitle}>
@@ -827,7 +825,7 @@ export default function ChildDetailsScreen() {
 
         {/* Achievements Section */}
         <Animated.View
-          entering={FadeInDown.delay(500).duration(400)}
+          entering={FadeInDown.delay(400).duration(400)}
           style={styles.section}
         >
           <Text style={styles.sectionTitle}>Succès récents</Text>
@@ -848,7 +846,6 @@ export default function ChildDetailsScreen() {
         </Animated.View>
       </ScrollView>
 
-      {/* Assign Lesson Modal */}
       <AssignLessonModal
         visible={assignModalVisible}
         onClose={() => setAssignModalVisible(false)}
@@ -883,18 +880,18 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 4,
   },
   profileCard: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 24,
+    borderRadius: 16,
     padding: 24,
     marginBottom: 20,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   editButton: {
     position: "absolute",
@@ -903,47 +900,44 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.neutral[100],
+    backgroundColor: COLORS.primary[50],
     justifyContent: "center",
     alignItems: "center",
     zIndex: 10,
   },
   cancelEditButton: {
-    position: "absolute",
-    top: 16,
-    right: 64,
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: COLORS.neutral[100],
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 10,
   },
   profileHeader: {
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 16,
   },
   avatar: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
   },
   avatarText: {
-    fontSize: 48,
+    fontSize: 36,
     fontFamily: FONTS.fredoka,
     fontWeight: "700",
+    color: COLORS.neutral.white,
   },
   colorPicker: {
     alignItems: "center",
   },
   colorPickerLabel: {
     fontFamily: FONTS.secondary,
-    fontSize: 12,
-    color: COLORS.secondary[600],
+    fontSize: 14,
+    color: COLORS.secondary[700],
     marginBottom: 8,
   },
   colorGrid: {
@@ -958,7 +952,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   colorOptionSelected: {
-    borderColor: COLORS.secondary[300],
+    borderColor: COLORS.primary.DEFAULT,
   },
   profileInfo: {
     alignItems: "center",
@@ -974,7 +968,7 @@ const styles = StyleSheet.create({
   profileDetails: {
     fontFamily: FONTS.secondary,
     fontSize: 16,
-    color: COLORS.secondary[500],
+    color: COLORS.secondary[600],
   },
   editForm: {
     marginBottom: 20,
@@ -988,19 +982,19 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontFamily: FONTS.secondary,
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "600",
     color: COLORS.secondary[700],
-    marginBottom: 6,
+    marginBottom: 8,
   },
   input: {
-    fontFamily: FONTS.primary,
+    fontFamily: FONTS.secondary,
     fontSize: 16,
     color: COLORS.secondary[900],
     backgroundColor: COLORS.neutral[50],
     borderRadius: 12,
     padding: 12,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: COLORS.neutral[200],
   },
   gradeScrollView: {
@@ -1010,9 +1004,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: COLORS.neutral[100],
+    backgroundColor: COLORS.neutral[50],
     marginRight: 8,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: COLORS.neutral[200],
   },
   gradeChipSelected: {
@@ -1023,7 +1017,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.secondary,
     fontSize: 12,
     fontWeight: "600",
-    color: COLORS.secondary[600],
+    color: COLORS.secondary[700],
   },
   gradeChipTextSelected: {
     color: COLORS.primary.DEFAULT,
@@ -1031,12 +1025,12 @@ const styles = StyleSheet.create({
   statsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: 20,
+    paddingVertical: 16,
     borderTopWidth: 1,
     borderTopColor: COLORS.neutral[200],
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral[200],
-    marginBottom: 20,
+    marginBottom: 0,
   },
   statBox: {
     alignItems: "center",
@@ -1044,7 +1038,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontFamily: FONTS.fredoka,
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: "700",
     color: COLORS.secondary[900],
     marginTop: 8,
@@ -1052,56 +1046,26 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontFamily: FONTS.secondary,
-    fontSize: 11,
-    color: COLORS.secondary[500],
+    fontSize: 12,
+    color: COLORS.secondary[600],
     textAlign: "center",
   },
   statDivider: {
     width: 1,
     backgroundColor: COLORS.neutral[200],
   },
-  progressSection: {
-    gap: 8,
-  },
-  progressHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  progressLabel: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.secondary[600],
-  },
-  progressPercentage: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.secondary[900],
-  },
-  progressBar: {
-    height: 10,
-    backgroundColor: COLORS.neutral[200],
-    borderRadius: 5,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 5,
-  },
   ageDisplay: {
-    backgroundColor: COLORS.neutral[100],
+    backgroundColor: COLORS.primary[50],
     borderRadius: 12,
     padding: 12,
-    borderWidth: 2,
-    borderColor: COLORS.neutral[200],
+    borderWidth: 1,
+    borderColor: COLORS.primary[200],
     justifyContent: "center",
   },
   ageDisplayText: {
-    fontFamily: FONTS.primary,
+    fontFamily: FONTS.secondary,
     fontSize: 16,
-    color: COLORS.secondary[600],
+    color: COLORS.primary.DEFAULT,
     textAlign: "center",
   },
   section: {
@@ -1111,24 +1075,65 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   sectionTitle: {
     fontFamily: FONTS.fredoka,
     fontSize: 20,
     fontWeight: "700",
     color: COLORS.secondary[900],
-    marginBottom: 16,
+    marginBottom: 12,
+  },
+  scheduleCard: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 2,
+    borderColor: COLORS.primary[100],
+  },
+  scheduleCardLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    flex: 1,
+  },
+  scheduleIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.primary[50],
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scheduleCardTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.secondary[900],
+    marginBottom: 4,
+  },
+  scheduleCardSubtitle: {
+    fontFamily: FONTS.secondary,
+    fontSize: 14,
+    color: COLORS.secondary[600],
   },
   activityTimeline: {
     backgroundColor: COLORS.neutral.white,
     borderRadius: 16,
-    padding: 16,
+    padding: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 3,
   },
   activityItem: {
     flexDirection: "row",
@@ -1138,9 +1143,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   activityIconBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1148,7 +1153,7 @@ const styles = StyleSheet.create({
     width: 2,
     flex: 1,
     backgroundColor: COLORS.neutral[200],
-    marginVertical: 4,
+    marginVertical: 8,
   },
   activityContent: {
     flex: 1,
@@ -1156,21 +1161,21 @@ const styles = StyleSheet.create({
   },
   activityTitle: {
     fontFamily: FONTS.secondary,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
     color: COLORS.secondary[900],
     marginBottom: 4,
   },
   activityDescription: {
-    fontFamily: FONTS.primary,
+    fontFamily: FONTS.secondary,
     fontSize: 14,
     color: COLORS.secondary[600],
     marginBottom: 4,
   },
   activityTimestamp: {
-    fontFamily: FONTS.primary,
+    fontFamily: FONTS.secondary,
     fontSize: 12,
-    color: COLORS.neutral[400],
+    color: COLORS.secondary[400],
   },
   addLessonButton: {
     flexDirection: "row",
@@ -1194,14 +1199,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 3,
   },
   lessonHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
     marginBottom: 12,
   },
   lessonTitleContainer: {
@@ -1213,7 +1218,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   lessonTitle: {
-    fontFamily: FONTS.primary,
+    fontFamily: FONTS.secondary,
     fontSize: 16,
     fontWeight: "600",
     color: COLORS.secondary[900],
@@ -1221,8 +1226,8 @@ const styles = StyleSheet.create({
   },
   lessonSubject: {
     fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[500],
+    fontSize: 13,
+    color: COLORS.secondary[600],
   },
   lessonHeaderRight: {
     flexDirection: "row",
@@ -1237,7 +1242,7 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontFamily: FONTS.secondary,
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   lessonProgress: {
     flexDirection: "row",
@@ -1247,20 +1252,20 @@ const styles = StyleSheet.create({
   },
   lessonProgressBar: {
     flex: 1,
-    height: 6,
-    backgroundColor: COLORS.neutral[200],
-    borderRadius: 3,
+    height: 8,
+    backgroundColor: COLORS.neutral[100],
+    borderRadius: 4,
     overflow: "hidden",
   },
   lessonProgressFill: {
     height: "100%",
-    borderRadius: 3,
+    borderRadius: 4,
   },
   lessonProgressText: {
     fontFamily: FONTS.secondary,
     fontSize: 12,
-    fontWeight: "600",
-    color: COLORS.secondary[600],
+    fontWeight: "700",
+    color: COLORS.secondary[700],
   },
   lessonFooter: {
     flexDirection: "row",
@@ -1275,7 +1280,7 @@ const styles = StyleSheet.create({
   lessonMetaText: {
     fontFamily: FONTS.secondary,
     fontSize: 12,
-    color: COLORS.neutral[500],
+    color: COLORS.secondary[500],
   },
   completedText: {
     fontFamily: FONTS.secondary,
@@ -1289,7 +1294,7 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.neutral[200],
   },
   detailSection: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   detailHeader: {
     flexDirection: "row",
@@ -1311,7 +1316,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-around",
-    height: 100,
+    height: 120,
     paddingVertical: 8,
   },
   chartBar: {
@@ -1319,8 +1324,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chartBarContainer: {
-    width: "80%",
-    height: 80,
+    width: 32,
+    height: 100,
     backgroundColor: COLORS.neutral[100],
     borderRadius: 4,
     justifyContent: "flex-end",
@@ -1331,15 +1336,15 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   chartLabel: {
-    fontFamily: FONTS.primary,
-    fontSize: 10,
-    color: COLORS.secondary[500],
+    fontFamily: FONTS.secondary,
+    fontSize: 11,
+    color: COLORS.secondary[600],
     marginTop: 4,
   },
   metricsGrid: {
     flexDirection: "row",
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   metricCard: {
     flex: 1,
@@ -1358,7 +1363,7 @@ const styles = StyleSheet.create({
   metricLabel: {
     fontFamily: FONTS.secondary,
     fontSize: 11,
-    color: COLORS.secondary[500],
+    color: COLORS.secondary[600],
   },
   strengthsWeaknesses: {
     flexDirection: "row",
@@ -1372,28 +1377,28 @@ const styles = StyleSheet.create({
   },
   strengthsTitle: {
     fontFamily: FONTS.secondary,
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "700",
     color: COLORS.success,
     marginBottom: 8,
   },
   weaknessesTitle: {
     fontFamily: FONTS.secondary,
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "700",
     color: COLORS.error,
     marginBottom: 8,
   },
   strengthItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
     marginBottom: 6,
   },
   weaknessItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
     marginBottom: 6,
   },
   strengthDot: {
@@ -1409,12 +1414,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.error,
   },
   strengthText: {
-    fontFamily: FONTS.primary,
+    fontFamily: FONTS.secondary,
     fontSize: 12,
     color: COLORS.secondary[700],
   },
   weaknessText: {
-    fontFamily: FONTS.primary,
+    fontFamily: FONTS.secondary,
     fontSize: 12,
     color: COLORS.secondary[700],
   },
@@ -1430,14 +1435,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 3,
   },
   achievementText: {
     fontFamily: FONTS.secondary,
-    fontSize: 11,
-    color: COLORS.secondary[600],
+    fontSize: 12,
+    color: COLORS.secondary[700],
     textAlign: "center",
     marginTop: 8,
   },
@@ -1448,10 +1453,10 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   errorText: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.secondary[600],
-    marginBottom: 20,
+    fontFamily: FONTS.secondary,
+    fontSize: 16,
+    color: COLORS.error,
+    marginBottom: 16,
   },
   backButton: {
     paddingHorizontal: 24,
@@ -1460,9 +1465,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary.DEFAULT,
   },
   backButtonText: {
-    fontFamily: FONTS.secondary,
+    fontFamily: FONTS.fredoka,
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
     color: COLORS.neutral.white,
   },
 });
