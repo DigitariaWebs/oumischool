@@ -64,6 +64,8 @@ export default function RootLayout() {
           <Stack.Screen name="weekly-plan" />
           <Stack.Screen name="ai-coach" />
           <Stack.Screen name="resources" />
+          <Stack.Screen name="messaging" />
+          <Stack.Screen name="pricing" />
           <Stack.Screen name="dev-accounts" />
           <Stack.Screen
             name="modal"

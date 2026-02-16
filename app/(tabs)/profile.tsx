@@ -20,6 +20,7 @@ import {
   Settings,
   HelpCircle,
   Shield,
+  MessageSquare,
 } from "lucide-react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
@@ -85,6 +86,12 @@ export default function ProfileScreen() {
 
   const menuItems = [
     {
+      icon: <MessageSquare size={20} color={COLORS.secondary[700]} />,
+      title: "Messages",
+      subtitle: "Conversations avec les tuteurs",
+      onPress: () => router.push("/messaging"),
+    },
+    {
       icon: <Settings size={20} color={COLORS.secondary[700]} />,
       title: "Paramètres",
       subtitle: "Préférences et notifications",
@@ -98,15 +105,9 @@ export default function ProfileScreen() {
     },
     {
       icon: <CreditCard size={20} color={COLORS.secondary[700]} />,
-      title: "Paiements",
-      subtitle: "Gérer les paiements",
-      onPress: () => router.push("/parent/profile/payment"),
-    },
-    {
-      icon: <CreditCard size={20} color={COLORS.secondary[700]} />,
       title: "Abonnement",
-      subtitle: "Family • 19€/mois",
-      onPress: () => router.push("/parent/profile/subscription"),
+      subtitle: "Family • 69€/mois",
+      onPress: () => router.push("/pricing"),
     },
     {
       icon: <HelpCircle size={20} color={COLORS.secondary[700]} />,

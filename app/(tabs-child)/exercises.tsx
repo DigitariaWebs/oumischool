@@ -1,11 +1,14 @@
 import React from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
+import { useRouter } from "expo-router";
 import {
   PenLine,
   ChevronRight,
   Calculator,
   FileText,
   Globe,
+  Gamepad2,
+  BookOpen,
 } from "lucide-react-native";
 import Animated, {
   FadeInDown,
@@ -20,30 +23,66 @@ import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector } from "@/store/hooks";
 
-const EXERCISES = [
+const GAMES = [
   {
     id: 1,
     subject: "Maths",
-    title: "Addition jusqu'à 100",
+    title: "Jeu d'addition",
+    description: "Additionne les nombres !",
     progress: 80,
     Icon: Calculator,
     color: "#3B82F6",
+    route: "/games/math-addition",
   },
   {
     id: 2,
     subject: "Français",
     title: "Conjugaison",
+    description: "Conjugue les verbes",
     progress: 60,
     Icon: FileText,
     color: "#EC4899",
+    route: "/games/french-conjugation",
   },
   {
     id: 3,
     subject: "Sciences",
-    title: "Les planètes",
-    progress: 0,
+    title: "Mémoire des planètes",
+    description: "Trouve les paires !",
+    progress: 45,
     Icon: Globe,
     color: "#10B981",
+    route: "/games/planets-memory",
+  },
+];
+
+const LESSONS = [
+  {
+    id: 1,
+    subject: "Maths",
+    title: "Les fractions",
+    description: "Apprends les fractions",
+    Icon: Calculator,
+    color: "#3B82F6",
+    route: "/lessons/math-fractions",
+  },
+  {
+    id: 2,
+    subject: "Français",
+    title: "Les temps",
+    description: "Présent, passé, futur",
+    Icon: FileText,
+    color: "#EC4899",
+    route: "/lessons/french-tenses",
+  },
+  {
+    id: 3,
+    subject: "Sciences",
+    title: "Le système solaire",
+    description: "Découvre les planètes",
+    Icon: Globe,
+    color: "#10B981",
+    route: "/lessons/science-solar-system",
   },
 ];
 
@@ -86,7 +125,11 @@ function BouncyCard({
 }
 
 export default function ChildExercisesScreen() {
+  const router = useRouter();
   const user = useAppSelector((state) => state.auth.user);
+  const [activeTab, setActiveTab] = React.useState<"games" | "lessons">(
+    "games",
+  );
 
   return (
     <View style={styles.container}>
@@ -104,43 +147,146 @@ export default function ChildExercisesScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.headerGradient}
           >
-            <Text style={styles.headerTitle}>Mes jeux</Text>
+            <Text style={styles.headerTitle}>Mes activités</Text>
             <Text style={styles.headerSubtitle}>Continue, {user?.name} !</Text>
           </LinearGradient>
         </Animated.View>
 
-        <View style={styles.section}>
-          {EXERCISES.map((ex, index) => (
-            <BouncyCard
-              key={ex.id}
-              delay={300 + index * 120}
-              style={styles.exerciseCard}
+        <Animated.View
+          entering={FadeInUp.delay(200).springify().damping(14)}
+          style={styles.tabsContainer}
+        >
+          <Pressable
+            onPress={() => setActiveTab("games")}
+            style={({ pressed }) => [
+              styles.tab,
+              activeTab === "games" && styles.tabActive,
+              pressed && styles.tabPressed,
+            ]}
+          >
+            <Gamepad2
+              size={24}
+              color={activeTab === "games" ? "#3B82F6" : COLORS.secondary[500]}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "games" && styles.tabTextActive,
+              ]}
             >
-              <View style={styles.exerciseContent}>
-                <View
-                  style={[
-                    styles.exerciseIcon,
-                    { backgroundColor: ex.color + "25" },
-                  ]}
+              Mini-jeux
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setActiveTab("lessons")}
+            style={({ pressed }) => [
+              styles.tab,
+              activeTab === "lessons" && styles.tabActive,
+              pressed && styles.tabPressed,
+            ]}
+          >
+            <BookOpen
+              size={24}
+              color={
+                activeTab === "lessons" ? "#3B82F6" : COLORS.secondary[500]
+              }
+            />
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "lessons" && styles.tabTextActive,
+              ]}
+            >
+              Leçons
+            </Text>
+          </Pressable>
+        </Animated.View>
+
+        <View style={styles.section}>
+          {activeTab === "games" && (
+            <>
+              {GAMES.map((game, index) => (
+                <BouncyCard
+                  key={game.id}
+                  delay={300 + index * 120}
+                  style={styles.exerciseCard}
+                  onPress={() => {
+                    if (game.route) {
+                      router.push(game.route as any);
+                    }
+                  }}
                 >
-                  <ex.Icon size={36} color={ex.color} />
-                </View>
-                <View style={styles.exerciseInfo}>
-                  <Text style={styles.exerciseTitle}>{ex.title}</Text>
-                  <View style={styles.progressBar}>
+                  <View style={styles.exerciseContent}>
                     <View
                       style={[
-                        styles.progressFill,
-                        { width: `${ex.progress}%`, backgroundColor: ex.color },
+                        styles.exerciseIcon,
+                        { backgroundColor: game.color + "25" },
                       ]}
-                    />
+                    >
+                      <game.Icon size={36} color={game.color} />
+                    </View>
+                    <View style={styles.exerciseInfo}>
+                      <Text style={styles.exerciseTitle}>{game.title}</Text>
+                      <Text style={styles.exerciseDescription}>
+                        {game.description}
+                      </Text>
+                      <View style={styles.progressBar}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            {
+                              width: `${game.progress}%`,
+                              backgroundColor: game.color,
+                            },
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.progressText}>
+                        {game.progress}% fait
+                      </Text>
+                    </View>
+                    <ChevronRight size={28} color={COLORS.secondary[400]} />
                   </View>
-                  <Text style={styles.progressText}>{ex.progress}% fait</Text>
-                </View>
-                <ChevronRight size={28} color={COLORS.secondary[400]} />
-              </View>
-            </BouncyCard>
-          ))}
+                </BouncyCard>
+              ))}
+            </>
+          )}
+
+          {activeTab === "lessons" && (
+            <>
+              {LESSONS.map((lesson, index) => (
+                <BouncyCard
+                  key={lesson.id}
+                  delay={300 + index * 120}
+                  style={styles.exerciseCard}
+                  onPress={() => {
+                    if (lesson.route) {
+                      router.push(lesson.route as any);
+                    }
+                  }}
+                >
+                  <View style={styles.exerciseContent}>
+                    <View
+                      style={[
+                        styles.exerciseIcon,
+                        { backgroundColor: lesson.color + "25" },
+                      ]}
+                    >
+                      <lesson.Icon size={36} color={lesson.color} />
+                    </View>
+                    <View style={styles.exerciseInfo}>
+                      <Text style={styles.exerciseTitle}>{lesson.title}</Text>
+                      <Text style={styles.exerciseDescription}>
+                        {lesson.description}
+                      </Text>
+                    </View>
+                    <ChevronRight size={28} color={COLORS.secondary[400]} />
+                  </View>
+                </BouncyCard>
+              ))}
+            </>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -211,7 +357,53 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.fredoka,
     fontSize: 22,
     color: COLORS.secondary[900],
+    marginBottom: 4,
+  },
+  exerciseDescription: {
+    fontFamily: FONTS.secondary,
+    fontSize: 14,
+    color: COLORS.secondary[600],
     marginBottom: 12,
+  },
+  tabsContainer: {
+    flexDirection: "row",
+    gap: 12,
+    paddingHorizontal: 24,
+    marginBottom: 20,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: COLORS.neutral.white,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    shadowColor: COLORS.secondary.DEFAULT,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  tabActive: {
+    backgroundColor: "#DBEAFE",
+    shadowColor: "#3B82F6",
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  tabPressed: {
+    transform: [{ scale: 0.97 }],
+  },
+  tabText: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 16,
+    color: COLORS.secondary[600],
+  },
+  tabTextActive: {
+    color: "#3B82F6",
   },
   progressBar: {
     height: 12,

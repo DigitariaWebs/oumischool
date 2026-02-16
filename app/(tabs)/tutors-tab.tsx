@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -23,7 +24,9 @@ import {
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
+import { SPACING } from "@/constants/tokens";
 import { Tutor, Subject, TutorRecommendation } from "@/types";
+import { Card, Badge, Avatar, EmptyState } from "@/components/ui";
 
 // Mock data - in real app, this would come from API/store
 const subjects: Subject[] = [
@@ -136,16 +139,20 @@ const TutorCard: React.FC<TutorCardProps> = ({
 }) => {
   const router = useRouter();
 
+  const cardStyle: ViewStyle = {
+    ...styles.tutorCard,
+    ...(recommendation && styles.recommendationCard),
+  };
+
   return (
-    <View>
+    <Card variant="elevated" padding="md" style={cardStyle}>
       <TouchableOpacity
-        style={[styles.tutorCard, recommendation && styles.recommendationCard]}
         activeOpacity={0.7}
         onPress={() => router.push(`/tutor/${tutor.id}`)}
       >
         <View style={styles.tutorHeader}>
           <View style={styles.tutorAvatarContainer}>
-            <Image source={{ uri: tutor.avatar }} style={styles.tutorAvatar} />
+            <Avatar source={tutor.avatar} name={tutor.name} size="lg" />
             {recommendation && (
               <View style={styles.recommendationBadgeFloat}>
                 <Star size={12} color="white" fill="white" />
@@ -173,18 +180,18 @@ const TutorCard: React.FC<TutorCardProps> = ({
 
         <View style={styles.tutorSubjects}>
           {tutor.subjects.map((subject) => (
-            <View
+            <Badge
               key={subject.id}
-              style={[
-                styles.subjectBadge,
-                { backgroundColor: subject.color + "15" },
-                { borderColor: subject.color + "40" },
-              ]}
-            >
-              <Text style={[styles.subjectBadgeText, { color: subject.color }]}>
-                {subject.name}
-              </Text>
-            </View>
+              label={subject.name}
+              variant="info"
+              size="sm"
+              style={{
+                backgroundColor: subject.color + "15",
+                borderColor: subject.color + "40",
+                borderWidth: 1,
+              }}
+              textStyle={{ color: subject.color }}
+            />
           ))}
         </View>
 
@@ -196,14 +203,22 @@ const TutorCard: React.FC<TutorCardProps> = ({
           <View style={styles.pricingContainer}>
             <View style={styles.priceItem}>
               <Text style={styles.priceLabel}>En ligne</Text>
-              <Text style={styles.priceValue}>{tutor.hourlyRate}€/h</Text>
+              <Badge
+                label={`${tutor.hourlyRate}€/h`}
+                variant="success"
+                size="md"
+              />
             </View>
             {tutor.inPersonAvailable && (
               <>
                 <View style={styles.priceDivider} />
                 <View style={styles.priceItem}>
                   <Text style={styles.priceLabel}>Présentiel</Text>
-                  <Text style={styles.priceValue}>{tutor.inPersonRate}€/h</Text>
+                  <Badge
+                    label={`${tutor.inPersonRate}€/h`}
+                    variant="success"
+                    size="md"
+                  />
                 </View>
               </>
             )}
@@ -225,7 +240,7 @@ const TutorCard: React.FC<TutorCardProps> = ({
           </View>
         )}
       </TouchableOpacity>
-    </View>
+    </Card>
   );
 };
 
@@ -481,22 +496,17 @@ export default function TutorsTab() {
                               </Text>
                             </View>
                           </View>
-                          <View
-                            style={[
-                              styles.subjectIndicator,
-                              { backgroundColor: subject?.color + "20" },
-                              { borderColor: subject?.color + "60" },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.subjectIndicatorText,
-                                { color: subject?.color },
-                              ]}
-                            >
-                              {subject?.name}
-                            </Text>
-                          </View>
+                          <Badge
+                            label={subject?.name || ""}
+                            variant="info"
+                            size="sm"
+                            style={{
+                              backgroundColor: subject?.color + "20",
+                              borderColor: subject?.color + "60",
+                              borderWidth: 1,
+                            }}
+                            textStyle={{ color: subject?.color }}
+                          />
                         </View>
                         <TutorCard
                           tutor={tutor}
@@ -508,18 +518,11 @@ export default function TutorsTab() {
                   })}
                 </View>
               ) : (
-                <View style={styles.emptyState}>
-                  <View style={styles.emptyStateIcon}>
-                    <Star size={48} color={COLORS.secondary[400]} />
-                  </View>
-                  <Text style={styles.emptyStateTitle}>
-                    Aucune recommandation pour cet enfant
-                  </Text>
-                  <Text style={styles.emptyStateText}>
-                    Essayez de sélectionner un autre enfant ou consultez tous
-                    les enfants
-                  </Text>
-                </View>
+                <EmptyState
+                  icon={<Star size={48} color={COLORS.secondary[400]} />}
+                  title="Aucune recommandation pour cet enfant"
+                  description="Essayez de sélectionner un autre enfant ou consultez tous les enfants"
+                />
               );
             })()}
           </View>
@@ -642,15 +645,11 @@ export default function TutorsTab() {
 
         {/* Empty State */}
         {filteredTutors.length === 0 && browseMode === "tutor" && (
-          <View style={styles.emptyState}>
-            <View style={styles.emptyStateIcon}>
-              <GraduationCap size={48} color={COLORS.secondary[400]} />
-            </View>
-            <Text style={styles.emptyStateTitle}>Aucun tuteur trouvé</Text>
-            <Text style={styles.emptyStateText}>
-              Essayez de modifier vos filtres ou votre recherche
-            </Text>
-          </View>
+          <EmptyState
+            icon={<GraduationCap size={48} color={COLORS.secondary[400]} />}
+            title="Aucun tuteur trouvé"
+            description="Essayez de modifier vos filtres ou votre recherche"
+          />
         )}
       </ScrollView>
     </SafeAreaView>
@@ -676,7 +675,7 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
-    paddingBottom: 24,
+    paddingBottom: SPACING.lg,
   },
   sectionTitle: {
     fontFamily: FONTS.fredoka,
@@ -965,15 +964,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   tutorCard: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 16,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
+    marginBottom: SPACING.md,
   },
   recommendationCard: {
     borderWidth: 2,
@@ -984,18 +975,11 @@ const styles = StyleSheet.create({
   tutorHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 14,
+    marginBottom: SPACING.md,
   },
   tutorAvatarContainer: {
     position: "relative",
-    marginRight: 12,
-  },
-  tutorAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 3,
-    borderColor: COLORS.neutral.white,
+    marginRight: SPACING.md,
   },
   recommendationBadgeFloat: {
     position: "absolute",
@@ -1060,20 +1044,8 @@ const styles = StyleSheet.create({
   tutorSubjects: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 14,
-  },
-  subjectBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  subjectBadgeText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    fontWeight: "700",
-    letterSpacing: 0.3,
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
   },
   tutorFooter: {
     marginTop: 4,
@@ -1098,12 +1070,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 4,
   },
-  priceValue: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.primary.DEFAULT,
-    fontWeight: "700",
-  },
+
   priceDivider: {
     width: 1,
     height: 32,
@@ -1148,17 +1115,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
   },
-  subjectIndicator: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  subjectIndicatorText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    fontWeight: "700",
-  },
+
   recommendationReasonContainer: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -1179,28 +1136,7 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     fontStyle: "italic",
   },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 48,
-    paddingHorizontal: 32,
-  },
-  emptyStateIcon: {
-    marginBottom: 16,
-  },
-  emptyStateTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 20,
-    color: COLORS.secondary[900],
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  emptyStateText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[500],
-    textAlign: "center",
-    lineHeight: 20,
-  },
+
   subjectSection: {
     marginBottom: 28,
   },

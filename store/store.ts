@@ -9,6 +9,19 @@ export const store = configureStore({
     children: childrenReducer,
     aiContext: aiContextReducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        // Ignore these action types that might have non-serializable values
+        ignoredActions: [],
+        // Ignore these field paths in all actions
+        ignoredActionPaths: [],
+        // Ignore these paths in the state
+        ignoredPaths: [],
+        // Increase the time threshold for warnings (default is 32ms)
+        warnAfter: 128,
+      },
+    }),
 });
 
 // Infer the `RootState` and `AppDispatch` types from the store itself

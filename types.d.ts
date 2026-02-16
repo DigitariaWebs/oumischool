@@ -1,11 +1,11 @@
 import { Child } from "@/store/slices/childrenSlice";
 
 // AI Chatbot Types
-export interface Message {
+export interface AIChatMessage {
   id: string;
   type: "user" | "ai";
   content: string;
-  timestamp: Date;
+  timestamp: string; // ISO string instead of Date for Redux serialization
 }
 
 export interface AIContext {
@@ -178,4 +178,72 @@ export interface TutorReview {
   rating: number;
   date: string;
   comment: string;
+}
+
+// Messaging Types
+export interface ChatMessage {
+  id: string;
+  content: string;
+  timestamp: string; // ISO string for serialization
+  senderId: string;
+  isOwn: boolean;
+  isRead: boolean;
+  attachment?: {
+    type: "image" | "file";
+    url: string;
+    name?: string;
+  };
+}
+
+export interface Conversation {
+  id: string;
+  participantId: string;
+  participantName: string;
+  participantAvatar?: string;
+  participantRole: "tutor" | "parent";
+  lastMessage: string;
+  lastMessageTime: string; // ISO string
+  unreadCount: number;
+  isOnline: boolean;
+}
+
+// Pricing & Payment Types
+export interface PricingPlan {
+  id: string;
+  name: string;
+  price: number;
+  billingPeriod: "month" | "year";
+  description: string;
+  features: string[];
+  isPopular?: boolean;
+  isCurrent?: boolean;
+}
+
+export interface PaymentMethod {
+  id: string;
+  type: "card" | "paypal" | "bank";
+  last4?: string;
+  expiryDate?: string;
+  isDefault: boolean;
+}
+
+export interface Transaction {
+  id: string;
+  amount: number;
+  currency: string;
+  date: string; // ISO string
+  status: "completed" | "pending" | "failed";
+  description: string;
+  invoiceUrl?: string;
+}
+
+export interface Subscription {
+  id: string;
+  planId: string;
+  planName: string;
+  status: "active" | "canceled" | "expired";
+  startDate: string; // ISO string
+  endDate?: string; // ISO string
+  autoRenew: boolean;
+  paymentMethodId: string;
 }

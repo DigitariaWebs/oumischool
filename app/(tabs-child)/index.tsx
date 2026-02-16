@@ -42,6 +42,7 @@ const TODAY_LESSONS = [
     completed: false,
     Icon: Calculator,
     color: "#3B82F6",
+    route: "/lessons/math-fractions",
   },
   {
     id: 2,
@@ -51,6 +52,7 @@ const TODAY_LESSONS = [
     completed: true,
     Icon: FileText,
     color: "#EC4899",
+    route: "/lessons/french-tenses",
   },
   {
     id: 3,
@@ -60,6 +62,7 @@ const TODAY_LESSONS = [
     completed: false,
     Icon: Droplets,
     color: "#10B981",
+    route: "/lessons/science-solar-system",
   },
 ];
 
@@ -181,7 +184,11 @@ export default function ChildDashboardScreen() {
             <BouncyCard
               key={lesson.id}
               delay={500 + index * 120}
-              onPress={() => {}}
+              onPress={() => {
+                if (lesson.route) {
+                  router.push(lesson.route as any);
+                }
+              }}
               style={styles.lessonCard}
             >
               <View style={styles.lessonCardContent}>

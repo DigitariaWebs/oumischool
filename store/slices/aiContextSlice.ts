@@ -1,10 +1,10 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { UserRole } from "./authSlice";
-import { AIContext, RoleBasedPrompts, Message } from "@/types";
+import { AIContext, RoleBasedPrompts, AIChatMessage } from "@/types";
 
 interface AIContextState {
   context: AIContext;
-  messages: Message[];
+  messages: AIChatMessage[];
   isTyping: boolean;
   roleConfig: RoleBasedPrompts | null;
 }
@@ -58,7 +58,7 @@ export const aiContextSlice = createSlice({
         subjectName: action.payload.subjectName,
       };
     },
-    addMessage: (state, action: PayloadAction<Message>) => {
+    addMessage: (state, action: PayloadAction<AIChatMessage>) => {
       state.messages.push(action.payload);
     },
     clearMessages: (state) => {
@@ -79,7 +79,7 @@ export const aiContextSlice = createSlice({
           id: "1",
           type: "ai",
           content: action.payload.welcomeMessage,
-          timestamp: new Date(),
+          timestamp: new Date().toISOString(),
         },
       ];
     },

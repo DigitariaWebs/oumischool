@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ViewStyle,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -20,9 +21,11 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
+import { SPACING } from "@/constants/tokens";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { addChild } from "@/store/slices/childrenSlice";
 import AddChildModal from "@/components/AddChildModal";
+import { Card, Badge, Avatar, EmptyState } from "@/components/ui";
 
 interface Child {
   id: number;
@@ -65,89 +68,94 @@ const ChildDetailCard: React.FC<ChildCardProps> = ({
   <Animated.View
     entering={FadeInDown.delay(delay).duration(600)}
     layout={Layout.duration(300)}
-    style={styles.childDetailCard}
   >
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-      <LinearGradient
-        colors={[child.color + "20", child.color + "10"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.childCardGradient}
-      >
-        {/* Header */}
-        <View style={styles.childCardHeader}>
-          <View style={styles.childCardHeaderLeft}>
-            <View
+    <Card variant="elevated" padding="none" style={styles.childDetailCard}>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+        <LinearGradient
+          colors={[child.color + "20", child.color + "10"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.childCardGradient}
+        >
+          {/* Header */}
+          <View style={styles.childCardHeader}>
+            <View style={styles.childCardHeaderLeft}>
+              <Avatar
+                name={child.name}
+                size="lg"
+                style={{
+                  ...styles.childDetailAvatar,
+                  backgroundColor: child.color + "40",
+                }}
+              />
+              <View>
+                <Text style={styles.childDetailName}>{child.name}</Text>
+                <View style={styles.childInfo}>
+                  <Badge label={child.grade} variant="secondary" size="sm" />
+                  <Text style={styles.childAge}>
+                    {calculateAge(child.dateOfBirth)} ans
+                  </Text>
+                </View>
+              </View>
+            </View>
+            <TouchableOpacity
               style={[
-                styles.childDetailAvatar,
-                { backgroundColor: child.color + "40" },
+                styles.editButton,
+                { backgroundColor: child.color + "20" },
               ]}
             >
+              <Edit size={18} color={child.color} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Progress Section */}
+          <View style={styles.progressSection}>
+            <View style={styles.progressHeader}>
+              <Text style={styles.progressLabel}>Progression globale</Text>
+              <Badge label={`${child.progress}%`} variant="success" size="sm" />
+            </View>
+            <View style={styles.progressBarContainer}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  {
+                    width: `${child.progress}%`,
+                    backgroundColor: child.color,
+                  },
+                ]}
+              />
+            </View>
+          </View>
+
+          {/* Stats */}
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <BookOpen size={20} color={COLORS.secondary[500]} />
+              <Text style={styles.statValue}>
+                {child.lessonsCompleted}/{child.totalLessons}
+              </Text>
+              <Text style={styles.statLabel}>Leçons</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Calendar size={20} color={COLORS.secondary[500]} />
+              <Text style={styles.statValue}>5</Text>
+              <Text style={styles.statLabel}>Cette semaine</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <TrendingUp size={20} color={COLORS.primary.DEFAULT} />
               <Text
-                style={[styles.childDetailAvatarText, { color: child.color }]}
+                style={[styles.statValue, { color: COLORS.primary.DEFAULT }]}
               >
-                {child.avatar || child.name.charAt(0)}
+                +12%
               </Text>
-            </View>
-            <View>
-              <Text style={styles.childDetailName}>{child.name}</Text>
-              <Text style={styles.childDetailGrade}>
-                {child.grade} • {calculateAge(child.dateOfBirth)} ans
-              </Text>
+              <Text style={styles.statLabel}>Ce mois</Text>
             </View>
           </View>
-          <View
-            style={[styles.editButton, { backgroundColor: child.color + "20" }]}
-          >
-            <Edit size={18} color={child.color} />
-          </View>
-        </View>
-
-        {/* Progress Section */}
-        <View style={styles.progressSection}>
-          <View style={styles.progressHeader}>
-            <Text style={styles.progressLabel}>Progression globale</Text>
-            <Text style={styles.progressPercentage}>{child.progress}%</Text>
-          </View>
-          <View style={styles.progressBarContainer}>
-            <View
-              style={[
-                styles.progressBarFill,
-                {
-                  width: `${child.progress}%`,
-                  backgroundColor: child.color,
-                },
-              ]}
-            />
-          </View>
-        </View>
-
-        {/* Stats */}
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <BookOpen size={20} color={COLORS.secondary[500]} />
-            <Text style={styles.statValue}>
-              {child.lessonsCompleted}/{child.totalLessons}
-            </Text>
-            <Text style={styles.statLabel}>Leçons</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Calendar size={20} color={COLORS.secondary[500]} />
-            <Text style={styles.statValue}>5</Text>
-            <Text style={styles.statLabel}>Cette semaine</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <TrendingUp size={20} color={COLORS.primary.DEFAULT} />
-            <Text style={[styles.statValue, { color: COLORS.primary.DEFAULT }]}>
-              +12%
-            </Text>
-            <Text style={styles.statLabel}>Ce mois</Text>
-          </View>
-        </View>
-      </LinearGradient>
-    </TouchableOpacity>
+        </LinearGradient>
+      </TouchableOpacity>
+    </Card>
   </Animated.View>
 );
 
@@ -206,48 +214,66 @@ export default function ChildrenTab() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Children Cards */}
-        {children.map((child, index) => (
-          <ChildDetailCard
-            key={child.id}
-            child={child}
-            delay={200 + index * 100}
-            onPress={() =>
-              router.push(`/parent/child/details?id=child-${child.id}`)
-            }
+        {children.length === 0 ? (
+          <EmptyState
+            icon={<Plus size={48} color={COLORS.neutral[400]} />}
+            title="Aucun enfant ajouté"
+            description="Commencez par ajouter un profil pour votre enfant afin de suivre sa progression"
+            actionLabel="Ajouter un enfant"
+            onAction={() => setAddModalVisible(true)}
           />
-        ))}
+        ) : (
+          <>
+            {/* Children Cards */}
+            {children.map((child, index) => (
+              <ChildDetailCard
+                key={child.id}
+                child={child}
+                delay={200 + index * 100}
+                onPress={() =>
+                  router.push(`/parent/child/details?id=child-${child.id}`)
+                }
+              />
+            ))}
 
-        {/* Add Child Button */}
-        <Animated.View entering={FadeInDown.delay(400).duration(600)}>
-          <TouchableOpacity
-            style={styles.addChildButton}
-            onPress={() => setAddModalVisible(true)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.addChildIcon}>
-              <Plus size={24} color={COLORS.primary.DEFAULT} />
-            </View>
-            <View style={styles.addChildText}>
-              <Text style={styles.addChildTitle}>Ajouter un enfant</Text>
-              <Text style={styles.addChildSubtitle}>
-                Créer un nouveau profil
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </Animated.View>
+            {/* Add Child Button */}
+            <Animated.View entering={FadeInDown.delay(400).duration(600)}>
+              <Card variant="outlined" padding="none">
+                <TouchableOpacity
+                  style={styles.addChildButton}
+                  onPress={() => setAddModalVisible(true)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.addChildIcon}>
+                    <Plus size={24} color={COLORS.primary.DEFAULT} />
+                  </View>
+                  <View style={styles.addChildText}>
+                    <Text style={styles.addChildTitle}>Ajouter un enfant</Text>
+                    <Text style={styles.addChildSubtitle}>
+                      Créer un nouveau profil
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </Card>
+            </Animated.View>
 
-        {/* Info Card */}
-        <Animated.View
-          entering={FadeInDown.delay(500).duration(600)}
-          style={styles.infoCard}
-        >
-          <Text style={styles.infoTitle}>Conseil</Text>
-          <Text style={styles.infoText}>
-            Pour chaque enfant, vous pouvez personnaliser le plan hebdomadaire
-            et suivre sa progression matière par matière.
-          </Text>
-        </Animated.View>
+            {/* Info Card */}
+            <Animated.View entering={FadeInDown.delay(500).duration(600)}>
+              <Card variant="default" padding="md" style={styles.infoCard}>
+                <Badge
+                  label="Conseil"
+                  variant="warning"
+                  size="sm"
+                  style={styles.infoBadge}
+                />
+                <Text style={styles.infoText}>
+                  Pour chaque enfant, vous pouvez personnaliser le plan
+                  hebdomadaire et suivre sa progression matière par matière.
+                </Text>
+              </Card>
+            </Animated.View>
+          </>
+        )}
       </ScrollView>
 
       <AddChildModal
@@ -277,19 +303,14 @@ const styles = StyleSheet.create({
     color: COLORS.secondary[900],
   },
   scrollContent: {
-    padding: 24,
-    paddingTop: 8,
+    padding: SPACING.lg,
+    paddingTop: SPACING.sm,
   },
   // Child Detail Card
   childDetailCard: {
-    marginBottom: 20,
+    marginBottom: SPACING.lg,
     borderRadius: 24,
     overflow: "hidden",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 5,
   },
   childCardGradient: {
     padding: 20,
@@ -307,15 +328,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   childDetailAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
+    marginRight: SPACING.md,
   },
-  childDetailAvatarText: {
-    fontSize: 32,
+  childInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+    gap: SPACING.sm,
+  },
+  childAge: {
+    fontFamily: FONTS.secondary,
+    fontSize: 14,
+    color: COLORS.secondary[500],
   },
   childDetailName: {
     fontFamily: FONTS.fredoka,
@@ -323,11 +347,7 @@ const styles = StyleSheet.create({
     color: COLORS.secondary[900],
     marginBottom: 4,
   },
-  childDetailGrade: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[500],
-  },
+
   editButton: {
     width: 40,
     height: 40,
@@ -343,7 +363,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: SPACING.md,
   },
   progressLabel: {
     fontFamily: FONTS.secondary,
@@ -351,12 +371,7 @@ const styles = StyleSheet.create({
     color: COLORS.secondary[600],
     fontWeight: "600",
   },
-  progressPercentage: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.secondary[900],
-    fontWeight: "700",
-  },
+
   progressBarContainer: {
     height: 10,
     backgroundColor: COLORS.neutral[200],
@@ -402,13 +417,8 @@ const styles = StyleSheet.create({
   addChildButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 2,
-    borderColor: COLORS.primary[100],
-    borderStyle: "dashed",
-    marginBottom: 20,
+    padding: SPACING.lg,
+    marginBottom: SPACING.lg,
   },
   addChildIcon: {
     width: 56,
@@ -436,16 +446,11 @@ const styles = StyleSheet.create({
   // Info Card
   infoCard: {
     backgroundColor: "#FEF3C7",
-    borderRadius: 16,
-    padding: 16,
     borderLeftWidth: 4,
     borderLeftColor: "#F59E0B",
   },
-  infoTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 16,
-    color: COLORS.secondary[900],
-    marginBottom: 8,
+  infoBadge: {
+    marginBottom: SPACING.sm,
   },
   infoText: {
     fontFamily: FONTS.secondary,

@@ -57,7 +57,7 @@ import {
 } from "@/store/slices/aiContextSlice";
 import { getRoleBasedConfig, getIconForPrompt } from "@/utils/chatbotConfig";
 import { generateAIResponse } from "@/utils/aiResponseGenerator";
-import { Message } from "@/types";
+import { AIChatMessage } from "@/types";
 
 const { width } = Dimensions.get("window");
 
@@ -261,11 +261,11 @@ export default function AICoachScreen() {
     if (!messageText) return;
 
     // Add user message
-    const userMessage: Message = {
+    const userMessage: AIChatMessage = {
       id: `${Date.now()}`,
       type: "user",
       content: messageText,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     };
     dispatch(addMessage(userMessage));
     setInputText("");
@@ -280,11 +280,11 @@ export default function AICoachScreen() {
         messageHistory: messages,
       });
 
-      const aiMessage: Message = {
+      const aiMessage: AIChatMessage = {
         id: `${Date.now() + 1}`,
         type: "ai",
         content: aiResponse,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
       };
       dispatch(addMessage(aiMessage));
       dispatch(setIsTyping(false));
@@ -302,11 +302,11 @@ export default function AICoachScreen() {
       );
 
       // Send context confirmation message
-      const contextMessage: Message = {
+      const contextMessage: AIChatMessage = {
         id: `${Date.now()}`,
         type: "ai",
         content: `Parfait ! Je vais maintenant vous aider avec les informations de ${selectedChild.name}. Que voulez-vous savoir ?`,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
       };
       dispatch(addMessage(contextMessage));
     }
@@ -322,11 +322,11 @@ export default function AICoachScreen() {
 
   const handleClearContext = () => {
     dispatch(clearContext());
-    const contextMessage: Message = {
+    const contextMessage: AIChatMessage = {
       id: `${Date.now()}`,
       type: "ai",
       content: "Contexte réinitialisé. Comment puis-je vous aider ?",
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     };
     dispatch(addMessage(contextMessage));
   };

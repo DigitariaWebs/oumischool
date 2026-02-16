@@ -24,6 +24,7 @@ import {
   X,
   Calendar,
   Check,
+  MessageSquare,
 } from "lucide-react-native";
 
 import { COLORS } from "@/config/colors";
@@ -460,14 +461,24 @@ export default function TutorProfileScreen() {
             </>
           )}
         </View>
-        <TouchableOpacity
-          style={styles.bookButton}
-          onPress={() => setBookingModalVisible(true)}
-          activeOpacity={0.8}
-        >
-          <Calendar size={20} color="white" />
-          <Text style={styles.bookButtonText}>Réserver</Text>
-        </TouchableOpacity>
+        <View style={styles.ctaButtonsContainer}>
+          <TouchableOpacity
+            style={styles.messageButton}
+            onPress={() => router.push("/messaging")}
+            activeOpacity={0.8}
+          >
+            <MessageSquare size={20} color={COLORS.primary.DEFAULT} />
+            <Text style={styles.messageButtonText}>Message</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.bookButton}
+            onPress={() => setBookingModalVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Calendar size={20} color="white" />
+            <Text style={styles.bookButtonText}>Réserver</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Booking Modal */}
@@ -1154,7 +1165,30 @@ const styles = StyleSheet.create({
     height: 24,
     backgroundColor: COLORS.secondary[300],
   },
+  ctaButtonsContainer: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  messageButton: {
+    flex: 1,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    paddingVertical: 16,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 2,
+    borderColor: COLORS.primary.DEFAULT,
+  },
+  messageButtonText: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 18,
+    color: COLORS.primary.DEFAULT,
+    fontWeight: "700",
+  },
   bookButton: {
+    flex: 1,
     backgroundColor: COLORS.primary.DEFAULT,
     borderRadius: 16,
     paddingVertical: 16,

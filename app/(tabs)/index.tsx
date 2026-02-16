@@ -20,6 +20,8 @@ import {
   ChevronRight,
   Bell,
   Baby,
+  MessageSquare,
+  CreditCard,
 } from "lucide-react-native";
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
@@ -171,6 +173,13 @@ export default function HomeScreen() {
       onPress: () => router.push("/weekly-plan"),
     },
     {
+      icon: <MessageSquare size={24} color="white" />,
+      title: "Messages",
+      subtitle: "Discussions",
+      color: "#10B981",
+      onPress: () => router.push("/messaging"),
+    },
+    {
       icon: <Sparkles size={24} color="white" />,
       title: "Coach IA",
       subtitle: "Assistance",
@@ -183,6 +192,13 @@ export default function HomeScreen() {
       subtitle: "Explorer",
       color: "#EAB308",
       onPress: () => router.push("/resources"),
+    },
+    {
+      icon: <CreditCard size={24} color="white" />,
+      title: "Abonnement",
+      subtitle: "Offres",
+      color: "#F59E0B",
+      onPress: () => router.push("/pricing"),
     },
   ];
 
