@@ -18,7 +18,11 @@ import {
   Sparkles,
   Users,
 } from "lucide-react-native";
-import Animated, { FadeInDown, FadeInUp, Layout } from "react-native-reanimated";
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  Layout,
+} from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
@@ -31,7 +35,7 @@ import { Card, Badge, Avatar, EmptyState } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
 import { ThemeColors } from "@/constants/theme";
 
-const { width: SCREEN_WIDTH } = Dimensions.
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 interface Child {
   id: number;
@@ -71,105 +75,151 @@ const ChildDetailCard: React.FC<ChildCardProps> = ({
   delay,
   onPress,
 }) => {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
   return (
     <Animated.View
-      entering={FadeInDown.delay(delay).duration(600)}
+      entering={FadeInDown.delay(delay).duration(600).springify()}
       layout={Layout.duration(300)}
     >
-      <Card variant="elevated" padding="none" style={styles.childDetailCard}>
-        <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-          <LinearGradient
-            colors={[child.color + "20", child.color + "10"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.childCardGradient}
-          >
-            {/* Header */}
-            <View style={styles.childCardHeader}>
-              <View style={styles.childCardHeaderLeft}>
-                <Avatar
-                  name={child.name}
-                  size="lg"
-                  style={{
-                    ...styles.childDetailAvatar,
-                    backgroundColor: child.color + "40",
-                  }}
-                />
-                <View>
-                  <Text style={styles.childDetailName}>{child.name}</Text>
-                  <View style={styles.childInfo}>
-                    <Badge label={child.grade} variant="secondary" size="sm" />
-                    <Text style={styles.childAge}>
-                      {calculateAge(child.dateOfBirth)} ans
-                    </Text>
-                  </View>
-                </View>
-              </View>
-              <TouchableOpacity
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.7}
+        style={styles.childDetailCard}
+      >
+        <LinearGradient
+          colors={[child.color + "25", child.color + "08"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.childCardGradient}
+        >
+          {/* Decorative circles */}
+          <View
+            style={[
+              styles.decorCircle1,
+              { backgroundColor: child.color + "15" },
+            ]}
+          />
+          <View
+            style={[
+              styles.decorCircle2,
+              { backgroundColor: child.color + "10" },
+            ]}
+          />
+
+          {/* Header */}
+          <View style={styles.childCardHeader}>
+            <View style={styles.childCardHeaderLeft}>
+              <View
                 style={[
-                  styles.editButton,
-                  { backgroundColor: child.color + "20" },
+                  styles.avatarContainer,
+                  { backgroundColor: child.color + "30" },
                 ]}
               >
-                <Edit size={18} color={child.color} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Progress Section */}
-            <View style={styles.progressSection}>
-              <View style={styles.progressHeader}>
-                <Text style={styles.progressLabel}>Progression globale</Text>
-                <Badge
-                  label={`${child.progress}%`}
-                  variant="success"
-                  size="sm"
-                />
-              </View>
-              <View style={styles.progressBarContainer}>
-                <View
-                  style={[
-                    styles.progressBarFill,
-                    {
-                      width: `${child.progress}%`,
-                      backgroundColor: child.color,
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-
-            {/* Stats */}
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <BookOpen size={20} color={colors.icon} />
-                <Text style={styles.statValue}>
-                  {child.lessonsCompleted}/{child.totalLessons}
+                <Text style={[styles.avatarText, { color: child.color }]}>
+                  {child.name.charAt(0)}
                 </Text>
-                <Text style={styles.statLabel}>Leçons</Text>
               </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Calendar size={20} color={colors.icon} />
-                <Text style={styles.statValue}>5</Text>
-                <Text style={styles.statLabel}>Cette semaine</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <TrendingUp size={20} color={COLORS.primary.DEFAULT} />
-                <Text
-                  style={[styles.statValue, { color: COLORS.primary.DEFAULT }]}
-                >
-                  +12%
-                </Text>
-                <Text style={styles.statLabel}>Ce mois</Text>
+              <View>
+                <Text style={styles.childDetailName}>{child.name}</Text>
+                <View style={styles.childInfo}>
+                  <View
+                    style={[
+                      styles.gradeBadge,
+                      { backgroundColor: child.color + "20" },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.gradeBadgeText, { color: child.color }]}
+                    >
+                      {child.grade}
+                    </Text>
+                  </View>
+                  <Text style={styles.childAge}>
+                    {calculateAge(child.dateOfBirth)} ans
+                  </Text>
+                </View>
               </View>
             </View>
-          </LinearGradient>
-        </TouchableOpacity>
-      </Card>
+            <TouchableOpacity
+              style={[
+                styles.editButton,
+                { backgroundColor: child.color + "15" },
+              ]}
+            >
+              <Edit size={18} color={child.color} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Progress Section */}
+          <View style={styles.progressSection}>
+            <View style={styles.progressHeader}>
+              <Text style={styles.progressLabel}>Progression globale</Text>
+              <View
+                style={[styles.progressBadge, { backgroundColor: "#10B98115" }]}
+              >
+                <Text style={styles.progressBadgeText}>{child.progress}%</Text>
+              </View>
+            </View>
+            <View style={styles.progressBarContainer}>
+              <LinearGradient
+                colors={[child.color, child.color + "CC"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[
+                  styles.progressBarFill,
+                  { width: `${child.progress}%` },
+                ]}
+              />
+            </View>
+          </View>
+
+          {/* Stats */}
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <View
+                style={[
+                  styles.statIconContainer,
+                  { backgroundColor: colors.primary + "15" },
+                ]}
+              >
+                <BookOpen size={18} color={colors.primary} />
+              </View>
+              <Text style={styles.statValue}>
+                {child.lessonsCompleted}/{child.totalLessons}
+              </Text>
+              <Text style={styles.statLabel}>Leçons</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <View
+                style={[
+                  styles.statIconContainer,
+                  { backgroundColor: "#3B82F615" },
+                ]}
+              >
+                <Calendar size={18} color="#3B82F6" />
+              </View>
+              <Text style={styles.statValue}>5</Text>
+              <Text style={styles.statLabel}>Cette semaine</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <View
+                style={[
+                  styles.statIconContainer,
+                  { backgroundColor: "#10B98115" },
+                ]}
+              >
+                <TrendingUp size={18} color="#10B981" />
+              </View>
+              <Text style={[styles.statValue, { color: "#10B981" }]}>+12%</Text>
+              <Text style={styles.statLabel}>Ce mois</Text>
+            </View>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
     </Animated.View>
   );
 };
@@ -177,11 +227,11 @@ const ChildDetailCard: React.FC<ChildCardProps> = ({
 export default function ChildrenTab() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const childrenFromStore = useAppSelector((state) => state.children.children);
   const [addModalVisible, setAddModalVisible] = useState(false);
 
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
   // Map Redux children to local Child interface
   const children: Child[] = childrenFromStore.map((child) => ({
@@ -223,31 +273,122 @@ export default function ChildrenTab() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mes enfants</Text>
+      {/* Organic blob background */}
+      <View style={styles.blobContainer}>
+        <View style={[styles.blob, styles.blob1]} />
+        <View style={[styles.blob, styles.blob2]} />
       </View>
+
+      {/* Header */}
+      <Animated.View
+        entering={FadeInDown.delay(100).duration(600).springify()}
+        style={styles.header}
+      >
+        <View style={styles.headerContent}>
+          <View style={styles.headerLeft}>
+            <View style={styles.headerIconContainer}>
+              <Users size={20} color={COLORS.neutral.white} />
+            </View>
+            <Text style={styles.headerTitle}>Mes enfants</Text>
+          </View>
+          <View style={styles.headerBadge}>
+            <Text style={styles.headerBadgeText}>{children.length}</Text>
+          </View>
+        </View>
+      </Animated.View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        {/* Summary Card */}
+        {children.length > 0 && (
+          <Animated.View
+            entering={FadeInDown.delay(150).duration(600).springify()}
+            style={styles.summaryCard}
+          >
+            <LinearGradient
+              colors={["#6366F1", "#8B5CF6", "#A855F7"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.summaryGradient}
+            >
+              <View style={styles.summaryContent}>
+                <View style={styles.summaryTop}>
+                  <View style={styles.sparkleContainer}>
+                    <Sparkles size={18} color="rgba(255,255,255,0.9)" />
+                  </View>
+                  <Text style={styles.summaryLabel}>Progression moyenne</Text>
+                </View>
+                <Text style={styles.summaryAmount}>
+                  {Math.round(
+                    children.reduce((acc, c) => acc + c.progress, 0) /
+                      children.length,
+                  )}
+                  <Text style={styles.summarySuffix}>%</Text>
+                </Text>
+                <View style={styles.summaryBadge}>
+                  <TrendingUp size={14} color="#FCD34D" />
+                  <Text style={styles.summaryBadgeText}>
+                    {children.length} enfant{children.length > 1 ? "s" : ""}{" "}
+                    inscrits
+                  </Text>
+                </View>
+              </View>
+              {/* Decorative circles */}
+              <View style={styles.summaryCircle1} />
+              <View style={styles.summaryCircle2} />
+            </LinearGradient>
+          </Animated.View>
+        )}
+
         {children.length === 0 ? (
-          <EmptyState
-            icon={<Plus size={48} color={colors.textMuted} />}
-            title="Aucun enfant ajouté"
-            description="Commencez par ajouter un profil pour votre enfant afin de suivre sa progression"
-            actionLabel="Ajouter un enfant"
-            onAction={() => setAddModalVisible(true)}
-          />
+          <Animated.View
+            entering={FadeInDown.delay(200).duration(600).springify()}
+            style={styles.emptyStateContainer}
+          >
+            <View style={styles.emptyStateIcon}>
+              <Users size={48} color={colors.textMuted} />
+            </View>
+            <Text style={styles.emptyStateTitle}>Aucun enfant ajouté</Text>
+            <Text style={styles.emptyStateText}>
+              Commencez par ajouter un profil pour votre enfant afin de suivre
+              sa progression
+            </Text>
+            <TouchableOpacity
+              style={styles.emptyStateButton}
+              onPress={() => setAddModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={[COLORS.primary.DEFAULT, COLORS.primary[600]]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.emptyStateButtonGradient}
+              >
+                <Plus size={20} color={COLORS.neutral.white} />
+                <Text style={styles.emptyStateButtonText}>
+                  Ajouter un enfant
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
         ) : (
           <>
+            {/* Section Title */}
+            <Animated.View
+              entering={FadeInDown.delay(200).duration(600).springify()}
+              style={styles.sectionHeader}
+            >
+              <Text style={styles.sectionTitle}>Profils des enfants</Text>
+            </Animated.View>
+
             {/* Children Cards */}
             {children.map((child, index) => (
               <ChildDetailCard
                 key={child.id}
                 child={child}
-                delay={200 + index * 100}
+                delay={250 + index * 100}
                 onPress={() =>
                   router.push(`/parent/child/details?id=child-${child.id}`)
                 }
@@ -255,20 +396,22 @@ export default function ChildrenTab() {
             ))}
 
             {/* Add Child Button */}
-            <Animated.View entering={FadeInDown.delay(400).duration(600)}>
+            <Animated.View
+              entering={FadeInUp.delay(400).duration(600).springify()}
+            >
               <TouchableOpacity
                 style={styles.addChildButton}
                 onPress={() => setAddModalVisible(true)}
-                activeOpacity={0.7}
+                activeOpacity={0.8}
               >
                 <LinearGradient
-                  colors={[COLORS.primary.DEFAULT, COLORS.primary[600]]}
+                  colors={["#10B981", "#059669"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.addChildGradient}
                 >
                   <View style={styles.addChildIconWrapper}>
-                    <Plus size={24} color={COLORS.neutral.white} />
+                    <Plus size={22} color={COLORS.neutral.white} />
                   </View>
                   <Text style={styles.addChildButtonText}>
                     Ajouter un enfant
@@ -289,58 +432,254 @@ export default function ChildrenTab() {
   );
 }
 
-const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
+const createStyles = (colors: ThemeColors, isDark: boolean) =>
   StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
       paddingBottom: 64,
     },
+    // Blob Background
+    blobContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 300,
+      overflow: "hidden",
+    },
+    blob: {
+      position: "absolute",
+      borderRadius: 999,
+      opacity: 0.1,
+    },
+    blob1: {
+      width: 200,
+      height: 200,
+      backgroundColor: "#8B5CF6",
+      top: -50,
+      right: -50,
+    },
+    blob2: {
+      width: 150,
+      height: 150,
+      backgroundColor: "#10B981",
+      top: 80,
+      left: -30,
+    },
+    // Header
     header: {
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+    },
+    headerContent: {
       flexDirection: "row",
       alignItems: "center",
+      justifyContent: "space-between",
+    },
+    headerLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    headerIconContainer: {
+      width: 40,
+      height: 40,
+      borderRadius: 14,
+      backgroundColor: COLORS.primary.DEFAULT,
       justifyContent: "center",
-      paddingHorizontal: 24,
-      paddingVertical: 16,
+      alignItems: "center",
     },
     headerTitle: {
       fontFamily: FONTS.fredoka,
       fontSize: 24,
       color: colors.textPrimary,
     },
+    headerBadge: {
+      backgroundColor: colors.primary + "15",
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+      borderRadius: 12,
+    },
+    headerBadgeText: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 16,
+      color: colors.primary,
+      fontWeight: "600",
+    },
     scrollContent: {
-      padding: SPACING.lg,
-      paddingTop: SPACING.sm,
+      padding: 20,
+      paddingTop: 8,
+    },
+    // Summary Card
+    summaryCard: {
+      marginBottom: 24,
+      borderRadius: 28,
+      overflow: "hidden",
+      shadowColor: "#8B5CF6",
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 20,
+      elevation: 8,
+    },
+    summaryGradient: {
+      padding: 24,
+      position: "relative",
+      overflow: "hidden",
+    },
+    summaryContent: {
+      position: "relative",
+      zIndex: 1,
+    },
+    summaryTop: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 8,
+    },
+    sparkleContainer: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: "rgba(255,255,255,0.2)",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    summaryLabel: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: "rgba(255,255,255,0.9)",
+      fontWeight: "500",
+    },
+    summaryAmount: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 52,
+      color: COLORS.neutral.white,
+      lineHeight: 60,
+    },
+    summarySuffix: {
+      fontSize: 32,
+      opacity: 0.9,
+    },
+    summaryBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: "rgba(255,255,255,0.15)",
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+      alignSelf: "flex-start",
+      marginTop: 12,
+    },
+    summaryBadgeText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      color: "rgba(255,255,255,0.95)",
+      fontWeight: "500",
+    },
+    summaryCircle1: {
+      position: "absolute",
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      backgroundColor: "rgba(255,255,255,0.1)",
+      top: -30,
+      right: -30,
+    },
+    summaryCircle2: {
+      position: "absolute",
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: "rgba(255,255,255,0.08)",
+      bottom: -20,
+      right: 50,
+    },
+    // Section Header
+    sectionHeader: {
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      fontFamily: FONTS.secondary,
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
     },
     // Child Detail Card
     childDetailCard: {
-      marginBottom: SPACING.lg,
+      marginBottom: 16,
       borderRadius: 24,
       overflow: "hidden",
+      backgroundColor: colors.card,
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 12,
+      elevation: 4,
     },
     childCardGradient: {
       padding: 20,
-      backgroundColor: colors.card,
+      position: "relative",
+      overflow: "hidden",
+    },
+    decorCircle1: {
+      position: "absolute",
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+      top: -30,
+      right: -20,
+    },
+    decorCircle2: {
+      position: "absolute",
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      bottom: -15,
+      right: 60,
     },
     childCardHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
       marginBottom: 20,
+      position: "relative",
+      zIndex: 1,
     },
     childCardHeaderLeft: {
       flexDirection: "row",
       alignItems: "center",
       flex: 1,
+      gap: 14,
     },
-    childDetailAvatar: {
-      marginRight: SPACING.md,
+    avatarContainer: {
+      width: 56,
+      height: 56,
+      borderRadius: 18,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    avatarText: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 24,
+      fontWeight: "600",
     },
     childInfo: {
       flexDirection: "row",
       alignItems: "center",
       marginTop: 4,
-      gap: SPACING.sm,
+      gap: 10,
+    },
+    gradeBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 8,
+    },
+    gradeBadgeText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      fontWeight: "600",
     },
     childAge: {
       fontFamily: FONTS.secondary,
@@ -351,25 +690,26 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
       fontFamily: FONTS.fredoka,
       fontSize: 22,
       color: colors.textPrimary,
-      marginBottom: 4,
+      marginBottom: 2,
     },
-
     editButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: 42,
+      height: 42,
+      borderRadius: 14,
       justifyContent: "center",
       alignItems: "center",
     },
     // Progress
     progressSection: {
       marginBottom: 20,
+      position: "relative",
+      zIndex: 1,
     },
     progressHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: SPACING.md,
+      marginBottom: 12,
     },
     progressLabel: {
       fontFamily: FONTS.secondary,
@@ -377,10 +717,20 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
       color: colors.textSecondary,
       fontWeight: "600",
     },
-
+    progressBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 10,
+    },
+    progressBadgeText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      color: "#10B981",
+      fontWeight: "700",
+    },
     progressBarContainer: {
       height: 10,
-      backgroundColor: colors.progressBg,
+      backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
       borderRadius: 5,
       overflow: "hidden",
     },
@@ -394,19 +744,28 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
       justifyContent: "space-around",
       paddingTop: 16,
       borderTopWidth: 1,
-      borderTopColor: colors.divider,
+      borderTopColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+      position: "relative",
+      zIndex: 1,
     },
     statItem: {
       alignItems: "center",
       flex: 1,
     },
+    statIconContainer: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: 6,
+    },
     statValue: {
       fontFamily: FONTS.fredoka,
-      fontSize: 18,
+      fontSize: 17,
       color: colors.textPrimary,
       fontWeight: "700",
-      marginTop: 8,
-      marginBottom: 4,
+      marginBottom: 2,
     },
     statLabel: {
       fontFamily: FONTS.secondary,
@@ -416,47 +775,109 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
     },
     statDivider: {
       width: 1,
-      height: "100%",
-      backgroundColor: colors.divider,
+      height: "70%",
+      backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+      alignSelf: "center",
     },
     // Add Child Button
     addChildButton: {
-      marginBottom: SPACING.lg,
-      borderRadius: 16,
+      marginTop: 8,
+      marginBottom: 16,
+      borderRadius: 18,
       overflow: "hidden",
-      elevation: 4,
-      shadowColor: COLORS.primary.DEFAULT,
-      shadowOffset: { width: 0, height: 4 },
+      shadowColor: "#10B981",
+      shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.3,
-      shadowRadius: 8,
+      shadowRadius: 12,
+      elevation: 6,
     },
     addChildGradient: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      paddingVertical: 20,
-      paddingHorizontal: SPACING.lg,
+      paddingVertical: 18,
+      paddingHorizontal: 24,
       gap: 12,
     },
     addChildIconWrapper: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
+      width: 36,
+      height: 36,
+      borderRadius: 12,
       backgroundColor: "rgba(255, 255, 255, 0.2)",
       justifyContent: "center",
       alignItems: "center",
     },
     addChildButtonText: {
       fontFamily: FONTS.fredoka,
-      fontSize: 18,
-      fontWeight: "700",
+      fontSize: 17,
+      fontWeight: "600",
       color: COLORS.neutral.white,
     },
-    // Info Card
+    // Empty State
+    emptyStateContainer: {
+      backgroundColor: colors.card,
+      borderRadius: 24,
+      padding: 32,
+      alignItems: "center",
+      marginTop: 24,
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 12,
+      elevation: 4,
+    },
+    emptyStateIcon: {
+      width: 80,
+      height: 80,
+      borderRadius: 24,
+      backgroundColor: colors.input,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: 20,
+    },
+    emptyStateTitle: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 20,
+      color: colors.textPrimary,
+      marginBottom: 8,
+      textAlign: "center",
+    },
+    emptyStateText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: "center",
+      lineHeight: 20,
+      marginBottom: 24,
+    },
+    emptyStateButton: {
+      borderRadius: 16,
+      overflow: "hidden",
+      shadowColor: COLORS.primary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    emptyStateButtonGradient: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 14,
+      paddingHorizontal: 24,
+      gap: 10,
+    },
+    emptyStateButtonText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      fontWeight: "600",
+      color: COLORS.neutral.white,
+    },
+    // Info Card (legacy)
     infoCard: {
-      backgroundColor: colors.infoCardBg,
+      backgroundColor: colors.card,
       borderLeftWidth: 4,
-      borderLeftColor: colors.infoCardBorder,
+      borderLeftColor: colors.primary,
     },
     infoBadge: {
       marginBottom: SPACING.sm,
@@ -464,7 +885,7 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
     infoText: {
       fontFamily: FONTS.secondary,
       fontSize: 14,
-      color: colors.infoCardText,
+      color: colors.textSecondary,
       lineHeight: 20,
     },
   });

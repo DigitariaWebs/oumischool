@@ -804,7 +804,7 @@ export default function ChildDetailsScreen() {
           <View style={styles.streakHeader}>
             <View style={styles.streakTitleContainer}>
               <Flame size={20} color={childColor} />
-              <Text style={styles.sectionTitle}>Série d'étude</Text>
+              <Text style={styles.sectionTitle}>Série d&apos;étude</Text>
             </View>
           </View>
 
@@ -898,7 +898,7 @@ export default function ChildDetailsScreen() {
                       <Text
                         style={[styles.todayBadgeText, { color: childColor }]}
                       >
-                        Aujourd'hui
+                        Aujourd&apos;hui
                       </Text>
                     </View>
                   )}
@@ -931,7 +931,7 @@ export default function ChildDetailsScreen() {
                           {selectedDay.timeSpent}m
                         </Text>
                         <Text style={styles.dayDetailStatLabel}>
-                          Temps d'étude
+                          Temps d&apos;étude
                         </Text>
                       </View>
                     </View>
@@ -1011,7 +1011,7 @@ export default function ChildDetailsScreen() {
             <View style={styles.scheduleCardLeft}>
               <View
                 style={[
-                  styles.scheduleIconContainer,
+                  styles.activityTimeline,
                   { backgroundColor: childColor + "20" },
                 ]}
               >

@@ -20,12 +20,18 @@ import {
   Calculator,
   FlaskConical,
   Languages,
+  Sparkles,
+  TrendingUp,
 } from "lucide-react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useTheme } from "@/hooks/use-theme";
+import { ThemeColors } from "@/constants/theme";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 interface Subject {
   id: string;
@@ -124,8 +130,8 @@ const SubjectChip: React.FC<SubjectChipProps> = ({
   isSelected,
   onPress,
 }) => {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
   return (
     <TouchableOpacity
@@ -139,10 +145,14 @@ const SubjectChip: React.FC<SubjectChipProps> = ({
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <subject.Icon
-        size={20}
-        color={isSelected ? subject.color : colors.icon}
-      />
+      <View
+        style={[
+          styles.subjectChipIcon,
+          { backgroundColor: isSelected ? subject.color : colors.input },
+        ]}
+      >
+        <subject.Icon size={16} color={isSelected ? "#FFF" : colors.icon} />
+      </View>
       <Text
         style={[
           styles.subjectChipText,
@@ -161,30 +171,27 @@ interface ResourceCardProps {
 }
 
 const ResourceCard: React.FC<ResourceCardProps> = ({ resource, delay }) => {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
   return (
-    <Animated.View entering={FadeInDown.delay(delay).duration(400)}>
+    <Animated.View entering={FadeInDown.delay(delay).duration(400).springify()}>
       <TouchableOpacity style={styles.resourceCard} activeOpacity={0.7}>
+        {/* Decorative gradient accent */}
         <View
-          style={[
-            styles.resourceIconContainer,
-            { backgroundColor: resource.color + "15" },
-          ]}
-        >
-          <View
-            style={[
-              styles.resourceIcon,
-              { backgroundColor: resource.color + "30" },
-            ]}
-          >
-            <FileText size={24} color={resource.color} />
-          </View>
-        </View>
+          style={[styles.resourceAccent, { backgroundColor: resource.color }]}
+        />
 
-        <View style={styles.resourceContent}>
+        <View style={styles.resourceInner}>
           <View style={styles.resourceHeader}>
+            <View
+              style={[
+                styles.resourceIconContainer,
+                { backgroundColor: resource.color + "15" },
+              ]}
+            >
+              <FileText size={22} color={resource.color} />
+            </View>
             <View style={styles.resourceBadges}>
               <View
                 style={[
@@ -213,10 +220,12 @@ const ResourceCard: React.FC<ResourceCardProps> = ({ resource, delay }) => {
                 <Star size={14} color="#F59E0B" fill="#F59E0B" />
                 <Text style={styles.statText}>{resource.rating}</Text>
               </View>
+              <View style={styles.statDivider} />
               <View style={styles.statItem}>
                 <Download size={14} color={colors.icon} />
                 <Text style={styles.statText}>{resource.downloads}</Text>
               </View>
+              <View style={styles.statDivider} />
               <Text style={styles.pagesText}>{resource.pages} pages</Text>
             </View>
 
@@ -227,7 +236,14 @@ const ResourceCard: React.FC<ResourceCardProps> = ({ resource, delay }) => {
               <TouchableOpacity
                 style={[styles.actionButton, styles.downloadButton]}
               >
-                <Download size={18} color="white" />
+                <LinearGradient
+                  colors={[resource.color, resource.color + "CC"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.downloadButtonGradient}
+                >
+                  <Download size={16} color="white" />
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -238,11 +254,11 @@ const ResourceCard: React.FC<ResourceCardProps> = ({ resource, delay }) => {
 };
 
 export default function ResourcesTab() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [selectedSubject, setSelectedSubject] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
   const filteredResources = resources.filter((resource) => {
     const matchesSubject =
@@ -254,39 +270,92 @@ export default function ResourcesTab() {
     return matchesSubject && matchesSearch;
   });
 
+  const totalDownloads = resources.reduce((acc, r) => acc + r.downloads, 0);
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Ressources</Text>
-        <TouchableOpacity style={styles.filterButton}>
-          <Filter size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
+      {/* Organic blob background */}
+      <View style={styles.blobContainer}>
+        <View style={[styles.blob, styles.blob1]} />
+        <View style={[styles.blob, styles.blob2]} />
       </View>
 
-      {/* Search Bar */}
+      {/* Header */}
       <Animated.View
-        entering={FadeInDown.delay(200).duration(600)}
-        style={styles.searchContainer}
+        entering={FadeInDown.delay(100).duration(600).springify()}
+        style={styles.header}
       >
-        <View style={styles.searchBar}>
-          <Search size={20} color={colors.inputPlaceholder} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Rechercher une ressource..."
-            placeholderTextColor={colors.inputPlaceholder}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
+        <View style={styles.headerLeft}>
+          <View style={styles.headerIconContainer}>
+            <BookOpen size={20} color={COLORS.neutral.white} />
+          </View>
+          <Text style={styles.headerTitle}>Ressources</Text>
         </View>
+        <TouchableOpacity style={styles.filterButton}>
+          <Filter size={20} color={colors.textPrimary} />
+        </TouchableOpacity>
       </Animated.View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        {/* Hero Stats Card */}
+        <Animated.View
+          entering={FadeInDown.delay(150).duration(600).springify()}
+          style={styles.heroCard}
+        >
+          <LinearGradient
+            colors={["#6366F1", "#8B5CF6", "#A855F7"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroGradient}
+          >
+            <View style={styles.heroContent}>
+              <View style={styles.heroTop}>
+                <View style={styles.sparkleContainer}>
+                  <Sparkles size={18} color="rgba(255,255,255,0.9)" />
+                </View>
+                <Text style={styles.heroLabel}>Bibliothèque</Text>
+              </View>
+              <Text style={styles.heroAmount}>
+                {resources.length}
+                <Text style={styles.heroSuffix}> ressources</Text>
+              </Text>
+              <View style={styles.heroBadge}>
+                <TrendingUp size={14} color="#FCD34D" />
+                <Text style={styles.heroBadgeText}>
+                  {totalDownloads.toLocaleString()} téléchargements
+                </Text>
+              </View>
+            </View>
+            {/* Decorative circles */}
+            <View style={styles.heroCircle1} />
+            <View style={styles.heroCircle2} />
+          </LinearGradient>
+        </Animated.View>
+
+        {/* Search Bar */}
+        <Animated.View
+          entering={FadeInDown.delay(200).duration(600).springify()}
+          style={styles.searchContainer}
+        >
+          <View style={styles.searchBar}>
+            <Search size={20} color={colors.inputPlaceholder} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Rechercher une ressource..."
+              placeholderTextColor={colors.inputPlaceholder}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+        </Animated.View>
+
         {/* Subject Filters */}
-        <Animated.View entering={FadeInDown.delay(300).duration(600)}>
+        <Animated.View
+          entering={FadeInDown.delay(250).duration(600).springify()}
+        >
           <Text style={styles.sectionTitle}>Matières</Text>
           <ScrollView
             horizontal
@@ -306,14 +375,16 @@ export default function ResourcesTab() {
 
         {/* Resources Grid */}
         <View style={styles.resourcesSection}>
-          <Text style={styles.sectionTitle}>
-            {filteredResources.length} ressources disponibles
-          </Text>
+          <View style={styles.resourcesHeader}>
+            <Text style={styles.sectionTitle}>
+              {filteredResources.length} ressources disponibles
+            </Text>
+          </View>
           {filteredResources.map((resource, index) => (
             <ResourceCard
               key={resource.id}
               resource={resource}
-              delay={400 + index * 100}
+              delay={300 + index * 80}
             />
           ))}
         </View>
@@ -321,11 +392,11 @@ export default function ResourcesTab() {
         {/* Empty State */}
         {filteredResources.length === 0 && (
           <Animated.View
-            entering={FadeInDown.delay(500).duration(600)}
+            entering={FadeInUp.delay(400).duration(600).springify()}
             style={styles.emptyState}
           >
             <View style={styles.emptyStateIcon}>
-              <BookOpen size={48} color={colors.textSecondary} />
+              <BookOpen size={48} color={colors.textMuted} />
             </View>
             <Text style={styles.emptyStateTitle}>Aucune ressource trouvée</Text>
             <Text style={styles.emptyStateText}>
@@ -338,18 +409,60 @@ export default function ResourcesTab() {
   );
 }
 
-const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
+const createStyles = (colors: ThemeColors, isDark: boolean) =>
   StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
     },
+    // Blob Background
+    blobContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 300,
+      overflow: "hidden",
+    },
+    blob: {
+      position: "absolute",
+      borderRadius: 999,
+      opacity: 0.1,
+    },
+    blob1: {
+      width: 200,
+      height: 200,
+      backgroundColor: "#8B5CF6",
+      top: -50,
+      right: -50,
+    },
+    blob2: {
+      width: 150,
+      height: 150,
+      backgroundColor: "#10B981",
+      top: 80,
+      left: -30,
+    },
+    // Header
     header: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingHorizontal: 24,
+      paddingHorizontal: 20,
       paddingVertical: 16,
+    },
+    headerLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    headerIconContainer: {
+      width: 40,
+      height: 40,
+      borderRadius: 14,
+      backgroundColor: COLORS.primary.DEFAULT,
+      justifyContent: "center",
+      alignItems: "center",
     },
     headerTitle: {
       fontFamily: FONTS.fredoka,
@@ -357,22 +470,111 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
       color: colors.textPrimary,
     },
     filterButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: 44,
+      height: 44,
+      borderRadius: 14,
       backgroundColor: colors.card,
       justifyContent: "center",
       alignItems: "center",
-      shadowColor: COLORS.secondary.DEFAULT,
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
+      shadowOpacity: isDark ? 0.3 : 0.08,
       shadowRadius: 8,
-      elevation: 2,
+      elevation: 3,
+    },
+    scrollContent: {
+      paddingBottom: 100,
+    },
+    // Hero Card
+    heroCard: {
+      marginHorizontal: 20,
+      marginBottom: 20,
+      borderRadius: 28,
+      overflow: "hidden",
+      shadowColor: "#8B5CF6",
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 20,
+      elevation: 8,
+    },
+    heroGradient: {
+      padding: 24,
+      position: "relative",
+      overflow: "hidden",
+    },
+    heroContent: {
+      position: "relative",
+      zIndex: 1,
+    },
+    heroTop: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 8,
+    },
+    sparkleContainer: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: "rgba(255,255,255,0.2)",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    heroLabel: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: "rgba(255,255,255,0.9)",
+      fontWeight: "500",
+    },
+    heroAmount: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 48,
+      color: COLORS.neutral.white,
+      lineHeight: 56,
+    },
+    heroSuffix: {
+      fontSize: 24,
+      opacity: 0.9,
+    },
+    heroBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: "rgba(255,255,255,0.15)",
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+      alignSelf: "flex-start",
+      marginTop: 12,
+    },
+    heroBadgeText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      color: "rgba(255,255,255,0.95)",
+      fontWeight: "500",
+    },
+    heroCircle1: {
+      position: "absolute",
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      backgroundColor: "rgba(255,255,255,0.1)",
+      top: -30,
+      right: -30,
+    },
+    heroCircle2: {
+      position: "absolute",
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: "rgba(255,255,255,0.08)",
+      bottom: -20,
+      right: 50,
     },
     // Search
     searchContainer: {
-      paddingHorizontal: 24,
-      marginBottom: 16,
+      paddingHorizontal: 20,
+      marginBottom: 20,
     },
     searchBar: {
       flexDirection: "row",
@@ -380,13 +582,13 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
       backgroundColor: colors.card,
       borderRadius: 16,
       paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingVertical: 14,
       gap: 12,
-      shadowColor: COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
-      shadowRadius: 8,
-      elevation: 2,
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 12,
+      elevation: 4,
     },
     searchInput: {
       flex: 1,
@@ -394,32 +596,42 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
       fontSize: 15,
       color: colors.textPrimary,
     },
-    scrollContent: {
-      paddingBottom: 24,
-    },
     sectionTitle: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 18,
+      fontFamily: FONTS.secondary,
+      fontSize: 16,
+      fontWeight: "600",
       color: colors.textPrimary,
       marginBottom: 12,
-      paddingHorizontal: 24,
+      paddingHorizontal: 20,
     },
     // Subjects
     subjectsContainer: {
-      paddingHorizontal: 24,
-      gap: 8,
+      paddingHorizontal: 20,
+      gap: 10,
       marginBottom: 24,
     },
     subjectChip: {
       flexDirection: "row",
       alignItems: "center",
       paddingVertical: 10,
-      paddingHorizontal: 16,
+      paddingHorizontal: 14,
       backgroundColor: colors.card,
-      borderRadius: 20,
+      borderRadius: 16,
       borderWidth: 2,
       borderColor: colors.border,
-      gap: 6,
+      gap: 8,
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.2 : 0.05,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    subjectChipIcon: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      justifyContent: "center",
+      alignItems: "center",
     },
     subjectChipText: {
       fontFamily: FONTS.secondary,
@@ -429,50 +641,56 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
     },
     // Resources
     resourcesSection: {
-      paddingHorizontal: 24,
+      paddingHorizontal: 20,
+    },
+    resourcesHeader: {
+      marginBottom: 4,
     },
     resourceCard: {
-      flexDirection: "row",
       backgroundColor: colors.card,
       borderRadius: 20,
       marginBottom: 16,
-      shadowColor: COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
-      shadowRadius: 8,
-      elevation: 3,
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 12,
+      elevation: 4,
       overflow: "hidden",
     },
-    resourceIconContainer: {
-      width: 100,
-      justifyContent: "center",
-      alignItems: "center",
+    resourceAccent: {
+      position: "absolute",
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: 4,
+      borderTopLeftRadius: 20,
+      borderBottomLeftRadius: 20,
     },
-    resourceIcon: {
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    resourceContent: {
-      flex: 1,
+    resourceInner: {
       padding: 16,
+      paddingLeft: 20,
+    },
+    resourceIconContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 14,
+      justifyContent: "center",
+      alignItems: "center",
     },
     resourceHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 8,
+      marginBottom: 12,
     },
     resourceBadges: {
       flexDirection: "row",
-      gap: 6,
+      gap: 8,
     },
     typeBadge: {
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 10,
     },
     typeBadgeText: {
       fontFamily: FONTS.secondary,
@@ -480,10 +698,10 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
       fontWeight: "700",
     },
     levelBadge: {
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 8,
-      backgroundColor: colors.buttonSecondary,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 10,
+      backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
     },
     levelBadgeText: {
       fontFamily: FONTS.secondary,
@@ -493,7 +711,7 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
     },
     resourceTitle: {
       fontFamily: FONTS.fredoka,
-      fontSize: 16,
+      fontSize: 17,
       color: colors.textPrimary,
       marginBottom: 4,
     },
@@ -501,7 +719,7 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
       fontFamily: FONTS.secondary,
       fontSize: 13,
       color: colors.textSecondary,
-      marginBottom: 12,
+      marginBottom: 14,
     },
     resourceFooter: {
       flexDirection: "row",
@@ -511,12 +729,17 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
     resourceStats: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 12,
+      gap: 10,
     },
     statItem: {
       flexDirection: "row",
       alignItems: "center",
       gap: 4,
+    },
+    statDivider: {
+      width: 1,
+      height: 12,
+      backgroundColor: isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.1)",
     },
     statText: {
       fontFamily: FONTS.secondary,
@@ -531,27 +754,50 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
     },
     resourceActions: {
       flexDirection: "row",
-      gap: 8,
+      gap: 10,
     },
     actionButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: COLORS.primary[50],
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      backgroundColor: colors.input,
       justifyContent: "center",
       alignItems: "center",
+      overflow: "hidden",
     },
     downloadButton: {
-      backgroundColor: COLORS.primary.DEFAULT,
+      backgroundColor: "transparent",
+      padding: 0,
+    },
+    downloadButtonGradient: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      justifyContent: "center",
+      alignItems: "center",
     },
     // Empty State
     emptyState: {
       alignItems: "center",
       paddingVertical: 48,
       paddingHorizontal: 32,
+      backgroundColor: colors.card,
+      marginHorizontal: 20,
+      borderRadius: 24,
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 12,
+      elevation: 4,
     },
     emptyStateIcon: {
-      marginBottom: 16,
+      width: 80,
+      height: 80,
+      borderRadius: 24,
+      backgroundColor: colors.input,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: 20,
     },
     emptyStateTitle: {
       fontFamily: FONTS.fredoka,

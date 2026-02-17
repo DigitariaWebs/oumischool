@@ -584,7 +584,7 @@ export default function CheckoutScreen() {
         </View>
 
         <Text style={styles.termsText}>
-          En confirmant, vous acceptez nos conditions d'utilisation
+          En confirmant, vous acceptez nos conditions d&apos;utilisation
         </Text>
       </Animated.View>
     </SafeAreaView>

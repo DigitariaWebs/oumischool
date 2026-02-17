@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   TextInput,
   Alert,
   Image,
+  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -29,20 +30,30 @@ import {
   Ruler,
   Camera,
   Edit,
+  Settings,
+  Sparkles,
+  CheckCircle,
 } from "lucide-react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { updateUser } from "@/store/slices/authSlice";
 import { useTheme } from "@/hooks/use-theme";
+import { ThemeColors } from "@/constants/theme";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function ParentSettingsScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const children = useAppSelector((state) => state.children.children);
+  const { colors, isDark, setTheme } = useTheme();
+
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
   const [editMode, setEditMode] = useState(false);
   const [securityEditMode, setSecurityEditMode] = useState(false);
@@ -53,7 +64,6 @@ export default function ParentSettingsScreen() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const { isDark, setTheme } = useTheme();
   const [language, setLanguage] = useState("Français");
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -137,35 +147,90 @@ export default function ParentSettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Organic blob background */}
+      <View style={styles.blobContainer}>
+        <View style={[styles.blob, styles.blob1]} />
+        <View style={[styles.blob, styles.blob2]} />
+      </View>
+
+      {/* Header */}
+      <Animated.View
+        entering={FadeInDown.delay(100).duration(600).springify()}
+        style={styles.header}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          activeOpacity={0.7}
+        >
+          <ArrowLeft size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Paramètres</Text>
+          <View style={styles.headerBadge}>
+            <Settings size={12} color="#10B981" />
+            <Text style={styles.headerBadgeText}>Configuration</Text>
+          </View>
+        </View>
+        <View style={styles.placeholder} />
+      </Animated.View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
+        {/* Hero Card */}
+        <Animated.View
+          entering={FadeInDown.delay(150).duration(600).springify()}
+          style={styles.heroCard}
+        >
+          <LinearGradient
+            colors={["#6366F1", "#8B5CF6", "#A855F7"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroGradient}
           >
-            <ArrowLeft size={24} color={COLORS.secondary[900]} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Paramètres</Text>
-          <View style={styles.placeholder} />
-        </View>
+            <View style={styles.heroContent}>
+              <View style={styles.heroTop}>
+                <View style={styles.sparkleContainer}>
+                  <Sparkles size={18} color="rgba(255,255,255,0.9)" />
+                </View>
+                <Text style={styles.heroLabel}>Compte</Text>
+              </View>
+              <Text style={styles.heroTitle}>
+                {user?.name || "Utilisateur"}
+              </Text>
+              <View style={styles.heroBadge}>
+                <CheckCircle size={14} color="#FCD34D" />
+                <Text style={styles.heroBadgeText}>
+                  Compte vérifié • {children.length} enfant
+                  {children.length !== 1 ? "s" : ""}
+                </Text>
+              </View>
+            </View>
+            {/* Decorative circles */}
+            <View style={styles.heroCircle1} />
+            <View style={styles.heroCircle2} />
+          </LinearGradient>
+        </Animated.View>
 
         {/* Profile Section */}
         <Animated.View
-          entering={FadeInDown.delay(200).duration(400)}
+          entering={FadeInDown.delay(200).duration(600).springify()}
           style={styles.section}
         >
           <View style={styles.sectionHeader}>
-            <User size={20} color={COLORS.secondary[700]} />
+            <View
+              style={[styles.sectionIcon, { backgroundColor: "#3B82F615" }]}
+            >
+              <User size={18} color="#3B82F6" />
+            </View>
             <Text style={styles.sectionTitle}>Profil</Text>
             <TouchableOpacity
               onPress={handleEditToggle}
               style={styles.editButton}
             >
-              <Edit size={20} color={COLORS.primary.DEFAULT} />
+              <Edit size={18} color={colors.primary} />
             </TouchableOpacity>
           </View>
           <View style={styles.card}>
@@ -508,7 +573,7 @@ export default function ParentSettingsScreen() {
                   >
                     <View style={styles.childInfo}>
                       <Text style={styles.childName}>{child.name}</Text>
-                      <Text style={styles.childAge}>{child.age} ans</Text>
+                      <Text style={styles.childAge}>{child.dateOfBirth}</Text>
                     </View>
                     <ArrowLeft
                       size={16}
@@ -605,297 +670,454 @@ export default function ParentSettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.neutral[50],
-  },
-  editButton: {
-    marginLeft: "auto",
-  },
-  profileDisplay: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  avatarContainer: {
-    marginRight: 16,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.neutral[200],
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  displayName: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 20,
-    color: COLORS.secondary[900],
-    marginBottom: 4,
-  },
-  displayEmail: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[700],
-    marginBottom: 2,
-  },
-  displayPhone: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[700],
-  },
-  avatarEditContainer: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  avatarWrapper: {
-    position: "relative",
-  },
-  cameraOverlay: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    backgroundColor: COLORS.primary.DEFAULT,
-    borderRadius: 16,
-    width: 32,
-    height: 32,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarHint: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    color: COLORS.secondary[600],
-    marginTop: 8,
-  },
-  scrollContent: {
-    paddingBottom: 24,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral.white,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  headerTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 20,
-    color: COLORS.secondary[900],
-  },
-  placeholder: {
-    width: 40,
-  },
-  section: {
-    marginBottom: 24,
-    paddingHorizontal: 24,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.secondary[900],
-  },
-  card: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.secondary[700],
-    marginBottom: 8,
-  },
-  input: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    color: COLORS.secondary[900],
-    backgroundColor: COLORS.neutral[50],
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: COLORS.neutral[200],
-  },
-  saveButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: COLORS.primary.DEFAULT,
-    borderRadius: 12,
-    padding: 14,
-    marginTop: 8,
-  },
-  saveButtonText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.neutral.white,
-  },
-  preferenceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-  },
-  preferenceLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  preferenceLabel: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    color: COLORS.secondary[900],
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.neutral[100],
-    marginVertical: 4,
-  },
-  languageButton: {
-    backgroundColor: COLORS.neutral[50],
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  languageText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.secondary[700],
-  },
-  childRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-  },
-  childInfo: {
-    flex: 1,
-  },
-  childName: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.secondary[900],
-  },
-  childAge: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[600],
-  },
-  noChildren: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[600],
-    textAlign: "center",
-    paddingVertical: 20,
-  },
-  addChildButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: COLORS.primary.DEFAULT,
-    borderRadius: 12,
-    padding: 14,
-    marginTop: 16,
-  },
-  addChildText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.neutral.white,
-  },
-  subscriptionInfo: {
-    marginBottom: 16,
-  },
-  subscriptionPlan: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.secondary[900],
-    marginBottom: 4,
-  },
-  subscriptionDetails: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[600],
-  },
-  helpRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-  },
-  helpText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    color: COLORS.secondary[900],
-    flex: 1,
-    marginLeft: 12,
-  },
-  appVersion: {
-    alignItems: "center",
-    paddingVertical: 12,
-  },
-  versionText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[600],
-  },
-  securityDisplay: {
-    alignItems: "center",
-  },
-  securityLabel: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.secondary[900],
-    marginBottom: 8,
-  },
-  securityValue: {
-    fontFamily: FONTS.secondary,
-    fontSize: 18,
-    color: COLORS.secondary[700],
-    letterSpacing: 2,
-    marginBottom: 8,
-  },
-  securityHint: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    color: COLORS.secondary[600],
-  },
-});
+const createStyles = (colors: ThemeColors, isDark: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    // Blob Background
+    blobContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 300,
+      overflow: "hidden",
+    },
+    blob: {
+      position: "absolute",
+      borderRadius: 999,
+      opacity: 0.1,
+    },
+    blob1: {
+      width: 200,
+      height: 200,
+      backgroundColor: "#8B5CF6",
+      top: -50,
+      right: -50,
+    },
+    blob2: {
+      width: 150,
+      height: 150,
+      backgroundColor: "#10B981",
+      top: 80,
+      left: -30,
+    },
+    editButton: {
+      marginLeft: "auto",
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      backgroundColor: colors.primary + "15",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    profileDisplay: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 20,
+    },
+    avatarContainer: {
+      marginRight: 16,
+    },
+    avatar: {
+      width: 64,
+      height: 64,
+      borderRadius: 20,
+      backgroundColor: colors.input,
+    },
+    profileInfo: {
+      flex: 1,
+    },
+    displayName: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 18,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    displayEmail: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 2,
+    },
+    displayPhone: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    avatarEditContainer: {
+      alignItems: "center",
+      marginBottom: 20,
+    },
+    avatarWrapper: {
+      position: "relative",
+    },
+    cameraOverlay: {
+      position: "absolute",
+      bottom: 0,
+      right: 0,
+      backgroundColor: COLORS.primary.DEFAULT,
+      borderRadius: 16,
+      width: 32,
+      height: 32,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    avatarHint: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      color: COLORS.secondary[600],
+      marginTop: 8,
+    },
+    scrollContent: {
+      paddingBottom: 100,
+    },
+    // Header
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+    },
+    backButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      backgroundColor: colors.card,
+      justifyContent: "center",
+      alignItems: "center",
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    headerCenter: {
+      alignItems: "center",
+    },
+    headerTitle: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 20,
+      color: colors.textPrimary,
+    },
+    headerBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: "#10B98115",
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 10,
+      marginTop: 2,
+    },
+    headerBadgeText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 10,
+      color: "#10B981",
+      fontWeight: "600",
+    },
+    placeholder: {
+      width: 44,
+    },
+    // Hero Card
+    heroCard: {
+      marginHorizontal: 20,
+      marginBottom: 24,
+      borderRadius: 28,
+      overflow: "hidden",
+      shadowColor: "#8B5CF6",
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 20,
+      elevation: 8,
+    },
+    heroGradient: {
+      padding: 24,
+      position: "relative",
+      overflow: "hidden",
+    },
+    heroContent: {
+      position: "relative",
+      zIndex: 1,
+    },
+    heroTop: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 8,
+    },
+    sparkleContainer: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: "rgba(255,255,255,0.2)",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    heroLabel: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: "rgba(255,255,255,0.9)",
+      fontWeight: "500",
+    },
+    heroTitle: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 28,
+      color: COLORS.neutral.white,
+      lineHeight: 34,
+      marginBottom: 4,
+    },
+    heroBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: "rgba(255,255,255,0.15)",
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+      alignSelf: "flex-start",
+      marginTop: 12,
+    },
+    heroBadgeText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      color: "rgba(255,255,255,0.95)",
+      fontWeight: "500",
+    },
+    heroCircle1: {
+      position: "absolute",
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      backgroundColor: "rgba(255,255,255,0.1)",
+      top: -30,
+      right: -30,
+    },
+    heroCircle2: {
+      position: "absolute",
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: "rgba(255,255,255,0.08)",
+      bottom: -20,
+      right: 50,
+    },
+    // Section
+    section: {
+      marginBottom: 24,
+      paddingHorizontal: 20,
+    },
+    sectionHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 14,
+    },
+    sectionIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    sectionTitle: {
+      fontFamily: FONTS.secondary,
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      padding: 18,
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 12,
+      elevation: 4,
+    },
+    inputGroup: {
+      marginBottom: 16,
+    },
+    label: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    input: {
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      color: colors.textPrimary,
+      backgroundColor: colors.input,
+      borderRadius: 14,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+    },
+    saveButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      backgroundColor: colors.primary,
+      borderRadius: 14,
+      padding: 14,
+      marginTop: 8,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+      elevation: 5,
+    },
+    saveButtonText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      fontWeight: "600",
+      color: COLORS.neutral.white,
+    },
+    preferenceRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingVertical: 14,
+    },
+    preferenceLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    preferenceLabel: {
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      color: colors.textPrimary,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+      marginVertical: 4,
+    },
+    languageButton: {
+      backgroundColor: colors.input,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 10,
+    },
+    languageText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    childRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingVertical: 14,
+    },
+    childInfo: {
+      flex: 1,
+    },
+    childName: {
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    childAge: {
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    noChildren: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: "center",
+      paddingVertical: 16,
+    },
+    addChildButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      backgroundColor: colors.primary,
+      borderRadius: 14,
+      padding: 14,
+      marginTop: 8,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+      elevation: 5,
+    },
+    addChildText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      fontWeight: "600",
+      color: COLORS.neutral.white,
+    },
+    subscriptionInfo: {
+      marginBottom: 16,
+    },
+    subscriptionPlan: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    subscriptionDetails: {
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    helpRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingVertical: 14,
+    },
+    helpText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      color: colors.textPrimary,
+      flex: 1,
+      marginLeft: 12,
+    },
+    appVersion: {
+      alignItems: "center",
+      paddingVertical: 24,
+    },
+    versionText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    securityDisplay: {
+      alignItems: "center",
+    },
+    securityLabel: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+      marginBottom: 8,
+    },
+    securityValue: {
+      fontFamily: FONTS.secondary,
+      fontSize: 16,
+      color: colors.textPrimary,
+      letterSpacing: 2,
+      marginBottom: 8,
+    },
+    securityHint: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+  });

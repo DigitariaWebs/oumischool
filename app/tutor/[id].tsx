@@ -279,7 +279,7 @@ export default function TutorProfileScreen() {
             </View>
             <View>
               <Text style={styles.statNumber}>{tutor.experience}</Text>
-              <Text style={styles.statUnit}>ans d'exp.</Text>
+              <Text style={styles.statUnit}>ans d&apos;exp.</Text>
             </View>
           </View>
 
@@ -511,7 +511,7 @@ export default function TutorProfileScreen() {
           </View>
           <View style={styles.methodologyQuote}>
             <Text style={styles.methodologyQuoteText}>
-              "{tutor.methodology.approach}"
+              &quot;{tutor.methodology.approach}&quot;
             </Text>
           </View>
           <View style={styles.techniqueGrid}>

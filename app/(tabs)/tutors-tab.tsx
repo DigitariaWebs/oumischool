@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   ViewStyle,
+  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -20,7 +21,13 @@ import {
   TrendingUp,
   DollarSign,
   X,
+  Zap,
+  CheckCircle,
 } from "lucide-react-native";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
@@ -28,6 +35,7 @@ import { SPACING } from "@/constants/tokens";
 import { Tutor, Subject, TutorRecommendation } from "@/types";
 import { Card, Badge, Avatar, EmptyState } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
+import { ThemeColors } from "@/constants/theme";
 
 // Mock data - in real app, this would come from API/store
 const subjects: Subject[] = [
@@ -139,23 +147,31 @@ const TutorCard: React.FC<TutorCardProps> = ({
   delay,
 }) => {
   const router = useRouter();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-
-  const cardStyle: ViewStyle = {
-    ...styles.tutorCard,
-    ...(recommendation && styles.recommendationCard),
-  };
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
   return (
-    <Card variant="elevated" padding="md" style={cardStyle}>
+    <Animated.View
+      entering={FadeInDown.delay(delay).duration(500).springify()}
+      style={[styles.tutorCard, recommendation && styles.recommendationCard]}
+    >
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={() => router.push(`/tutor/${tutor.id}`)}
       >
+        {/* Decorative elements for recommended */}
+        {recommendation && (
+          <>
+            <View style={styles.recommendedDecor1} />
+            <View style={styles.recommendedDecor2} />
+          </>
+        )}
+
         <View style={styles.tutorHeader}>
           <View style={styles.tutorAvatarContainer}>
-            <Avatar source={tutor.avatar} name={tutor.name} size="lg" />
+            <View style={styles.avatarWrapper}>
+              <Avatar source={tutor.avatar} name={tutor.name} size="lg" />
+            </View>
             {recommendation && (
               <View style={styles.recommendationBadgeFloat}>
                 <Star size={12} color="white" fill="white" />
@@ -165,8 +181,10 @@ const TutorCard: React.FC<TutorCardProps> = ({
           <View style={styles.tutorInfo}>
             <Text style={styles.tutorName}>{tutor.name}</Text>
             <View style={styles.tutorRating}>
-              <Star size={16} color="#F59E0B" fill="#F59E0B" />
-              <Text style={styles.ratingText}>{tutor.rating}</Text>
+              <View style={styles.ratingBadge}>
+                <Star size={14} color="#F59E0B" fill="#F59E0B" />
+                <Text style={styles.ratingText}>{tutor.rating}</Text>
+              </View>
               <Text style={styles.reviewsText}>
                 ({tutor.reviewsCount} avis)
               </Text>
@@ -178,23 +196,24 @@ const TutorCard: React.FC<TutorCardProps> = ({
               </Text>
             </View>
           </View>
-          <ChevronRight size={22} color={colors.primary} />
+          <View style={styles.chevronContainer}>
+            <ChevronRight size={20} color={colors.primary} />
+          </View>
         </View>
 
         <View style={styles.tutorSubjects}>
           {tutor.subjects.map((subject) => (
-            <Badge
+            <View
               key={subject.id}
-              label={subject.name}
-              variant="info"
-              size="sm"
-              style={{
-                backgroundColor: subject.color + "15",
-                borderColor: subject.color + "40",
-                borderWidth: 1,
-              }}
-              textStyle={{ color: subject.color }}
-            />
+              style={[
+                styles.subjectBadge,
+                { backgroundColor: subject.color + "15" },
+              ]}
+            >
+              <Text style={[styles.subjectBadgeText, { color: subject.color }]}>
+                {subject.name}
+              </Text>
+            </View>
           ))}
         </View>
 
@@ -206,22 +225,20 @@ const TutorCard: React.FC<TutorCardProps> = ({
           <View style={styles.pricingContainer}>
             <View style={styles.priceItem}>
               <Text style={styles.priceLabel}>En ligne</Text>
-              <Badge
-                label={`${tutor.hourlyRate}€/h`}
-                variant="success"
-                size="md"
-              />
+              <View style={styles.priceBadge}>
+                <Text style={styles.priceValue}>{tutor.hourlyRate}€/h</Text>
+              </View>
             </View>
             {tutor.inPersonAvailable && (
               <>
                 <View style={styles.priceDivider} />
                 <View style={styles.priceItem}>
                   <Text style={styles.priceLabel}>Présentiel</Text>
-                  <Badge
-                    label={`${tutor.inPersonRate}€/h`}
-                    variant="success"
-                    size="md"
-                  />
+                  <View style={[styles.priceBadge, styles.priceBadgeAlt]}>
+                    <Text style={styles.priceValueAlt}>
+                      {tutor.inPersonRate}€/h
+                    </Text>
+                  </View>
                 </View>
               </>
             )}
@@ -231,7 +248,7 @@ const TutorCard: React.FC<TutorCardProps> = ({
         {recommendation && (
           <View style={styles.recommendationReasonContainer}>
             <View style={styles.recommendationIcon}>
-              <Star size={14} color={colors.primary} fill={colors.primary} />
+              <Sparkles size={14} color={colors.primary} />
             </View>
             <Text style={styles.recommendationReason}>
               {recommendation.reason}
@@ -239,7 +256,7 @@ const TutorCard: React.FC<TutorCardProps> = ({
           </View>
         )}
       </TouchableOpacity>
-    </Card>
+    </Animated.View>
   );
 };
 
@@ -254,8 +271,8 @@ const SubjectChip: React.FC<SubjectChipProps> = ({
   isSelected,
   onPress,
 }) => {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
   return (
     <TouchableOpacity
@@ -282,7 +299,7 @@ const SubjectChip: React.FC<SubjectChipProps> = ({
 };
 
 export default function TutorsTab() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [browseMode, setBrowseMode] = useState<"recommended" | "tutor">(
     "recommended",
   );
@@ -290,7 +307,7 @@ export default function TutorsTab() {
   const [sortByRating, setSortByRating] = useState(true);
   const [selectedChild, setSelectedChild] = useState<string>("all");
 
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
   const recommendedTutors = mockTutors.filter((tutor) =>
     mockRecommendations.some((rec) => rec.tutorId === tutor.id),
@@ -307,17 +324,74 @@ export default function TutorsTab() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Tuteurs</Text>
+      {/* Organic blob background */}
+      <View style={styles.blobContainer}>
+        <View style={[styles.blob, styles.blob1]} />
+        <View style={[styles.blob, styles.blob2]} />
       </View>
+
+      {/* Header */}
+      <Animated.View
+        entering={FadeInDown.delay(100).duration(600).springify()}
+        style={styles.header}
+      >
+        <View style={styles.headerContent}>
+          <View style={styles.headerLeft}>
+            <View style={styles.headerIconContainer}>
+              <GraduationCap size={20} color={COLORS.neutral.white} />
+            </View>
+            <Text style={styles.headerTitle}>Tuteurs</Text>
+          </View>
+          <View style={styles.headerBadge}>
+            <Text style={styles.headerBadgeText}>{mockTutors.length}</Text>
+          </View>
+        </View>
+      </Animated.View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        {/* Hero Stats Card */}
+        <Animated.View
+          entering={FadeInDown.delay(150).duration(600).springify()}
+          style={styles.heroCard}
+        >
+          <LinearGradient
+            colors={["#6366F1", "#8B5CF6", "#A855F7"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroGradient}
+          >
+            <View style={styles.heroContent}>
+              <View style={styles.heroTop}>
+                <View style={styles.sparkleContainer}>
+                  <Sparkles size={18} color="rgba(255,255,255,0.9)" />
+                </View>
+                <Text style={styles.heroLabel}>Tuteurs disponibles</Text>
+              </View>
+              <Text style={styles.heroAmount}>
+                {mockTutors.length}
+                <Text style={styles.heroSuffix}> experts</Text>
+              </Text>
+              <View style={styles.heroBadge}>
+                <Zap size={14} color="#FCD34D" />
+                <Text style={styles.heroBadgeText}>
+                  Matchés selon vos besoins
+                </Text>
+              </View>
+            </View>
+            {/* Decorative circles */}
+            <View style={styles.heroCircle1} />
+            <View style={styles.heroCircle2} />
+          </LinearGradient>
+        </Animated.View>
+
         {/* Mode Toggle */}
-        <View style={styles.modeToggleContainer}>
+        <Animated.View
+          entering={FadeInDown.delay(200).duration(600).springify()}
+          style={styles.modeToggleContainer}
+        >
           <View style={styles.modeToggle}>
             <TouchableOpacity
               style={[
@@ -370,7 +444,7 @@ export default function TutorsTab() {
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
 
         {browseMode === "tutor" ? (
           <View style={styles.tutorModeContainer}>
@@ -636,23 +710,165 @@ export default function TutorsTab() {
   );
 }
 
-const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
+const createStyles = (colors: ThemeColors, isDark: boolean) =>
   StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
     },
+    // Blob Background
+    blobContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 300,
+      overflow: "hidden",
+    },
+    blob: {
+      position: "absolute",
+      borderRadius: 999,
+      opacity: 0.1,
+    },
+    blob1: {
+      width: 200,
+      height: 200,
+      backgroundColor: "#8B5CF6",
+      top: -50,
+      right: -50,
+    },
+    blob2: {
+      width: 150,
+      height: 150,
+      backgroundColor: "#10B981",
+      top: 80,
+      left: -30,
+    },
+    // Header
     header: {
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+    },
+    headerContent: {
       flexDirection: "row",
       alignItems: "center",
+      justifyContent: "space-between",
+    },
+    headerLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    headerIconContainer: {
+      width: 40,
+      height: 40,
+      borderRadius: 14,
+      backgroundColor: COLORS.primary.DEFAULT,
       justifyContent: "center",
-      paddingHorizontal: 24,
-      paddingVertical: 16,
+      alignItems: "center",
     },
     headerTitle: {
       fontFamily: FONTS.fredoka,
       fontSize: 24,
       color: colors.textPrimary,
+    },
+    headerBadge: {
+      backgroundColor: colors.primary + "15",
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+      borderRadius: 12,
+    },
+    headerBadgeText: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 16,
+      color: colors.primary,
+      fontWeight: "600",
+    },
+    // Hero Card
+    heroCard: {
+      marginHorizontal: 20,
+      marginBottom: 20,
+      borderRadius: 28,
+      overflow: "hidden",
+      shadowColor: "#8B5CF6",
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 20,
+      elevation: 8,
+    },
+    heroGradient: {
+      padding: 24,
+      position: "relative",
+      overflow: "hidden",
+    },
+    heroContent: {
+      position: "relative",
+      zIndex: 1,
+    },
+    heroTop: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 8,
+    },
+    sparkleContainer: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: "rgba(255,255,255,0.2)",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    heroLabel: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: "rgba(255,255,255,0.9)",
+      fontWeight: "500",
+    },
+    heroAmount: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 48,
+      color: COLORS.neutral.white,
+      lineHeight: 56,
+    },
+    heroSuffix: {
+      fontSize: 24,
+      opacity: 0.9,
+    },
+    heroBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: "rgba(255,255,255,0.15)",
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+      alignSelf: "flex-start",
+      marginTop: 12,
+    },
+    heroBadgeText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      color: "rgba(255,255,255,0.95)",
+      fontWeight: "500",
+    },
+    heroCircle1: {
+      position: "absolute",
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      backgroundColor: "rgba(255,255,255,0.1)",
+      top: -30,
+      right: -30,
+    },
+    heroCircle2: {
+      position: "absolute",
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: "rgba(255,255,255,0.08)",
+      bottom: -20,
+      right: 50,
     },
     scrollContent: {
       paddingBottom: 100,
@@ -824,33 +1040,33 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
     },
     modeToggle: {
       flexDirection: "row",
-      backgroundColor: colors.card,
-      borderRadius: 12,
-      marginHorizontal: SPACING.lg,
-      marginBottom: SPACING.md,
-      padding: 4,
-      shadowColor: COLORS.secondary.DEFAULT,
+      backgroundColor: isDark ? colors.input : COLORS.neutral[100],
+      borderRadius: 18,
+      marginHorizontal: 20,
+      marginBottom: 20,
+      padding: 5,
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
+      shadowOpacity: isDark ? 0.3 : 0.08,
       shadowRadius: 8,
       elevation: 3,
     },
     modeButton: {
       flex: 1,
-      paddingVertical: 12,
+      paddingVertical: 14,
       alignItems: "center",
       justifyContent: "center",
-      borderRadius: 10,
+      borderRadius: 14,
       flexDirection: "row",
       gap: 8,
     },
     modeButtonActive: {
       backgroundColor: COLORS.primary.DEFAULT,
       shadowColor: COLORS.primary.DEFAULT,
-      shadowOffset: { width: 0, height: 2 },
+      shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
-      shadowRadius: 4,
-      elevation: 3,
+      shadowRadius: 10,
+      elevation: 5,
     },
     modeButtonText: {
       fontFamily: FONTS.secondary,
@@ -939,36 +1155,69 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
       fontWeight: "700",
     },
     tutorsSection: {
-      paddingHorizontal: 24,
+      paddingHorizontal: 20,
       marginTop: 8,
     },
     tutorCard: {
       marginBottom: 16,
       backgroundColor: colors.card,
+      borderRadius: 20,
+      padding: 18,
+      position: "relative",
+      overflow: "hidden",
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 12,
+      elevation: 4,
     },
     recommendationCard: {
-      borderWidth: 0,
+      borderWidth: 2,
       borderColor: colors.primary + "40",
       shadowColor: colors.primary,
-      shadowOpacity: 0.1,
+      shadowOpacity: 0.15,
+    },
+    recommendedDecor1: {
+      position: "absolute",
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+      backgroundColor: colors.primary + "08",
+      top: -30,
+      right: -20,
+    },
+    recommendedDecor2: {
+      position: "absolute",
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: colors.primary + "06",
+      bottom: 20,
+      right: 60,
     },
     tutorHeader: {
       flexDirection: "row",
       alignItems: "center",
-      marginBottom: 12,
+      marginBottom: 14,
+      position: "relative",
+      zIndex: 1,
     },
     tutorAvatarContainer: {
       position: "relative",
-      marginRight: 12,
+      marginRight: 14,
+    },
+    avatarWrapper: {
+      borderRadius: 16,
+      overflow: "hidden",
     },
     recommendationBadgeFloat: {
       position: "absolute",
       bottom: -2,
       right: -2,
-      backgroundColor: colors.primary,
-      width: 24,
-      height: 24,
-      borderRadius: 12,
+      backgroundColor: COLORS.primary.DEFAULT,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
       justifyContent: "center",
       alignItems: "center",
       borderWidth: 2,
@@ -981,26 +1230,43 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
       fontFamily: FONTS.fredoka,
       fontSize: 18,
       color: colors.textPrimary,
-      marginBottom: 4,
-      fontWeight: "700",
+      marginBottom: 6,
+      fontWeight: "600",
     },
     tutorRating: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
+      gap: 8,
       marginBottom: 6,
+    },
+    ratingBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: "#F59E0B15",
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
     },
     ratingText: {
       fontFamily: FONTS.secondary,
-      fontSize: 15,
-      color: colors.textPrimary,
+      fontSize: 13,
+      color: "#F59E0B",
       fontWeight: "700",
     },
     reviewsText: {
       fontFamily: FONTS.secondary,
-      fontSize: 13,
+      fontSize: 12,
       color: colors.textSecondary,
       fontWeight: "500",
+    },
+    chevronContainer: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      backgroundColor: colors.primary + "15",
+      justifyContent: "center",
+      alignItems: "center",
     },
     tutorExperience: {
       flexDirection: "row",
@@ -1009,7 +1275,7 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
     },
     experienceText: {
       fontFamily: FONTS.secondary,
-      fontSize: 13,
+      fontSize: 12,
       color: colors.textSecondary,
       fontWeight: "500",
     },
@@ -1017,43 +1283,81 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
       fontFamily: FONTS.secondary,
       fontSize: 14,
       color: colors.textSecondary,
-      marginBottom: 12,
+      marginBottom: 14,
       lineHeight: 20,
-      marginTop: 8,
+      marginTop: 4,
+      position: "relative",
+      zIndex: 1,
     },
     tutorSubjects: {
       flexDirection: "row",
       flexWrap: "wrap",
       gap: 8,
-      marginBottom: 12,
+      marginBottom: 14,
+      position: "relative",
+      zIndex: 1,
+    },
+    subjectBadge: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 10,
+    },
+    subjectBadgeText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      fontWeight: "600",
     },
     tutorFooter: {
-      marginTop: 8,
+      marginTop: 4,
+      position: "relative",
+      zIndex: 1,
     },
     pricingContainer: {
       flexDirection: "row",
       alignItems: "center",
-      backgroundColor: colors.input,
-      borderRadius: 12,
-      padding: 12,
+      backgroundColor: isDark ? "rgba(255,255,255,0.05)" : colors.input,
+      borderRadius: 14,
+      padding: 14,
       gap: 12,
     },
     priceItem: {
       flex: 1,
+      alignItems: "center",
     },
     priceLabel: {
       fontFamily: FONTS.secondary,
-      fontSize: 11,
+      fontSize: 10,
       color: colors.textSecondary,
       fontWeight: "600",
       textTransform: "uppercase",
       letterSpacing: 0.5,
       marginBottom: 6,
     },
+    priceBadge: {
+      backgroundColor: "#10B98115",
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 10,
+    },
+    priceValue: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      fontWeight: "700",
+      color: "#10B981",
+    },
+    priceBadgeAlt: {
+      backgroundColor: "#8B5CF615",
+    },
+    priceValueAlt: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      fontWeight: "700",
+      color: "#8B5CF6",
+    },
     priceDivider: {
       width: 1,
-      height: 30,
-      backgroundColor: colors.divider,
+      height: 36,
+      backgroundColor: isDark ? "rgba(255,255,255,0.1)" : colors.border,
     },
     recommendationHeader: {
       flexDirection: "row",
@@ -1073,7 +1377,7 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
     },
     childIndicator: {
       width: 8,
-      height: 32,
+      height: 8,
       borderRadius: 4,
     },
     recommendationHeaderText: {
@@ -1083,35 +1387,42 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
       fontFamily: FONTS.secondary,
       fontSize: 10,
       color: colors.textSecondary,
-      fontWeight: "700",
+      fontWeight: "600",
       textTransform: "uppercase",
-      letterSpacing: 0.8,
+      letterSpacing: 0.5,
       marginBottom: 2,
     },
     childNameText: {
       fontFamily: FONTS.fredoka,
-      fontSize: 15,
-      fontWeight: "700",
+      fontSize: 14,
+      fontWeight: "600",
       color: colors.textPrimary,
     },
     recommendationReasonContainer: {
       flexDirection: "row",
       alignItems: "flex-start",
       gap: 10,
-      marginTop: 12,
-      paddingTop: 12,
+      marginTop: 14,
+      paddingTop: 14,
       borderTopWidth: 1,
-      borderTopColor: colors.divider,
+      borderTopColor: isDark ? "rgba(255,255,255,0.08)" : colors.border,
+      position: "relative",
+      zIndex: 1,
     },
     recommendationIcon: {
-      marginTop: 2,
+      width: 28,
+      height: 28,
+      borderRadius: 10,
+      backgroundColor: colors.primary + "15",
+      justifyContent: "center",
+      alignItems: "center",
     },
     recommendationReason: {
       flex: 1,
       fontFamily: FONTS.secondary,
       fontSize: 13,
       color: colors.textSecondary,
-      lineHeight: 18,
+      lineHeight: 19,
       fontStyle: "italic",
     },
     subjectSection: {

@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,13 +19,19 @@ import {
   Bell,
   Check,
   X,
+  Sparkles,
+  Zap,
 } from "lucide-react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { SPACING } from "@/constants/tokens";
 import { useTheme } from "@/hooks/use-theme";
+import { ThemeColors } from "@/constants/theme";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 interface Notification {
   id: string;
@@ -114,11 +121,13 @@ const mockNotifications: Notification[] = [
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const { isDark } = useTheme();
+  const { colors, isDark } = useTheme();
   const [notifications, setNotifications] =
     useState<Notification[]>(mockNotifications);
 
-  const styles = useMemo(() => createStyles(isDark), [isDark]);
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const getNotificationIcon = (type: Notification["type"]) => {
     const iconColor = "#FFF";
@@ -187,23 +196,36 @@ export default function NotificationsScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       <StatusBar
         barStyle={isDark ? "light-content" : "dark-content"}
-        backgroundColor={isDark ? COLORS.neutral[900] : "#F5F5F5"}
+        backgroundColor={colors.background}
       />
 
+      {/* Organic blob background */}
+      <View style={styles.blobContainer}>
+        <View style={[styles.blob, styles.blob1]} />
+        <View style={[styles.blob, styles.blob2]} />
+      </View>
+
       {/* Header */}
-      <View style={styles.header}>
+      <Animated.View
+        entering={FadeInDown.delay(100).duration(600).springify()}
+        style={styles.header}
+      >
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
         >
-          <ArrowLeft
-            size={24}
-            color={isDark ? COLORS.neutral[50] : COLORS.neutral[900]}
-          />
+          <ArrowLeft size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notifications</Text>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Notifications</Text>
+          {unreadCount > 0 && (
+            <View style={styles.headerBadge}>
+              <Text style={styles.headerBadgeText}>{unreadCount} non lues</Text>
+            </View>
+          )}
+        </View>
         <View style={styles.placeholder} />
-      </View>
+      </Animated.View>
 
       {/* Notifications List */}
       <ScrollView
@@ -211,11 +233,48 @@ export default function NotificationsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Hero Stats Card */}
+        <Animated.View
+          entering={FadeInDown.delay(150).duration(600).springify()}
+          style={styles.heroCard}
+        >
+          <LinearGradient
+            colors={["#6366F1", "#8B5CF6", "#A855F7"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroGradient}
+          >
+            <View style={styles.heroContent}>
+              <View style={styles.heroTop}>
+                <View style={styles.sparkleContainer}>
+                  <Sparkles size={18} color="rgba(255,255,255,0.9)" />
+                </View>
+                <Text style={styles.heroLabel}>Centre de notifications</Text>
+              </View>
+              <Text style={styles.heroAmount}>
+                {notifications.length}
+                <Text style={styles.heroSuffix}> alertes</Text>
+              </Text>
+              <View style={styles.heroBadge}>
+                <Zap size={14} color="#FCD34D" />
+                <Text style={styles.heroBadgeText}>
+                  {unreadCount} en attente de lecture
+                </Text>
+              </View>
+            </View>
+            {/* Decorative circles */}
+            <View style={styles.heroCircle1} />
+            <View style={styles.heroCircle2} />
+          </LinearGradient>
+        </Animated.View>
+
         {Object.entries(groupedNotifications).map(
           ([date, notifs], groupIndex) => (
             <Animated.View
               key={date}
-              entering={FadeInDown.delay(groupIndex * 100).duration(400)}
+              entering={FadeInDown.delay(200 + groupIndex * 100)
+                .duration(500)
+                .springify()}
               style={styles.dateGroup}
             >
               {/* Date Header */}
@@ -306,96 +365,230 @@ export default function NotificationsScreen() {
   );
 }
 
-const createStyles = (isDark: boolean) =>
+const createStyles = (colors: ThemeColors, isDark: boolean) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: isDark ? COLORS.neutral[900] : "#F5F5F5",
+      backgroundColor: colors.background,
     },
+    // Blob Background
+    blobContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 300,
+      overflow: "hidden",
+    },
+    blob: {
+      position: "absolute",
+      borderRadius: 999,
+      opacity: 0.1,
+    },
+    blob1: {
+      width: 200,
+      height: 200,
+      backgroundColor: "#8B5CF6",
+      top: -50,
+      right: -50,
+    },
+    blob2: {
+      width: 150,
+      height: 150,
+      backgroundColor: "#10B981",
+      top: 80,
+      left: -30,
+    },
+    // Header
     header: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingHorizontal: SPACING.lg,
-      paddingVertical: SPACING.md,
-      backgroundColor: isDark ? COLORS.neutral[900] : "#F5F5F5",
+      paddingHorizontal: 20,
+      paddingVertical: 12,
     },
     backButton: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      backgroundColor: colors.card,
       justifyContent: "center",
+      alignItems: "center",
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    headerCenter: {
       alignItems: "center",
     },
     headerTitle: {
       fontFamily: FONTS.fredoka,
       fontSize: 20,
-      fontWeight: "600" as any,
-      color: isDark ? COLORS.neutral[50] : COLORS.neutral[900],
+      color: colors.textPrimary,
+    },
+    headerBadge: {
+      backgroundColor: "#EF444420",
+      paddingHorizontal: 10,
+      paddingVertical: 3,
+      borderRadius: 10,
+      marginTop: 4,
+    },
+    headerBadgeText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 11,
+      color: "#EF4444",
+      fontWeight: "600",
     },
     placeholder: {
-      width: 40,
+      width: 44,
+    },
+    // Hero Card
+    heroCard: {
+      marginHorizontal: 0,
+      marginBottom: 24,
+      borderRadius: 24,
+      overflow: "hidden",
+      shadowColor: "#8B5CF6",
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 20,
+      elevation: 8,
+    },
+    heroGradient: {
+      padding: 24,
+      position: "relative",
+      overflow: "hidden",
+    },
+    heroContent: {
+      position: "relative",
+      zIndex: 1,
+    },
+    heroTop: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 8,
+    },
+    sparkleContainer: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: "rgba(255,255,255,0.2)",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    heroLabel: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: "rgba(255,255,255,0.9)",
+      fontWeight: "500",
+    },
+    heroAmount: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 48,
+      color: COLORS.neutral.white,
+      lineHeight: 56,
+    },
+    heroSuffix: {
+      fontSize: 24,
+      opacity: 0.9,
+    },
+    heroBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: "rgba(255,255,255,0.15)",
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+      alignSelf: "flex-start",
+      marginTop: 12,
+    },
+    heroBadgeText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      color: "rgba(255,255,255,0.95)",
+      fontWeight: "500",
+    },
+    heroCircle1: {
+      position: "absolute",
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      backgroundColor: "rgba(255,255,255,0.1)",
+      top: -30,
+      right: -30,
+    },
+    heroCircle2: {
+      position: "absolute",
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: "rgba(255,255,255,0.08)",
+      bottom: -20,
+      right: 50,
     },
     scrollView: {
       flex: 1,
     },
     scrollContent: {
-      padding: SPACING.lg,
+      padding: 20,
     },
     dateGroup: {
-      marginBottom: SPACING.xl,
+      marginBottom: 24,
     },
     dateHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: SPACING.md,
+      marginBottom: 14,
     },
     dateText: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 14,
-      fontWeight: "600" as any,
-      color: isDark ? COLORS.neutral[400] : COLORS.neutral[600],
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      fontWeight: "600",
+      color: colors.textSecondary,
       textTransform: "uppercase",
       letterSpacing: 0.5,
     },
     markAsReadText: {
       fontFamily: FONTS.secondary,
-      fontSize: 13,
-      color: "#4ADE80",
-      fontWeight: "500" as any,
+      fontSize: 12,
+      color: "#10B981",
+      fontWeight: "600",
     },
     notificationsCard: {
-      backgroundColor: isDark ? COLORS.neutral[800] : "#FFFFFF",
+      backgroundColor: colors.card,
       borderRadius: 20,
       overflow: "hidden",
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.3 : 0.1,
-      shadowRadius: 8,
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 12,
       elevation: 4,
     },
     notificationItem: {
       flexDirection: "row",
-      padding: SPACING.lg,
+      padding: 16,
       alignItems: "flex-start",
     },
     notificationItemBorder: {
       borderBottomWidth: 1,
-      borderBottomColor: isDark ? COLORS.neutral[700] : COLORS.neutral[200],
+      borderBottomColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
     },
     notificationIcon: {
       width: 48,
       height: 48,
-      borderRadius: 24,
+      borderRadius: 16,
       justifyContent: "center",
       alignItems: "center",
-      marginRight: SPACING.md,
+      marginRight: 14,
     },
     notificationContent: {
       flex: 1,
-      marginRight: SPACING.sm,
+      marginRight: 8,
     },
     notificationTop: {
       flexDirection: "row",
@@ -403,43 +596,43 @@ const createStyles = (isDark: boolean) =>
       marginBottom: 4,
     },
     notificationTitle: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 16,
-      fontWeight: "600" as any,
-      color: isDark ? COLORS.neutral[50] : COLORS.neutral[900],
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textPrimary,
       flex: 1,
-      marginRight: SPACING.xs,
+      marginRight: 8,
     },
     unreadDot: {
       width: 8,
       height: 8,
       borderRadius: 4,
-      backgroundColor: "#3B82F6",
+      backgroundColor: COLORS.primary.DEFAULT,
     },
     notificationActions: {
       flexDirection: "row",
       alignItems: "center",
-      gap: SPACING.xs,
-      marginLeft: SPACING.xs,
+      gap: 6,
+      marginLeft: 4,
     },
     actionButton: {
       width: 32,
       height: 32,
-      borderRadius: 16,
-      backgroundColor: isDark ? COLORS.neutral[700] : COLORS.neutral[100],
+      borderRadius: 10,
+      backgroundColor: colors.input,
       justifyContent: "center",
       alignItems: "center",
     },
     notificationMessage: {
       fontFamily: FONTS.secondary,
       fontSize: 13,
-      color: isDark ? COLORS.neutral[400] : COLORS.neutral[600],
-      lineHeight: 18,
-      marginBottom: 4,
+      color: colors.textSecondary,
+      lineHeight: 19,
+      marginBottom: 6,
     },
     notificationTime: {
       fontFamily: FONTS.secondary,
       fontSize: 11,
-      color: isDark ? COLORS.neutral[500] : COLORS.neutral[500],
+      color: colors.textMuted,
     },
   });

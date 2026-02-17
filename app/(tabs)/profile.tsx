@@ -44,6 +44,8 @@ interface MenuItemProps {
   onPress: () => void;
   delay: number;
   destructive?: boolean;
+  colors: ThemeColors;
+  isDark: boolean;
 }
 
 const MenuItem: React.FC<MenuItemProps> = ({
@@ -53,12 +55,13 @@ const MenuItem: React.FC<MenuItemProps> = ({
   onPress,
   delay,
   destructive,
+  colors,
+  isDark,
 }) => {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
   return (
-    <Animated.View entering={FadeInDown.delay(delay).duration(400)}>
+    <Animated.View entering={FadeInDown.delay(delay).duration(400).springify()}>
       <TouchableOpacity
         style={styles.menuItem}
         onPress={onPress}
@@ -96,10 +99,10 @@ const MenuItem: React.FC<MenuItemProps> = ({
 export default function ProfileScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const user = useAppSelector((state) => state.auth.user);
 
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
   const menuItems = [
     {
@@ -142,172 +145,370 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Organic blob background */}
+      <View style={styles.blobContainer}>
+        <View style={[styles.blob, styles.blob1]} />
+        <View style={[styles.blob, styles.blob2]} />
+      </View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Profile Header */}
+        {/* Profile Hero Card */}
         <Animated.View
-          entering={FadeInDown.delay(200).duration(600)}
-          style={styles.profileHeader}
+          entering={FadeInDown.delay(100).duration(600).springify()}
+          style={styles.heroCard}
         >
           <LinearGradient
-            colors={[COLORS.primary.DEFAULT, COLORS.primary[700]]}
+            colors={["#6366F1", "#8B5CF6", "#A855F7"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.profileGradient}
+            style={styles.heroGradient}
           >
-            <View style={styles.avatarContainer}>
-              <Image
-                source={{
-                  uri: user?.avatar || "https://via.placeholder.com/100",
-                }}
-                style={styles.avatarImage}
-              />
+            <View style={styles.heroContent}>
+              <View style={styles.heroTop}>
+                <View style={styles.sparkleContainer}>
+                  <Sparkles size={20} color="rgba(255,255,255,0.9)" />
+                </View>
+                <Text style={styles.heroLabel}>Mon profil</Text>
+              </View>
+
+              <View style={styles.avatarSection}>
+                <View style={styles.avatarContainer}>
+                  <Image
+                    source={{
+                      uri: user?.avatar || "https://via.placeholder.com/100",
+                    }}
+                    style={styles.avatarImage}
+                  />
+                </View>
+                <View style={styles.profileInfo}>
+                  <Text style={styles.profileName}>
+                    {user?.name || "Utilisateur"}
+                  </Text>
+                  <View style={styles.roleBadge}>
+                    <CheckCircle size={12} color="#10B981" />
+                    <Text style={styles.roleBadgeText}>
+                      {user?.role === "parent"
+                        ? "Parent vérifié"
+                        : user?.role === "child"
+                          ? "Enfant"
+                          : "Tuteur"}
+                    </Text>
+                  </View>
+                </View>
+              </View>
             </View>
-            <Text style={styles.profileName}>
-              {user?.name || "Utilisateur"}
-            </Text>
-            <Text style={styles.profileRole}>
-              {user?.role === "parent"
-                ? "Parent"
-                : user?.role === "child"
-                  ? "Enfant"
-                  : "Tuteur"}
-            </Text>
+
+            {/* Decorative circles */}
+            <View style={styles.heroCircle1} />
+            <View style={styles.heroCircle2} />
           </LinearGradient>
         </Animated.View>
 
-        {/* Contact Info */}
+        {/* Contact Info Pills */}
         <Animated.View
-          entering={FadeInDown.delay(300).duration(600)}
-          style={styles.infoCard}
+          entering={FadeInDown.delay(200).duration(600).springify()}
         >
-          <View style={styles.infoRow}>
-            <Mail size={20} color={colors.icon} />
-            <Text style={styles.infoText}>
-              {user?.email || "email@example.com"}
-            </Text>
-          </View>
-          {user?.phoneNumber && (
-            <View style={styles.infoRow}>
-              <Phone size={20} color={colors.icon} />
-              <Text style={styles.infoText}>{user.phoneNumber}</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.infoPillsScroll}
+          >
+            <View style={[styles.infoPill, { backgroundColor: "#3B82F620" }]}>
+              <View
+                style={[styles.infoPillIcon, { backgroundColor: "#3B82F6" }]}
+              >
+                <Mail size={16} color="#FFF" />
+              </View>
+              <View>
+                <Text style={styles.infoPillLabel}>Email</Text>
+                <Text style={[styles.infoPillValue, { color: "#3B82F6" }]}>
+                  {user?.email || "email@example.com"}
+                </Text>
+              </View>
             </View>
-          )}
+
+            {user?.phoneNumber && (
+              <View style={[styles.infoPill, { backgroundColor: "#10B98120" }]}>
+                <View
+                  style={[styles.infoPillIcon, { backgroundColor: "#10B981" }]}
+                >
+                  <Phone size={16} color="#FFF" />
+                </View>
+                <View>
+                  <Text style={styles.infoPillLabel}>Téléphone</Text>
+                  <Text style={[styles.infoPillValue, { color: "#10B981" }]}>
+                    {user.phoneNumber}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            <View style={[styles.infoPill, { backgroundColor: "#8B5CF620" }]}>
+              <View
+                style={[styles.infoPillIcon, { backgroundColor: "#8B5CF6" }]}
+              >
+                <Shield size={16} color="#FFF" />
+              </View>
+              <View>
+                <Text style={styles.infoPillLabel}>Statut</Text>
+                <Text style={[styles.infoPillValue, { color: "#8B5CF6" }]}>
+                  Compte actif
+                </Text>
+              </View>
+            </View>
+          </ScrollView>
         </Animated.View>
 
         {/* Menu Items */}
-        <View style={styles.menuSection}>
-          {menuItems.map((item, index) => (
-            <MenuItem key={index} {...item} delay={400 + index * 50} />
-          ))}
-        </View>
+        <Animated.View
+          entering={FadeInDown.delay(300).duration(600).springify()}
+          style={styles.menuSection}
+        >
+          <Text style={styles.sectionTitle}>⚙️ Paramètres</Text>
+          <View style={styles.menuCard}>
+            {menuItems.map((item, index) => (
+              <MenuItem
+                key={index}
+                {...item}
+                delay={400 + index * 50}
+                colors={colors}
+                isDark={isDark}
+              />
+            ))}
+          </View>
+        </Animated.View>
 
-        {/* Logout */}
-        <MenuItem
-          icon={<LogOut size={20} color={COLORS.error} />}
-          title="Se déconnecter"
-          onPress={() => {
-            dispatch(logout());
-            router.replace("/sign-in");
-          }}
-          delay={700}
-          destructive
-        />
+        {/* Logout Section */}
+        <Animated.View
+          entering={FadeInUp.delay(500).duration(600).springify()}
+          style={styles.logoutSection}
+        >
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={() => {
+              dispatch(logout());
+              router.replace("/sign-in");
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.logoutIcon}>
+              <LogOut size={20} color={COLORS.error} />
+            </View>
+            <Text style={styles.logoutText}>Se déconnecter</Text>
+            <ChevronRight size={20} color={COLORS.error} />
+          </TouchableOpacity>
+        </Animated.View>
 
         {/* Version */}
-        <Text style={styles.versionText}>Oumi&apos;School v1.0.0</Text>
+        <View style={styles.versionContainer}>
+          <Text style={styles.versionText}>Oumi&apos;School v1.0.0</Text>
+          <View style={styles.versionBadge}>
+            <Text style={styles.versionBadgeText}>Dernière version</Text>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
+const createStyles = (colors: ThemeColors, isDark: boolean) =>
   StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
     },
-    scrollContent: {
-      paddingBottom: 24,
-    },
-    // Profile Header
-    profileHeader: {
-      marginBottom: 24,
-      borderRadius: 24,
+    blobContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 300,
       overflow: "hidden",
-      marginHorizontal: 24,
+    },
+    blob: {
+      position: "absolute",
+      borderRadius: 999,
+      opacity: 0.1,
+    },
+    blob1: {
+      width: 200,
+      height: 200,
+      backgroundColor: "#8B5CF6",
+      top: -50,
+      right: -50,
+    },
+    blob2: {
+      width: 150,
+      height: 150,
+      backgroundColor: "#10B981",
+      top: 50,
+      left: -30,
+    },
+    scrollContent: {
+      paddingBottom: 100,
+    },
+    // Hero Card
+    heroCard: {
+      marginHorizontal: 20,
       marginTop: 16,
-      shadowColor: COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 12,
-      elevation: 5,
+      borderRadius: 28,
+      overflow: "hidden",
+      shadowColor: "#8B5CF6",
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 20,
+      elevation: 8,
     },
-    profileGradient: {
-      padding: 32,
+    heroGradient: {
+      padding: 24,
+      position: "relative",
+      overflow: "hidden",
+    },
+    heroContent: {
+      position: "relative",
+      zIndex: 1,
+    },
+    heroTop: {
+      flexDirection: "row",
       alignItems: "center",
+      gap: 8,
+      marginBottom: 16,
     },
-    avatarContainer: {
-      width: 100,
-      height: 100,
-      borderRadius: 50,
+    sparkleContainer: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
       backgroundColor: "rgba(255,255,255,0.2)",
       justifyContent: "center",
       alignItems: "center",
-      marginBottom: 16,
-      borderWidth: 4,
+    },
+    heroLabel: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: "rgba(255,255,255,0.9)",
+      fontWeight: "500",
+    },
+    avatarSection: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 16,
+    },
+    avatarContainer: {
+      width: 80,
+      height: 80,
+      borderRadius: 24,
+      backgroundColor: "rgba(255,255,255,0.2)",
+      justifyContent: "center",
+      alignItems: "center",
+      borderWidth: 3,
       borderColor: "rgba(255,255,255,0.3)",
+      overflow: "hidden",
+    },
+    avatarImage: {
+      width: "100%",
+      height: "100%",
+      borderRadius: 24,
+    },
+    profileInfo: {
+      flex: 1,
     },
     profileName: {
       fontFamily: FONTS.fredoka,
-      fontSize: 28,
+      fontSize: 26,
       color: COLORS.neutral.white,
-      marginBottom: 4,
+      marginBottom: 8,
     },
-    profileRole: {
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      color: COLORS.neutral[100],
-      opacity: 0.9,
-    },
-    // Info Card
-    infoCard: {
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      padding: 20,
-      marginHorizontal: 24,
-      marginBottom: 24,
-      gap: 12,
-      shadowColor: COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
-      shadowRadius: 8,
-      elevation: 3,
-    },
-    infoRow: {
+    roleBadge: {
       flexDirection: "row",
       alignItems: "center",
+      gap: 6,
+      backgroundColor: "rgba(255,255,255,0.15)",
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+      alignSelf: "flex-start",
+    },
+    roleBadgeText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      color: "rgba(255,255,255,0.95)",
+      fontWeight: "500",
+    },
+    heroCircle1: {
+      position: "absolute",
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      backgroundColor: "rgba(255,255,255,0.1)",
+      top: -30,
+      right: -30,
+    },
+    heroCircle2: {
+      position: "absolute",
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: "rgba(255,255,255,0.08)",
+      bottom: -20,
+      right: 50,
+    },
+    // Info Pills
+    infoPillsScroll: {
+      paddingHorizontal: 20,
+      paddingVertical: 20,
       gap: 12,
     },
-    infoText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 15,
-      color: colors.textSecondary,
-    },
-    // Menu
-    menuSection: {
-      backgroundColor: colors.card,
+    infoPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
       borderRadius: 16,
-      marginHorizontal: 24,
+      marginRight: 12,
+    },
+    infoPillIcon: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    infoPillLabel: {
+      fontFamily: FONTS.secondary,
+      fontSize: 11,
+      color: colors.textSecondary,
+      marginBottom: 2,
+    },
+    infoPillValue: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      fontWeight: "600",
+    },
+    // Menu Section
+    menuSection: {
+      paddingHorizontal: 20,
       marginBottom: 16,
+    },
+    sectionTitle: {
+      fontFamily: FONTS.secondary,
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: 16,
+    },
+    menuCard: {
+      backgroundColor: colors.card,
+      borderRadius: 20,
       overflow: "hidden",
-      shadowColor: COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
-      shadowRadius: 8,
-      elevation: 3,
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 12,
+      elevation: 4,
     },
     menuItem: {
       flexDirection: "row",
@@ -325,11 +526,11 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
     menuIcon: {
       width: 44,
       height: 44,
-      borderRadius: 22,
+      borderRadius: 14,
       backgroundColor: colors.input,
       justifyContent: "center",
       alignItems: "center",
-      marginRight: 12,
+      marginRight: 14,
     },
     menuIconDestructive: {
       backgroundColor: "#FEE2E2",
@@ -352,17 +553,57 @@ const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
       fontSize: 13,
       color: colors.textSecondary,
     },
+    // Logout Section
+    logoutSection: {
+      paddingHorizontal: 20,
+      marginBottom: 24,
+    },
+    logoutButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: "#FEE2E2",
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: "#FECACA",
+    },
+    logoutIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      backgroundColor: "rgba(239, 68, 68, 0.15)",
+      justifyContent: "center",
+      alignItems: "center",
+      marginRight: 14,
+    },
+    logoutText: {
+      flex: 1,
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      fontWeight: "600",
+      color: COLORS.error,
+    },
     // Version
-    avatarImage: {
-      width: "100%",
-      height: "100%",
-      borderRadius: 50,
+    versionContainer: {
+      alignItems: "center",
+      paddingBottom: 24,
     },
     versionText: {
       fontFamily: FONTS.secondary,
-      fontSize: 12,
+      fontSize: 13,
       color: colors.textMuted,
-      textAlign: "center",
-      marginTop: 24,
+      marginBottom: 8,
+    },
+    versionBadge: {
+      backgroundColor: "#10B98115",
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    versionBadgeText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 11,
+      color: "#10B981",
+      fontWeight: "600",
     },
   });

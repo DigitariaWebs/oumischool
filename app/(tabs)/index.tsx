@@ -8,6 +8,7 @@ import {
   Dimensions,
   StatusBar,
 } from "react-native";
+import { ThemeColors } from "@/constants/theme";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -26,7 +27,11 @@ import {
   Play,
   User,
 } from "lucide-react-native";
-import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
+import Animated, {
+  FadeInDown,
+  FadeInRight,
+  FadeInUp,
+} from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
@@ -35,8 +40,8 @@ import { useAppSelector } from "@/store/hooks";
 import { Avatar } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
 
-const { width } = Dimensions.get("window");
-const CARD_WIDTH = (width - 60) / 2; // 2 cards per row with proper spacing
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const CARD_WIDTH = (SCREEN_WIDTH - 60) / 2; // 2 cards per row with proper spacing
 
 interface QuickActionProps {
   icon: React.ReactNode;
@@ -180,7 +185,7 @@ const ChildCard: React.FC<
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { isDark } = useTheme();
+  const { colors, isDark } = useTheme();
 
   // Get data from Redux store
   const user = useAppSelector((state) => state.auth.user);
@@ -191,7 +196,7 @@ export default function HomeScreen() {
   // Mock notification count - replace with actual state management
   const notificationCount = 3;
 
-  const styles = useMemo(() => createStyles(isDark), [isDark]);
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
   const quickActions = [
     {
@@ -262,80 +267,107 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar
-        barStyle="light-content"
-        backgroundColor={COLORS.primary.DEFAULT}
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={colors.background}
       />
+
+      {/* Organic blob background */}
+      <View style={styles.blobContainer}>
+        <View style={[styles.blob, styles.blob1]} />
+        <View style={[styles.blob, styles.blob2]} />
+      </View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Header with Gradient */}
+        {/* Header */}
         <Animated.View
-          entering={FadeInDown.delay(200).duration(600)}
-          style={styles.headerContainer}
+          entering={FadeInDown.delay(100).duration(600).springify()}
+          style={styles.header}
         >
-          <LinearGradient
-            colors={[COLORS.primary.DEFAULT, COLORS.primary[700]]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.headerGradient}
-          >
-            <View style={styles.header}>
-              <View style={styles.headerLeft}>
-                <Avatar
-                  name={userName}
-                  source={user?.avatar}
-                  size="lg"
-                  style={styles.userAvatar}
-                />
-                <View>
-                  <Text style={styles.greeting}>Welcome Back !</Text>
-                  <Text style={styles.userName}>{userName}</Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={styles.notificationButton}
-                onPress={() => router.push("/parent/notifications")}
-              >
-                {notificationCount > 0 && (
-                  <View style={styles.notificationBadge}>
-                    <Text style={styles.notificationBadgeText}>
-                      {notificationCount}
-                    </Text>
-                  </View>
-                )}
-                <Bell size={24} color={COLORS.neutral.white} />
-              </TouchableOpacity>
+          <View style={styles.headerLeft}>
+            <Avatar
+              name={userName}
+              source={user?.avatar}
+              size="lg"
+              style={styles.userAvatar}
+            />
+            <View>
+              <Text style={styles.greeting}>Bienvenue !</Text>
+              <Text style={styles.userName}>{userName}</Text>
             </View>
-          </LinearGradient>
+          </View>
+          <TouchableOpacity
+            style={styles.notificationButton}
+            onPress={() => router.push("/parent/notifications")}
+          >
+            {notificationCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>
+                  {notificationCount}
+                </Text>
+              </View>
+            )}
+            <Bell size={22} color={colors.textPrimary} />
+          </TouchableOpacity>
         </Animated.View>
 
-        {/* Stats Summary */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{children.length}</Text>
-            <Text style={styles.statLabel}>Enfants</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>12</Text>
-            <Text style={styles.statLabel}>Leçons</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>68%</Text>
-            <Text style={styles.statLabel}>Progrès</Text>
-          </View>
-        </View>
+        {/* Hero Stats Card */}
+        <Animated.View
+          entering={FadeInDown.delay(150).duration(600).springify()}
+          style={styles.heroCard}
+        >
+          <LinearGradient
+            colors={["#6366F1", "#8B5CF6", "#A855F7"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroGradient}
+          >
+            <View style={styles.heroContent}>
+              <View style={styles.heroTop}>
+                <View style={styles.sparkleContainer}>
+                  <Sparkles size={18} color="rgba(255,255,255,0.9)" />
+                </View>
+                <Text style={styles.heroLabel}>Tableau de bord</Text>
+              </View>
+              <Text style={styles.heroAmount}>
+                68<Text style={styles.heroSuffix}>%</Text>
+              </Text>
+              <Text style={styles.heroSubtext}>Progression globale</Text>
+              <View style={styles.heroBadge}>
+                <TrendingUp size={14} color="#FCD34D" />
+                <Text style={styles.heroBadgeText}>
+                  {children.length} enfant{children.length !== 1 ? "s" : ""} •
+                  12 leçons actives
+                </Text>
+              </View>
+            </View>
+            {/* Decorative circles */}
+            <View style={styles.heroCircle1} />
+            <View style={styles.heroCircle2} />
+          </LinearGradient>
+        </Animated.View>
         {/* Children Section */}
         <View style={styles.section}>
           <Animated.View
-            entering={FadeInDown.delay(400).duration(600)}
+            entering={FadeInDown.delay(200).duration(600).springify()}
             style={styles.sectionHeader}
           >
-            <Text style={styles.sectionTitle}>Mes enfants</Text>
-            <TouchableOpacity onPress={() => router.push("/children-tab")}>
+            <View style={styles.sectionTitleContainer}>
+              <View
+                style={[styles.sectionIcon, { backgroundColor: "#EF444420" }]}
+              >
+                <Baby size={18} color="#EF4444" />
+              </View>
+              <Text style={styles.sectionTitle}>Mes enfants</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.seeAllButton}
+              onPress={() => router.push("/children-tab")}
+            >
               <Text style={styles.seeAllText}>Voir tout</Text>
+              <ChevronRight size={16} color={colors.primary} />
             </TouchableOpacity>
           </Animated.View>
 
@@ -350,7 +382,7 @@ export default function HomeScreen() {
                   progress={child.progress}
                   color={child.color}
                   lessonsCompleted={child.lessonsCompleted}
-                  delay={500 + index * 100}
+                  delay={250 + index * 80}
                   onPress={() =>
                     router.push(`/parent/child/details?id=${child.id}`)
                   }
@@ -361,11 +393,11 @@ export default function HomeScreen() {
             </View>
           ) : (
             <Animated.View
-              entering={FadeInDown.delay(500).duration(600)}
+              entering={FadeInDown.delay(300).duration(600).springify()}
               style={styles.emptyChildrenState}
             >
               <View style={styles.emptyStateIcon}>
-                <Baby size={48} color={COLORS.primary.DEFAULT} />
+                <Baby size={40} color={colors.textMuted} />
               </View>
               <Text style={styles.emptyStateTitle}>Aucun enfant ajouté</Text>
               <Text style={styles.emptyStateText}>
@@ -374,11 +406,19 @@ export default function HomeScreen() {
               <TouchableOpacity
                 style={styles.emptyStateButton}
                 onPress={() => router.push("/children-tab")}
+                activeOpacity={0.8}
               >
-                <Plus size={20} color="white" />
-                <Text style={styles.emptyStateButtonText}>
-                  Ajouter un enfant
-                </Text>
+                <LinearGradient
+                  colors={[COLORS.primary.DEFAULT, COLORS.primary[600]]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.emptyStateButtonGradient}
+                >
+                  <Plus size={18} color="white" />
+                  <Text style={styles.emptyStateButtonText}>
+                    Ajouter un enfant
+                  </Text>
+                </LinearGradient>
               </TouchableOpacity>
             </Animated.View>
           )}
@@ -386,17 +426,26 @@ export default function HomeScreen() {
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <Animated.Text
-            entering={FadeInDown.delay(700).duration(600)}
-            style={styles.sectionTitle}
+          <Animated.View
+            entering={FadeInDown.delay(350).duration(600).springify()}
+            style={styles.sectionHeader}
           >
-            Actions rapides
-          </Animated.Text>
+            <View style={styles.sectionTitleContainer}>
+              <View
+                style={[styles.sectionIcon, { backgroundColor: "#10B98120" }]}
+              >
+                <Sparkles size={18} color="#10B981" />
+              </View>
+              <Text style={styles.sectionTitle}>Actions rapides</Text>
+            </View>
+          </Animated.View>
           <View style={styles.quickActionsGrid}>
             {quickActions.map((action, index) => (
               <Animated.View
                 key={index}
-                entering={FadeInDown.delay(800 + index * 100).duration(600)}
+                entering={FadeInDown.delay(400 + index * 60)
+                  .duration(500)
+                  .springify()}
                 style={styles.quickActionWrapper}
               >
                 <QuickActionCard {...action} delay={0} styles={styles} />
@@ -407,17 +456,24 @@ export default function HomeScreen() {
 
         {/* Features Section */}
         <View style={styles.section}>
-          <Animated.Text
-            entering={FadeInDown.delay(1200).duration(600)}
-            style={styles.sectionTitle}
+          <Animated.View
+            entering={FadeInDown.delay(600).duration(600).springify()}
+            style={styles.sectionHeader}
           >
-            Tout pour réussir
-          </Animated.Text>
+            <View style={styles.sectionTitleContainer}>
+              <View
+                style={[styles.sectionIcon, { backgroundColor: "#8B5CF620" }]}
+              >
+                <BrainCircuit size={18} color="#8B5CF6" />
+              </View>
+              <Text style={styles.sectionTitle}>Tout pour réussir</Text>
+            </View>
+          </Animated.View>
           {features.map((feature, index) => (
             <FeatureCard
               key={index}
               {...feature}
-              delay={1300 + index * 100}
+              delay={650 + index * 80}
               styles={styles}
             />
           ))}
@@ -425,16 +481,21 @@ export default function HomeScreen() {
 
         {/* CTA Banner */}
         <Animated.View
-          entering={FadeInDown.delay(1600).duration(600)}
+          entering={FadeInUp.delay(800).duration(600).springify()}
           style={styles.ctaBanner}
         >
           <LinearGradient
-            colors={["#8B5CF6", "#6366F1"]}
+            colors={["#10B981", "#059669"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.ctaGradient}
           >
+            <View style={styles.ctaDecor1} />
+            <View style={styles.ctaDecor2} />
             <View style={styles.ctaContent}>
+              <View style={styles.ctaIconContainer}>
+                <BrainCircuit size={22} color="rgba(255,255,255,0.9)" />
+              </View>
               <Text style={styles.ctaTitle}>Découvrez le Coach IA</Text>
               <Text style={styles.ctaDescription}>
                 Obtenez des conseils personnalisés pour votre enfant
@@ -443,9 +504,10 @@ export default function HomeScreen() {
             <TouchableOpacity
               style={styles.ctaButton}
               onPress={() => router.push("/ai-coach")}
+              activeOpacity={0.8}
             >
               <Text style={styles.ctaButtonText}>Essayer</Text>
-              <ChevronRight size={18} color="#8B5CF6" />
+              <ChevronRight size={18} color="#10B981" />
             </TouchableOpacity>
           </LinearGradient>
         </Animated.View>
@@ -454,29 +516,50 @@ export default function HomeScreen() {
   );
 }
 
-const createStyles = (isDark: boolean) =>
+const createStyles = (colors: ThemeColors, isDark: boolean) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: isDark ? COLORS.neutral[900] : "#F5F5F5",
+      backgroundColor: colors.background,
+    },
+    // Blob Background
+    blobContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 300,
+      overflow: "hidden",
+    },
+    blob: {
+      position: "absolute",
+      borderRadius: 999,
+      opacity: 0.1,
+    },
+    blob1: {
+      width: 200,
+      height: 200,
+      backgroundColor: "#8B5CF6",
+      top: -50,
+      right: -50,
+    },
+    blob2: {
+      width: 150,
+      height: 150,
+      backgroundColor: "#10B981",
+      top: 80,
+      left: -30,
     },
     scrollContent: {
-      paddingBottom: 104,
+      paddingBottom: 100,
     },
     // Header
-    headerContainer: {
-      padding: 5,
-    },
-    headerGradient: {
-      borderTopRightRadius: 32,
-      borderTopLeftRadius: 32,
-      paddingHorizontal: 24,
-    },
     header: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginVertical: 20,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
     },
     headerLeft: {
       flexDirection: "row",
@@ -487,27 +570,32 @@ const createStyles = (isDark: boolean) =>
       borderWidth: 2,
       alignItems: "center",
       justifyContent: "center",
-      borderColor: COLORS.neutral.white,
+      borderColor: colors.primary + "30",
     },
     greeting: {
       fontFamily: FONTS.secondary,
-      fontSize: 16,
-      color: COLORS.neutral[100],
+      fontSize: 13,
+      color: colors.textSecondary,
     },
     userName: {
       fontFamily: FONTS.fredoka,
       fontSize: 20,
-      color: COLORS.neutral.white,
-      fontWeight: "600" as any,
+      color: colors.textPrimary,
+      fontWeight: "600",
     },
     notificationButton: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: "rgba(255,255,255,0.2)",
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      backgroundColor: colors.card,
       justifyContent: "center",
       alignItems: "center",
       position: "relative",
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 8,
+      elevation: 3,
     },
     notificationBadge: {
       position: "absolute",
@@ -515,60 +603,115 @@ const createStyles = (isDark: boolean) =>
       right: -4,
       backgroundColor: "#EF4444",
       borderRadius: 10,
-      minWidth: 20,
-      height: 20,
-      paddingHorizontal: 6,
+      minWidth: 18,
+      height: 18,
+      paddingHorizontal: 5,
       justifyContent: "center",
       alignItems: "center",
       borderWidth: 2,
-      borderColor: COLORS.primary.DEFAULT,
+      borderColor: colors.background,
     },
     notificationBadgeText: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 11,
-      fontWeight: "600" as any,
+      fontFamily: FONTS.secondary,
+      fontSize: 10,
+      fontWeight: "700",
       color: COLORS.neutral.white,
     },
-    notificationIcon: {
-      fontSize: 20,
+    // Hero Card
+    heroCard: {
+      marginHorizontal: 20,
+      marginBottom: 24,
+      borderRadius: 28,
+      overflow: "hidden",
+      shadowColor: "#8B5CF6",
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 20,
+      elevation: 8,
     },
-    statsContainer: {
+    heroGradient: {
+      padding: 24,
+      position: "relative",
+      overflow: "hidden",
+    },
+    heroContent: {
+      position: "relative",
+      zIndex: 1,
+    },
+    heroTop: {
       flexDirection: "row",
-      backgroundColor: isDark ? COLORS.neutral[800] : COLORS.neutral.white,
-      borderBottomRightRadius: 20,
-      borderBottomLeftRadius: 20,
-      padding: 20,
-      marginHorizontal: 5,
-      marginBottom: 25,
-      justifyContent: "space-around",
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.3 : 0.1,
-      shadowRadius: 8,
-      elevation: 4,
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 8,
     },
-    statItem: {
+    sparkleContainer: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: "rgba(255,255,255,0.2)",
+      justifyContent: "center",
       alignItems: "center",
     },
-    statValue: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 24,
-      color: isDark ? COLORS.primary.DEFAULT : COLORS.primary[700],
-      fontWeight: "700" as any,
+    heroLabel: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: "rgba(255,255,255,0.9)",
+      fontWeight: "500",
     },
-    statLabel: {
+    heroAmount: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 56,
+      color: COLORS.neutral.white,
+      lineHeight: 64,
+    },
+    heroSuffix: {
+      fontSize: 32,
+      opacity: 0.9,
+    },
+    heroSubtext: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: "rgba(255,255,255,0.8)",
+      marginBottom: 8,
+    },
+    heroBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: "rgba(255,255,255,0.15)",
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+      alignSelf: "flex-start",
+      marginTop: 8,
+    },
+    heroBadgeText: {
       fontFamily: FONTS.secondary,
       fontSize: 12,
-      color: isDark ? COLORS.neutral[400] : COLORS.neutral[500],
-      marginTop: 4,
+      color: "rgba(255,255,255,0.95)",
+      fontWeight: "500",
     },
-    statDivider: {
-      width: 1,
-      backgroundColor: "rgba(255,255,255,0.2)",
+    heroCircle1: {
+      position: "absolute",
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      backgroundColor: "rgba(255,255,255,0.1)",
+      top: -30,
+      right: -30,
+    },
+    heroCircle2: {
+      position: "absolute",
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: "rgba(255,255,255,0.08)",
+      bottom: -20,
+      right: 50,
     },
     // Section
     section: {
-      paddingHorizontal: 24,
+      paddingHorizontal: 20,
       marginBottom: 24,
     },
     sectionHeader: {
@@ -577,16 +720,37 @@ const createStyles = (isDark: boolean) =>
       alignItems: "center",
       marginBottom: 16,
     },
+    sectionTitleContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+    sectionIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      justifyContent: "center",
+      alignItems: "center",
+    },
     sectionTitle: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 20,
-      color: isDark ? COLORS.neutral[50] : COLORS.neutral[900],
-      marginBottom: 16,
+      fontFamily: FONTS.secondary,
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    seeAllButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: colors.primary + "15",
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 10,
     },
     seeAllText: {
       fontFamily: FONTS.secondary,
-      fontSize: 14,
-      color: COLORS.primary.DEFAULT,
+      fontSize: 13,
+      color: colors.primary,
       fontWeight: "600",
     },
     // Children Grid
@@ -600,14 +764,14 @@ const createStyles = (isDark: boolean) =>
     },
     // Child Card
     childCard: {
-      backgroundColor: isDark ? COLORS.neutral[800] : COLORS.neutral.white,
-      borderRadius: 16,
-      padding: 12,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.3 : 0.1,
-      shadowRadius: 8,
-      elevation: 3,
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      padding: 16,
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 12,
+      elevation: 4,
     },
     childCardHeader: {
       flexDirection: "row",
@@ -641,16 +805,16 @@ const createStyles = (isDark: boolean) =>
     },
     childName: {
       fontFamily: FONTS.fredoka,
-      fontSize: 15,
-      fontWeight: "600" as any,
-      color: isDark ? COLORS.neutral[50] : COLORS.neutral[900],
-      marginBottom: 1,
+      fontSize: 17,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: 4,
     },
     childAge: {
       fontFamily: FONTS.secondary,
-      fontSize: 11,
-      color: isDark ? COLORS.neutral[400] : COLORS.neutral[500],
-      marginBottom: 8,
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginBottom: 12,
     },
     statsRow: {
       flexDirection: "row",
@@ -665,14 +829,14 @@ const createStyles = (isDark: boolean) =>
     },
     statText: {
       fontFamily: FONTS.secondary,
-      fontSize: 9,
-      color: isDark ? COLORS.neutral[400] : COLORS.neutral[600],
+      fontSize: 12,
+      color: colors.textSecondary,
     },
     childStatValue: {
       fontFamily: FONTS.fredoka,
-      fontSize: 13,
-      fontWeight: "700" as any,
-      color: isDark ? COLORS.neutral[50] : COLORS.neutral[900],
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.textPrimary,
     },
     actionButton: {
       flexDirection: "row",
@@ -738,27 +902,27 @@ const createStyles = (isDark: boolean) =>
       width: CARD_WIDTH,
     },
     quickActionCard: {
-      backgroundColor: isDark ? COLORS.neutral[800] : COLORS.neutral.white,
-      borderRadius: 16,
+      backgroundColor: colors.card,
+      borderRadius: 20,
       padding: 16,
-      minHeight: 120,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.3 : 0.1,
-      shadowRadius: 8,
-      elevation: 3,
+      minHeight: 140,
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 12,
+      elevation: 4,
     },
     quickActionIcon: {
-      width: 52,
-      height: 52,
-      borderRadius: 26,
+      width: 48,
+      height: 48,
+      borderRadius: 14,
       justifyContent: "center",
       alignItems: "center",
       marginBottom: 12,
       shadowColor: "#000",
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
+      shadowOpacity: 0.15,
+      shadowRadius: 6,
       elevation: 3,
     },
     quickActionTextContainer: {
@@ -766,131 +930,184 @@ const createStyles = (isDark: boolean) =>
       justifyContent: "center",
     },
     quickActionTitle: {
-      fontFamily: FONTS.fredoka,
+      fontFamily: FONTS.secondary,
       fontSize: 15,
-      fontWeight: "600" as any,
-      color: isDark ? COLORS.neutral[50] : COLORS.neutral[900],
+      fontWeight: "600",
+      color: colors.textPrimary,
       marginBottom: 4,
       lineHeight: 20,
     },
     quickActionSubtitle: {
       fontFamily: FONTS.secondary,
-      fontSize: 11,
-      color: isDark ? COLORS.neutral[400] : COLORS.neutral[500],
+      fontSize: 12,
+      color: colors.textSecondary,
     },
-    // Feature Card
     featureCard: {
-      backgroundColor: isDark ? COLORS.neutral[800] : COLORS.neutral.white,
-      borderRadius: 16,
-      padding: 20,
-      marginBottom: 12,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.3 : 0.1,
-      shadowRadius: 8,
-      elevation: 3,
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      padding: 18,
+      marginBottom: 14,
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 12,
+      elevation: 4,
     },
     featureIcon: {
-      width: 56,
-      height: 56,
+      width: 52,
+      height: 52,
       borderRadius: 16,
       justifyContent: "center",
       alignItems: "center",
       marginBottom: 12,
     },
     featureTitle: {
-      fontFamily: FONTS.fredoka,
+      fontFamily: FONTS.secondary,
       fontSize: 16,
-      color: isDark ? COLORS.neutral[50] : COLORS.neutral[900],
-      marginBottom: 8,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: 6,
     },
     featureDescription: {
       fontFamily: FONTS.secondary,
-      fontSize: 13,
-      color: isDark ? COLORS.neutral[400] : COLORS.neutral[600],
+      fontSize: 14,
+      color: colors.textSecondary,
       lineHeight: 20,
     },
     // CTA Banner
     ctaBanner: {
-      marginHorizontal: 24,
-      marginBottom: 8,
+      marginHorizontal: 20,
+      marginBottom: 24,
+      borderRadius: 24,
+      overflow: "hidden",
+      shadowColor: "#10B981",
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.3,
+      shadowRadius: 16,
+      elevation: 6,
     },
     ctaGradient: {
-      borderRadius: 20,
       padding: 20,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
+      position: "relative",
+      overflow: "hidden",
+    },
+    ctaDecor1: {
+      position: "absolute",
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+      backgroundColor: "rgba(255,255,255,0.1)",
+      top: -30,
+      right: 80,
+    },
+    ctaDecor2: {
+      position: "absolute",
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: "rgba(255,255,255,0.08)",
+      bottom: -20,
+      left: 40,
     },
     ctaContent: {
       flex: 1,
-      marginRight: 12,
+      marginRight: 16,
+      position: "relative",
+      zIndex: 1,
+    },
+    ctaIconContainer: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      backgroundColor: "rgba(255,255,255,0.2)",
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: 10,
     },
     ctaTitle: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 18,
+      fontFamily: FONTS.secondary,
+      fontSize: 16,
+      fontWeight: "600",
       color: COLORS.neutral.white,
       marginBottom: 4,
     },
     ctaDescription: {
       fontFamily: FONTS.secondary,
       fontSize: 13,
-      color: COLORS.neutral[100],
-      opacity: 0.9,
+      color: "rgba(255, 255, 255, 0.85)",
     },
     ctaButton: {
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: COLORS.neutral.white,
       paddingHorizontal: 16,
-      paddingVertical: 10,
-      borderRadius: 12,
+      paddingVertical: 12,
+      borderRadius: 14,
       gap: 4,
+      position: "relative",
+      zIndex: 1,
     },
     ctaButtonText: {
       fontFamily: FONTS.secondary,
       fontSize: 14,
-      fontWeight: "700",
-      color: "#8B5CF6",
+      fontWeight: "600",
+      color: "#10B981",
     },
     // Empty State
     emptyChildrenState: {
-      backgroundColor: isDark ? COLORS.neutral[800] : COLORS.neutral.white,
-      borderRadius: 16,
+      backgroundColor: colors.card,
+      borderRadius: 24,
       padding: 32,
       alignItems: "center",
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.3 : 0.1,
-      shadowRadius: 8,
-      elevation: 3,
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 12,
+      elevation: 4,
     },
     emptyStateIcon: {
+      width: 72,
+      height: 72,
+      borderRadius: 20,
+      backgroundColor: colors.input,
+      justifyContent: "center",
+      alignItems: "center",
       marginBottom: 16,
     },
     emptyStateTitle: {
       fontFamily: FONTS.fredoka,
       fontSize: 18,
-      color: isDark ? COLORS.neutral[50] : COLORS.neutral[900],
+      color: colors.textPrimary,
       marginBottom: 8,
       textAlign: "center",
     },
     emptyStateText: {
       fontFamily: FONTS.secondary,
       fontSize: 14,
-      color: isDark ? COLORS.neutral[400] : COLORS.neutral[600],
+      color: colors.textSecondary,
       textAlign: "center",
       marginBottom: 20,
       lineHeight: 20,
     },
     emptyStateButton: {
+      borderRadius: 16,
+      overflow: "hidden",
+      shadowColor: COLORS.primary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+      elevation: 5,
+    },
+    emptyStateButtonGradient: {
       flexDirection: "row",
       alignItems: "center",
-      backgroundColor: COLORS.primary.DEFAULT,
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      borderRadius: 16,
-      gap: 8,
+      justifyContent: "center",
+      paddingHorizontal: 24,
+      paddingVertical: 14,
+      gap: 10,
     },
     emptyStateButtonText: {
       fontFamily: FONTS.secondary,
