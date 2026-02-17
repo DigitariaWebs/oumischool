@@ -1,69 +1,76 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
-  Alert,
+  Dimensions,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ArrowLeft,
   CreditCard,
-  Lock,
   Calendar,
-  User,
-  MapPin,
   CheckCircle,
   DollarSign,
-  Clock,
-  Users,
-  Video,
-  Home,
   TrendingUp,
   Download,
-  AlertCircle,
+  ChevronRight,
+  Plus,
+  Sparkles,
+  Clock,
+  Repeat,
+  Receipt,
+  Wallet,
 } from "lucide-react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
+import { useTheme } from "@/hooks/use-theme";
+import { ThemeColors } from "@/constants/theme";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+interface RecurringPayment {
+  id: string;
+  tutorName: string;
+  subject: string;
+  amount: number;
+  frequency: string;
+  nextPayment: string;
+  status: string;
+  sessionsPerWeek: number;
+  color: string;
+}
+
+interface PaymentHistory {
+  id: string;
+  tutorName: string;
+  amount: number;
+  date: string;
+  status: string;
+  description: string;
+}
+
+interface SavedCard {
+  id: string;
+  type: string;
+  last4: string;
+  expiry: string;
+  isDefault: boolean;
+}
 
 export default function PaymentScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
-
-  // Determine if this is a checkout flow or recurring payments view
-  const isCheckout = !!params.tutorId;
-
-  // Parse booking details from params (for checkout)
-  const bookingDetails = isCheckout
-    ? {
-        tutorId: params.tutorId as string,
-        tutorName: params.tutorName as string,
-        children: JSON.parse((params.children as string) || "[]"),
-        mode: params.mode as string,
-        day: params.day as string,
-        timeSlot: params.timeSlot as string,
-        totalPrice: parseFloat(params.totalPrice as string) || 0,
-      }
-    : null;
-
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardHolder, setCardHolder] = useState("");
-  const [expiryDate, setExpiryDate] = useState("");
-  const [cvv, setCvv] = useState("");
-  const [billingAddress, setBillingAddress] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const [selectedPeriod, setSelectedPeriod] = useState("month");
-  const [paymentMethod, setPaymentMethod] = useState<"saved" | "new">("saved");
 
-  // Mock saved cards
-  const savedCards = [
+  const savedCards: SavedCard[] = [
     {
       id: "1",
       type: "Visa",
@@ -80,10 +87,7 @@ export default function PaymentScreen() {
     },
   ];
 
-  const [selectedCard, setSelectedCard] = useState(savedCards[0].id);
-
-  // Mock recurring payments data
-  const recurringPayments = [
+  const recurringPayments: RecurringPayment[] = [
     {
       id: "1",
       tutorName: "Sophie Martin",
@@ -93,6 +97,7 @@ export default function PaymentScreen() {
       nextPayment: "2024-01-20",
       status: "active",
       sessionsPerWeek: 2,
+      color: "#3B82F6",
     },
     {
       id: "2",
@@ -103,6 +108,7 @@ export default function PaymentScreen() {
       nextPayment: "2024-02-01",
       status: "active",
       sessionsPerWeek: 1,
+      color: "#EF4444",
     },
     {
       id: "3",
@@ -113,10 +119,11 @@ export default function PaymentScreen() {
       nextPayment: "2024-01-25",
       status: "pending",
       sessionsPerWeek: 1,
+      color: "#10B981",
     },
   ];
 
-  const paymentHistory = [
+  const paymentHistory: PaymentHistory[] = [
     {
       id: "1",
       tutorName: "Sophie Martin",
@@ -163,633 +170,43 @@ export default function PaymentScreen() {
     { id: "total", label: "Total" },
   ];
 
-  const formatCardNumber = (text: string) => {
-    const cleaned = text.replace(/\s/g, "");
-    const formatted = cleaned.match(/.{1,4}/g)?.join(" ") || cleaned;
-    return formatted.substring(0, 19);
+  const stats = [
+    {
+      icon: TrendingUp,
+      value: recurringPayments.filter((p) => p.status === "active").length,
+      label: "Actifs",
+      color: "#10B981",
+    },
+    {
+      icon: Calendar,
+      value: paymentHistory.length,
+      label: "Paiements",
+      color: "#8B5CF6",
+    },
+    {
+      icon: Clock,
+      value: "4h",
+      label: "Ce mois",
+      color: "#F59E0B",
+    },
+  ];
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "short",
+    });
   };
-
-  const formatExpiryDate = (text: string) => {
-    const cleaned = text.replace(/\D/g, "");
-    if (cleaned.length >= 2) {
-      return `${cleaned.substring(0, 2)}/${cleaned.substring(2, 4)}`;
-    }
-    return cleaned;
-  };
-
-  const handlePayment = async () => {
-    // Validation
-    if (!cardNumber || cardNumber.replace(/\s/g, "").length !== 16) {
-      Alert.alert("Erreur", "Numéro de carte invalide");
-      return;
-    }
-    if (!cardHolder) {
-      Alert.alert("Erreur", "Veuillez entrer le nom du titulaire");
-      return;
-    }
-    if (!expiryDate || expiryDate.length !== 5) {
-      Alert.alert("Erreur", "Date d'expiration invalide");
-      return;
-    }
-    if (!cvv || cvv.length !== 3) {
-      Alert.alert("Erreur", "CVV invalide");
-      return;
-    }
-    if (!billingAddress) {
-      Alert.alert("Erreur", "Veuillez entrer l'adresse de facturation");
-      return;
-    }
-
-    setIsProcessing(true);
-
-    // Simulate payment processing
-    setTimeout(() => {
-      setIsProcessing(false);
-      Alert.alert(
-        "Paiement réussi!",
-        "Votre réservation a été confirmée. Le tuteur sera notifié.",
-        [
-          {
-            text: "OK",
-            onPress: () => router.push("/(tabs)"),
-          },
-        ],
-      );
-    }, 2000);
-  };
-
-  const renderCheckoutView = () => (
-    <>
-      {/* Total Amount Card */}
-      <Animated.View
-        entering={FadeInDown.delay(100).duration(500)}
-        style={styles.totalCard}
-      >
-        <LinearGradient
-          colors={["#8B5CF6", "#6366F1"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.totalGradient}
-        >
-          <View style={styles.totalHeader}>
-            <DollarSign size={32} color={COLORS.neutral.white} />
-            <Text style={styles.totalLabel}>Montant total</Text>
-          </View>
-          <Text style={styles.totalAmount}>
-            {bookingDetails!.totalPrice.toFixed(2)} €
-          </Text>
-          <Text style={styles.totalSubtitle}>
-            Paiement unique • Aucun frais caché
-          </Text>
-        </LinearGradient>
-      </Animated.View>
-
-      {/* Booking Details Cards */}
-      <Animated.View entering={FadeInDown.delay(200).duration(500)}>
-        <View style={styles.detailsGrid}>
-          <View style={styles.detailCard}>
-            <View style={styles.detailIconContainer}>
-              {bookingDetails!.mode === "online" ? (
-                <Video size={20} color="#8B5CF6" />
-              ) : (
-                <Home size={20} color="#8B5CF6" />
-              )}
-            </View>
-            <Text style={styles.detailLabel}>Mode</Text>
-            <Text style={styles.detailValue}>
-              {bookingDetails!.mode === "online" ? "En ligne" : "En personne"}
-            </Text>
-          </View>
-
-          <View style={styles.detailCard}>
-            <View style={styles.detailIconContainer}>
-              <Clock size={20} color="#10B981" />
-            </View>
-            <Text style={styles.detailLabel}>Horaire</Text>
-            <Text style={styles.detailValue}>{bookingDetails!.timeSlot}</Text>
-          </View>
-
-          <View style={styles.detailCard}>
-            <View style={styles.detailIconContainer}>
-              <Calendar size={20} color="#F59E0B" />
-            </View>
-            <Text style={styles.detailLabel}>Jour</Text>
-            <Text style={styles.detailValue}>{bookingDetails!.day}</Text>
-          </View>
-
-          <View style={styles.detailCard}>
-            <View style={styles.detailIconContainer}>
-              <Users size={20} color="#EF4444" />
-            </View>
-            <Text style={styles.detailLabel}>Enfants</Text>
-            <Text style={styles.detailValue}>
-              {bookingDetails!.children.length}
-            </Text>
-          </View>
-        </View>
-      </Animated.View>
-
-      {/* Tutor Info */}
-      <Animated.View entering={FadeInDown.delay(300).duration(500)}>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tuteur sélectionné</Text>
-          <View style={styles.tutorCard}>
-            <View style={styles.tutorIcon}>
-              <User size={24} color={COLORS.primary.DEFAULT} />
-            </View>
-            <View style={styles.tutorInfo}>
-              <Text style={styles.tutorName}>{bookingDetails!.tutorName}</Text>
-              <Text style={styles.tutorSubtitle}>Tuteur certifié • Expert</Text>
-            </View>
-            <CheckCircle size={20} color="#10B981" />
-          </View>
-        </View>
-      </Animated.View>
-
-      {/* Payment Form */}
-      <Animated.View entering={FadeInDown.delay(400).duration(500)}>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informations de paiement</Text>
-
-          {/* Payment Method Selection */}
-          <View style={styles.paymentMethodSelector}>
-            <TouchableOpacity
-              style={[
-                styles.methodOption,
-                paymentMethod === "saved" && styles.methodOptionActive,
-              ]}
-              onPress={() => setPaymentMethod("saved")}
-              activeOpacity={0.7}
-            >
-              <View style={styles.methodOptionContent}>
-                <CreditCard
-                  size={20}
-                  color={
-                    paymentMethod === "saved"
-                      ? COLORS.primary.DEFAULT
-                      : COLORS.secondary[400]
-                  }
-                />
-                <Text
-                  style={[
-                    styles.methodOptionText,
-                    paymentMethod === "saved" && styles.methodOptionTextActive,
-                  ]}
-                >
-                  Carte enregistrée
-                </Text>
-              </View>
-              {paymentMethod === "saved" && (
-                <CheckCircle size={20} color={COLORS.primary.DEFAULT} />
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.methodOption,
-                paymentMethod === "new" && styles.methodOptionActive,
-              ]}
-              onPress={() => setPaymentMethod("new")}
-              activeOpacity={0.7}
-            >
-              <View style={styles.methodOptionContent}>
-                <CreditCard
-                  size={20}
-                  color={
-                    paymentMethod === "new"
-                      ? COLORS.primary.DEFAULT
-                      : COLORS.secondary[400]
-                  }
-                />
-                <Text
-                  style={[
-                    styles.methodOptionText,
-                    paymentMethod === "new" && styles.methodOptionTextActive,
-                  ]}
-                >
-                  Nouvelle carte
-                </Text>
-              </View>
-              {paymentMethod === "new" && (
-                <CheckCircle size={20} color={COLORS.primary.DEFAULT} />
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {/* Saved Cards List */}
-          {paymentMethod === "saved" ? (
-            <View style={styles.formCard}>
-              {savedCards.map((card) => (
-                <TouchableOpacity
-                  key={card.id}
-                  style={[
-                    styles.savedCardOption,
-                    selectedCard === card.id && styles.savedCardOptionActive,
-                  ]}
-                  onPress={() => setSelectedCard(card.id)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.savedCardLeft}>
-                    <View style={styles.savedCardIcon}>
-                      <CreditCard size={20} color={COLORS.primary.DEFAULT} />
-                    </View>
-                    <View>
-                      <Text style={styles.savedCardType}>{card.type}</Text>
-                      <Text style={styles.savedCardNumber}>
-                        •••• •••• •••• {card.last4}
-                      </Text>
-                      <Text style={styles.savedCardExpiry}>
-                        Expire: {card.expiry}
-                      </Text>
-                    </View>
-                  </View>
-                  {selectedCard === card.id && (
-                    <CheckCircle size={20} color={COLORS.primary.DEFAULT} />
-                  )}
-                </TouchableOpacity>
-              ))}
-
-              {/* CVV for saved card */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>CVV de sécurité</Text>
-                <View style={styles.inputContainer}>
-                  <Lock size={20} color={COLORS.secondary[400]} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="123"
-                    value={cvv}
-                    onChangeText={setCvv}
-                    keyboardType="number-pad"
-                    maxLength={3}
-                    secureTextEntry
-                    placeholderTextColor={COLORS.secondary[300]}
-                  />
-                </View>
-              </View>
-
-              {/* Security Notice */}
-              <View style={styles.securityNotice}>
-                <Lock size={16} color="#10B981" />
-                <Text style={styles.securityText}>
-                  Paiement 100% sécurisé par cryptage SSL
-                </Text>
-              </View>
-            </View>
-          ) : (
-            <View style={styles.formCard}>
-              {/* Card Number */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Numéro de carte</Text>
-                <View style={styles.inputContainer}>
-                  <CreditCard size={20} color={COLORS.secondary[400]} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="1234 5678 9012 3456"
-                    value={cardNumber}
-                    onChangeText={(text) =>
-                      setCardNumber(formatCardNumber(text))
-                    }
-                    keyboardType="number-pad"
-                    maxLength={19}
-                    placeholderTextColor={COLORS.secondary[300]}
-                  />
-                </View>
-              </View>
-
-              {/* Card Holder */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Titulaire de la carte</Text>
-                <View style={styles.inputContainer}>
-                  <User size={20} color={COLORS.secondary[400]} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="JEAN DUPONT"
-                    value={cardHolder}
-                    onChangeText={setCardHolder}
-                    autoCapitalize="characters"
-                    placeholderTextColor={COLORS.secondary[300]}
-                  />
-                </View>
-              </View>
-
-              {/* Expiry Date & CVV */}
-              <View style={styles.rowInputs}>
-                <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.inputLabel}>Expiration</Text>
-                  <View style={styles.inputContainer}>
-                    <Calendar size={20} color={COLORS.secondary[400]} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="MM/AA"
-                      value={expiryDate}
-                      onChangeText={(text) =>
-                        setExpiryDate(formatExpiryDate(text))
-                      }
-                      keyboardType="number-pad"
-                      maxLength={5}
-                      placeholderTextColor={COLORS.secondary[300]}
-                    />
-                  </View>
-                </View>
-
-                <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.inputLabel}>CVV</Text>
-                  <View style={styles.inputContainer}>
-                    <Lock size={20} color={COLORS.secondary[400]} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="123"
-                      value={cvv}
-                      onChangeText={setCvv}
-                      keyboardType="number-pad"
-                      maxLength={3}
-                      secureTextEntry
-                      placeholderTextColor={COLORS.secondary[300]}
-                    />
-                  </View>
-                </View>
-              </View>
-
-              {/* Billing Address */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Adresse de facturation</Text>
-                <View style={styles.inputContainer}>
-                  <MapPin size={20} color={COLORS.secondary[400]} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="123 Rue de la République, Paris"
-                    value={billingAddress}
-                    onChangeText={setBillingAddress}
-                    placeholderTextColor={COLORS.secondary[300]}
-                  />
-                </View>
-              </View>
-
-              {/* Security Notice */}
-              <View style={styles.securityNotice}>
-                <Lock size={16} color="#10B981" />
-                <Text style={styles.securityText}>
-                  Paiement 100% sécurisé par cryptage SSL
-                </Text>
-              </View>
-            </View>
-          )}
-        </View>
-      </Animated.View>
-
-      {/* Payment Button */}
-      <Animated.View entering={FadeInDown.delay(500).duration(500)}>
-        <TouchableOpacity
-          style={[styles.payButton, isProcessing && styles.payButtonDisabled]}
-          onPress={handlePayment}
-          disabled={isProcessing}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={
-              isProcessing
-                ? [COLORS.secondary[300], COLORS.secondary[400]]
-                : ["#10B981", "#059669"]
-            }
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.payButtonGradient}
-          >
-            {isProcessing ? (
-              <Text style={styles.payButtonText}>Traitement en cours...</Text>
-            ) : (
-              <>
-                <CheckCircle size={22} color={COLORS.neutral.white} />
-                <Text style={styles.payButtonText}>
-                  Confirmer le paiement de{" "}
-                  {bookingDetails!.totalPrice.toFixed(2)}€
-                </Text>
-              </>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
-      </Animated.View>
-
-      {/* Terms */}
-      <Text style={styles.termsText}>
-        En confirmant, vous acceptez nos conditions d'utilisation et notre
-        politique de remboursement. Le paiement sera traité de manière
-        sécurisée.
-      </Text>
-    </>
-  );
-
-  const renderRecurringPaymentsView = () => (
-    <>
-      {/* Spending Overview Card */}
-      <Animated.View
-        entering={FadeInDown.delay(100).duration(500)}
-        style={styles.totalCard}
-      >
-        <LinearGradient
-          colors={["#8B5CF6", "#6366F1"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.totalGradient}
-        >
-          <View style={styles.totalHeader}>
-            <DollarSign size={32} color={COLORS.neutral.white} />
-            <Text style={styles.totalLabel}>Dépenses totales</Text>
-          </View>
-          <Text style={styles.totalAmount}>
-            {spending[selectedPeriod as keyof typeof spending].toFixed(2)} €
-          </Text>
-          <View style={styles.periodSelector}>
-            {periods.map((period) => (
-              <TouchableOpacity
-                key={period.id}
-                style={[
-                  styles.periodButton,
-                  selectedPeriod === period.id && styles.periodButtonActive,
-                ]}
-                onPress={() => setSelectedPeriod(period.id)}
-              >
-                <Text
-                  style={[
-                    styles.periodButtonText,
-                    selectedPeriod === period.id &&
-                      styles.periodButtonTextActive,
-                  ]}
-                >
-                  {period.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </LinearGradient>
-      </Animated.View>
-
-      {/* Stats Row */}
-      <Animated.View entering={FadeInDown.delay(200).duration(500)}>
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <TrendingUp size={24} color="#10B981" />
-            <Text style={styles.statValue}>
-              {recurringPayments.filter((p) => p.status === "active").length}
-            </Text>
-            <Text style={styles.statLabel}>Actifs</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Calendar size={24} color="#8B5CF6" />
-            <Text style={styles.statValue}>{paymentHistory.length}</Text>
-            <Text style={styles.statLabel}>Paiements</Text>
-          </View>
-        </View>
-      </Animated.View>
-
-      {/* Payment Method */}
-      <Animated.View entering={FadeInDown.delay(300).duration(500)}>
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Méthode de paiement</Text>
-            <TouchableOpacity>
-              <Text style={styles.editText}>Modifier</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.paymentMethodCard}>
-            <View style={styles.paymentMethodIcon}>
-              <CreditCard size={24} color={COLORS.secondary[700]} />
-            </View>
-            <View style={styles.tutorInfo}>
-              <Text style={styles.tutorName}>Visa</Text>
-              <Text style={styles.tutorSubtitle}>•••• •••• •••• 4242</Text>
-            </View>
-            <CheckCircle size={20} color="#10B981" />
-          </View>
-        </View>
-      </Animated.View>
-
-      {/* Recurring Payments */}
-      <Animated.View entering={FadeInDown.delay(400).duration(500)}>
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Paiements récurrents</Text>
-            <TouchableOpacity>
-              <Text style={styles.viewAllText}>Gérer</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.transactionsCard}>
-            {recurringPayments.map((payment, index) => (
-              <View
-                key={payment.id}
-                style={[
-                  styles.transactionItem,
-                  index !== recurringPayments.length - 1 &&
-                    styles.transactionItemBorder,
-                ]}
-              >
-                <View style={styles.transactionLeft}>
-                  <View
-                    style={[
-                      styles.transactionStatus,
-                      payment.status === "active"
-                        ? styles.statusCompleted
-                        : styles.statusPending,
-                    ]}
-                  />
-                  <View style={styles.transactionInfo}>
-                    <Text style={styles.transactionStudent}>
-                      {payment.tutorName}
-                    </Text>
-                    <Text style={styles.transactionDate}>
-                      {payment.subject} • {payment.sessionsPerWeek}x/semaine
-                    </Text>
-                    <Text style={styles.transactionNextPayment}>
-                      Prochain:{" "}
-                      {new Date(payment.nextPayment).toLocaleDateString(
-                        "fr-FR",
-                      )}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.transactionRight}>
-                  <Text style={styles.transactionAmount}>
-                    {payment.amount.toFixed(2)} €
-                  </Text>
-                  <Text style={styles.transactionFrequency}>
-                    {payment.frequency === "weekly" ? "/sem" : "/mois"}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-      </Animated.View>
-
-      {/* Payment History */}
-      <Animated.View entering={FadeInDown.delay(500).duration(500)}>
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Historique</Text>
-            <TouchableOpacity>
-              <Text style={styles.viewAllText}>Tout voir</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.transactionsCard}>
-            {paymentHistory.map((transaction, index) => (
-              <View
-                key={transaction.id}
-                style={[
-                  styles.transactionItem,
-                  index !== paymentHistory.length - 1 &&
-                    styles.transactionItemBorder,
-                ]}
-              >
-                <View style={styles.transactionLeft}>
-                  <View
-                    style={[
-                      styles.transactionStatus,
-                      transaction.status === "completed"
-                        ? styles.statusCompleted
-                        : styles.statusPending,
-                    ]}
-                  />
-                  <View style={styles.transactionInfo}>
-                    <Text style={styles.transactionStudent}>
-                      {transaction.tutorName}
-                    </Text>
-                    <Text style={styles.transactionDate}>
-                      {new Date(transaction.date).toLocaleDateString("fr-FR", {
-                        day: "numeric",
-                        month: "short",
-                      })}{" "}
-                      • {transaction.description}
-                    </Text>
-                  </View>
-                </View>
-                <Text
-                  style={[
-                    styles.transactionAmount,
-                    transaction.status === "pending" &&
-                      styles.transactionAmountPending,
-                  ]}
-                >
-                  {transaction.status === "pending" ? "-" : "+"}
-                  {transaction.amount.toFixed(2)} €
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      </Animated.View>
-
-      {/* Download Statement */}
-      <Animated.View entering={FadeInDown.delay(600).duration(500)}>
-        <TouchableOpacity style={styles.downloadButton}>
-          <Download size={20} color={COLORS.secondary[700]} />
-          <Text style={styles.downloadButtonText}>Télécharger le relevé</Text>
-        </TouchableOpacity>
-      </Animated.View>
-    </>
-  );
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Organic background blobs */}
+      <View style={styles.blobContainer}>
+        <View style={[styles.blob, styles.blob1]} />
+        <View style={[styles.blob, styles.blob2]} />
+        <View style={[styles.blob, styles.blob3]} />
+      </View>
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -797,550 +214,797 @@ export default function PaymentScreen() {
           onPress={() => router.back()}
           activeOpacity={0.7}
         >
-          <ArrowLeft size={24} color={COLORS.secondary[700]} />
+          <ArrowLeft size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {isCheckout ? "Paiement" : "Paiements"}
-        </Text>
-        <View style={{ width: 40 }} />
+        <Text style={styles.headerTitle}>Paiements</Text>
+        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {isCheckout ? renderCheckoutView() : renderRecurringPaymentsView()}
+        {/* Spending Overview Hero */}
+        <Animated.View
+          entering={FadeInDown.delay(100).duration(600).springify()}
+          style={styles.heroCard}
+        >
+          <LinearGradient
+            colors={["#6366F1", "#8B5CF6", "#A855F7"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroGradient}
+          >
+            <View style={styles.heroContent}>
+              <View style={styles.heroTop}>
+                <View style={styles.walletIcon}>
+                  <Wallet size={22} color="rgba(255,255,255,0.95)" />
+                </View>
+                <Text style={styles.heroLabel}>Dépenses totales</Text>
+              </View>
+
+              <Text style={styles.heroAmount}>
+                {spending[selectedPeriod as keyof typeof spending].toFixed(2)}
+                <Text style={styles.heroCurrency}> €</Text>
+              </Text>
+
+              {/* Period Selector Pills */}
+              <View style={styles.periodSelector}>
+                {periods.map((period) => (
+                  <TouchableOpacity
+                    key={period.id}
+                    style={[
+                      styles.periodPill,
+                      selectedPeriod === period.id && styles.periodPillActive,
+                    ]}
+                    onPress={() => setSelectedPeriod(period.id)}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.periodPillText,
+                        selectedPeriod === period.id &&
+                          styles.periodPillTextActive,
+                      ]}
+                    >
+                      {period.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Decorative elements */}
+            <View style={styles.heroCircle1} />
+            <View style={styles.heroCircle2} />
+          </LinearGradient>
+        </Animated.View>
+
+        {/* Stats Row - Horizontal scroll */}
+        <Animated.View
+          entering={FadeInDown.delay(200).duration(600).springify()}
+        >
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.statsScroll}
+          >
+            {stats.map((stat, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.statBubble,
+                  { backgroundColor: stat.color + "15" },
+                ]}
+              >
+                <View
+                  style={[styles.statIconBg, { backgroundColor: stat.color }]}
+                >
+                  <stat.icon size={18} color="#FFF" />
+                </View>
+                <Text style={[styles.statValue, { color: stat.color }]}>
+                  {stat.value}
+                </Text>
+                <Text style={styles.statLabel}>{stat.label}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </Animated.View>
+
+        {/* Payment Methods Section */}
+        <Animated.View
+          entering={FadeInDown.delay(300).duration(600).springify()}
+          style={styles.section}
+        >
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>💳 Moyens de paiement</Text>
+            <TouchableOpacity style={styles.addButton} activeOpacity={0.7}>
+              <Plus size={16} color={COLORS.primary.DEFAULT} />
+              <Text style={styles.addButtonText}>Ajouter</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.cardsContainer}>
+            {savedCards.map((card, index) => (
+              <TouchableOpacity
+                key={card.id}
+                style={[
+                  styles.cardItem,
+                  card.isDefault && styles.cardItemDefault,
+                ]}
+                activeOpacity={0.7}
+              >
+                <View style={styles.cardLeft}>
+                  <View
+                    style={[
+                      styles.cardIcon,
+                      card.isDefault && styles.cardIconDefault,
+                    ]}
+                  >
+                    <CreditCard
+                      size={20}
+                      color={
+                        card.isDefault ? colors.primary : colors.textSecondary
+                      }
+                    />
+                  </View>
+                  <View>
+                    <View style={styles.cardTypeRow}>
+                      <Text style={styles.cardType}>{card.type}</Text>
+                      {card.isDefault && (
+                        <View style={styles.defaultBadge}>
+                          <Text style={styles.defaultBadgeText}>
+                            Par défaut
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.cardNumber}>
+                      •••• •••• •••• {card.last4}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.cardRight}>
+                  <Text style={styles.cardExpiry}>Exp. {card.expiry}</Text>
+                  <ChevronRight size={18} color={COLORS.secondary[300]} />
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Animated.View>
+
+        {/* Recurring Payments Section */}
+        <Animated.View
+          entering={FadeInDown.delay(400).duration(600).springify()}
+          style={styles.section}
+        >
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>🔄 Paiements récurrents</Text>
+            <TouchableOpacity activeOpacity={0.7}>
+              <Text style={styles.viewAllText}>Gérer</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.recurringContainer}>
+            {recurringPayments.map((payment, index) => (
+              <TouchableOpacity
+                key={payment.id}
+                style={styles.recurringItem}
+                activeOpacity={0.7}
+              >
+                <View style={styles.recurringLeft}>
+                  <View
+                    style={[
+                      styles.subjectDot,
+                      { backgroundColor: payment.color },
+                    ]}
+                  />
+                  <View style={styles.recurringInfo}>
+                    <Text style={styles.recurringTutor}>
+                      {payment.tutorName}
+                    </Text>
+                    <View style={styles.recurringMeta}>
+                      <Text style={styles.recurringSubject}>
+                        {payment.subject}
+                      </Text>
+                      <View style={styles.recurringDot} />
+                      <Text style={styles.recurringFreq}>
+                        {payment.sessionsPerWeek}x/sem
+                      </Text>
+                    </View>
+                    <Text style={styles.recurringNext}>
+                      Prochain: {formatDate(payment.nextPayment)}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.recurringRight}>
+                  <Text style={styles.recurringAmount}>
+                    {payment.amount.toFixed(2)} €
+                  </Text>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      payment.status === "active"
+                        ? styles.statusActive
+                        : styles.statusPending,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusText,
+                        payment.status === "active"
+                          ? styles.statusTextActive
+                          : styles.statusTextPending,
+                      ]}
+                    >
+                      {payment.status === "active" ? "Actif" : "En attente"}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Animated.View>
+
+        {/* Payment History Section */}
+        <Animated.View
+          entering={FadeInDown.delay(500).duration(600).springify()}
+          style={styles.section}
+        >
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>📋 Historique</Text>
+            <TouchableOpacity activeOpacity={0.7}>
+              <Text style={styles.viewAllText}>Tout voir</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.historyContainer}>
+            {paymentHistory.map((transaction, index) => (
+              <View
+                key={transaction.id}
+                style={[
+                  styles.historyItem,
+                  index !== paymentHistory.length - 1 &&
+                    styles.historyItemBorder,
+                ]}
+              >
+                <View style={styles.historyLeft}>
+                  <View
+                    style={[
+                      styles.historyIcon,
+                      transaction.status === "completed"
+                        ? styles.historyIconCompleted
+                        : styles.historyIconPending,
+                    ]}
+                  >
+                    {transaction.status === "completed" ? (
+                      <CheckCircle size={16} color="#10B981" />
+                    ) : (
+                      <Clock size={16} color="#F59E0B" />
+                    )}
+                  </View>
+                  <View style={styles.historyInfo}>
+                    <Text style={styles.historyTutor}>
+                      {transaction.tutorName}
+                    </Text>
+                    <Text style={styles.historyDesc}>
+                      {formatDate(transaction.date)} • {transaction.description}
+                    </Text>
+                  </View>
+                </View>
+                <Text
+                  style={[
+                    styles.historyAmount,
+                    transaction.status === "pending" &&
+                      styles.historyAmountPending,
+                  ]}
+                >
+                  {transaction.status === "completed" ? "+" : "-"}
+                  {transaction.amount.toFixed(2)} €
+                </Text>
+              </View>
+            ))}
+          </View>
+        </Animated.View>
+
+        {/* Download Statement */}
+        <Animated.View
+          entering={FadeInUp.delay(600).duration(600).springify()}
+          style={styles.downloadSection}
+        >
+          <TouchableOpacity style={styles.downloadButton} activeOpacity={0.7}>
+            <Download size={20} color={colors.textPrimary} />
+            <Text style={styles.downloadText}>Télécharger le relevé</Text>
+          </TouchableOpacity>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.neutral[50],
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral[100],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral[50],
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 20,
-    color: COLORS.secondary[900],
-  },
-  scrollContent: {
-    paddingBottom: 24,
-  },
-  totalCard: {
-    marginHorizontal: 24,
-    marginTop: 24,
-    marginBottom: 16,
-    borderRadius: 24,
-    overflow: "hidden",
-    shadowColor: "#8B5CF6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  totalGradient: {
-    padding: 24,
-  },
-  totalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 8,
-  },
-  totalLabel: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    color: "rgba(255,255,255,0.9)",
-    fontWeight: "500",
-  },
-  totalAmount: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 48,
-    color: COLORS.neutral.white,
-    marginBottom: 4,
-  },
-  totalSubtitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
-  },
-  periodSelector: {
-    flexDirection: "row",
-    gap: 8,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 12,
-    padding: 4,
-    marginTop: 16,
-  },
-  periodButton: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  periodButtonActive: {
-    backgroundColor: COLORS.neutral.white,
-  },
-  periodButtonText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
-    fontWeight: "600",
-  },
-  periodButtonTextActive: {
-    color: COLORS.secondary[700],
-  },
-  detailsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-    paddingHorizontal: 24,
-    marginBottom: 24,
-  },
-  detailCard: {
-    flex: 1,
-    minWidth: "47%",
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  detailIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral[50],
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  detailLabel: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    color: COLORS.secondary[500],
-    marginBottom: 4,
-  },
-  detailValue: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.secondary[900],
-  },
-  statsRow: {
-    flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: 24,
-    marginBottom: 24,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: "center",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  statValue: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 24,
-    color: COLORS.secondary[900],
-    marginTop: 8,
-  },
-  statLabel: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[500],
-    marginTop: 4,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 18,
-    fontWeight: "600",
-    color: COLORS.secondary[900],
-    paddingHorizontal: 24,
-    marginBottom: 12,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    marginBottom: 12,
-  },
-  editText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[600],
-    fontWeight: "500",
-  },
-  viewAllText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[600],
-    fontWeight: "500",
-  },
-  tutorCard: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 24,
-    flexDirection: "row",
-    alignItems: "center",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  tutorIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary.DEFAULT + "15",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  tutorInfo: {
-    flex: 1,
-  },
-  tutorName: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.secondary[900],
-    marginBottom: 2,
-  },
-  tutorSubtitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[500],
-  },
-  paymentMethodCard: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 24,
-    flexDirection: "row",
-    alignItems: "center",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  paymentMethodIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.neutral[50],
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  formCard: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    padding: 20,
-    marginHorizontal: 24,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[700],
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.neutral[50],
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: COLORS.neutral[200],
-  },
-  input: {
-    flex: 1,
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    color: COLORS.secondary[900],
-  },
-  rowInputs: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  securityNotice: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "#10B981" + "15",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginTop: 4,
-  },
-  securityText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: "#10B981",
-    fontWeight: "600",
-  },
-  payButton: {
-    marginHorizontal: 24,
-    borderRadius: 16,
-    overflow: "hidden",
-    marginBottom: 16,
-    shadowColor: "#10B981",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  payButtonDisabled: {
-    shadowOpacity: 0.1,
-  },
-  payButtonGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 18,
-    gap: 12,
-  },
-  payButtonText: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 17,
-    color: COLORS.neutral.white,
-    fontWeight: "700",
-  },
-  termsText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    color: COLORS.secondary[400],
-    textAlign: "center",
-    lineHeight: 18,
-    paddingHorizontal: 32,
-  },
-  transactionsCard: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    marginHorizontal: 24,
-    overflow: "hidden",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  transactionItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-  },
-  transactionItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral[100],
-  },
-  transactionLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-    gap: 12,
-  },
-  transactionStatus: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusCompleted: {
-    backgroundColor: "#10B981",
-  },
-  statusPending: {
-    backgroundColor: "#F59E0B",
-  },
-  transactionInfo: {
-    flex: 1,
-  },
-  transactionStudent: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.secondary[900],
-    marginBottom: 2,
-  },
-  transactionDate: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[500],
-  },
-  transactionNextPayment: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    color: COLORS.secondary[400],
-    marginTop: 2,
-  },
-  transactionRight: {
-    alignItems: "flex-end",
-  },
-  transactionAmount: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#10B981",
-  },
-  transactionAmountPending: {
-    color: "#F59E0B",
-  },
-  transactionFrequency: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    color: COLORS.secondary[400],
-    marginTop: 2,
-  },
-  downloadButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginHorizontal: 24,
-    padding: 16,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.neutral[200],
-  },
-  downloadButtonText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.secondary[700],
-  },
-  paymentMethodSelector: {
-    flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: 24,
-    marginBottom: 16,
-  },
-  methodOption: {
-    flex: 1,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: COLORS.neutral[200],
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  methodOptionActive: {
-    borderColor: COLORS.primary.DEFAULT,
-    backgroundColor: COLORS.primary.DEFAULT + "08",
-  },
-  methodOptionContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  methodOptionText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.secondary[600],
-  },
-  methodOptionTextActive: {
-    color: COLORS.primary.DEFAULT,
-  },
-  savedCardOption: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    backgroundColor: COLORS.neutral[50],
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: COLORS.neutral[200],
-  },
-  savedCardOptionActive: {
-    borderColor: COLORS.primary.DEFAULT,
-    backgroundColor: COLORS.primary.DEFAULT + "08",
-  },
-  savedCardLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  savedCardIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral.white,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  savedCardType: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.secondary[900],
-    marginBottom: 2,
-  },
-  savedCardNumber: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[600],
-    marginBottom: 2,
-  },
-  savedCardExpiry: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    color: COLORS.secondary[400],
-  },
-});
+const createStyles = (colors: ThemeColors, isDark: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    blobContainer: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 400,
+      overflow: "hidden",
+    },
+    blob: {
+      position: "absolute",
+      borderRadius: 999,
+      opacity: 0.08,
+    },
+    blob1: {
+      width: 220,
+      height: 220,
+      backgroundColor: "#8B5CF6",
+      top: -60,
+      right: -60,
+    },
+    blob2: {
+      width: 160,
+      height: 160,
+      backgroundColor: "#10B981",
+      top: 80,
+      left: -40,
+    },
+    blob3: {
+      width: 100,
+      height: 100,
+      backgroundColor: "#F59E0B",
+      top: 200,
+      right: 40,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+    },
+    backButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.card,
+      justifyContent: "center",
+      alignItems: "center",
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    headerTitle: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 22,
+      color: colors.textPrimary,
+    },
+    scrollContent: {
+      paddingBottom: 40,
+    },
+    heroCard: {
+      marginHorizontal: 20,
+      marginTop: 12,
+      borderRadius: 28,
+      overflow: "hidden",
+      shadowColor: "#8B5CF6",
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: isDark ? 0.5 : 0.3,
+      shadowRadius: 20,
+      elevation: 8,
+    },
+    heroGradient: {
+      padding: 24,
+      position: "relative",
+      overflow: "hidden",
+    },
+    heroContent: {
+      position: "relative",
+      zIndex: 1,
+    },
+    heroTop: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 8,
+    },
+    walletIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      backgroundColor: "rgba(255,255,255,0.2)",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    heroLabel: {
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      color: "rgba(255,255,255,0.9)",
+      fontWeight: "500",
+    },
+    heroAmount: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 48,
+      color: COLORS.neutral.white,
+      lineHeight: 56,
+    },
+    heroCurrency: {
+      fontSize: 28,
+      opacity: 0.9,
+    },
+    periodSelector: {
+      flexDirection: "row",
+      gap: 8,
+      marginTop: 16,
+    },
+    periodPill: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      backgroundColor: "rgba(255,255,255,0.15)",
+    },
+    periodPillActive: {
+      backgroundColor: COLORS.neutral.white,
+    },
+    periodPillText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      color: "rgba(255,255,255,0.85)",
+      fontWeight: "600",
+    },
+    periodPillTextActive: {
+      color: "#8B5CF6",
+    },
+    heroCircle1: {
+      position: "absolute",
+      width: 140,
+      height: 140,
+      borderRadius: 70,
+      backgroundColor: "rgba(255,255,255,0.08)",
+      top: -40,
+      right: -40,
+    },
+    heroCircle2: {
+      position: "absolute",
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+      backgroundColor: "rgba(255,255,255,0.06)",
+      bottom: -30,
+      right: 60,
+    },
+    statsScroll: {
+      paddingHorizontal: 20,
+      paddingVertical: 20,
+      gap: 12,
+    },
+    statBubble: {
+      alignItems: "center",
+      paddingVertical: 16,
+      paddingHorizontal: 20,
+      borderRadius: 20,
+      marginRight: 12,
+      minWidth: 100,
+    },
+    statIconBg: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: 8,
+    },
+    statValue: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 22,
+      marginBottom: 2,
+    },
+    statLabel: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    section: {
+      marginTop: 8,
+      paddingHorizontal: 20,
+    },
+    sectionHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 14,
+    },
+    sectionTitle: {
+      fontFamily: FONTS.secondary,
+      fontSize: 17,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    addButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: colors.primary + "15",
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 12,
+    },
+    addButtonText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      color: colors.primary,
+      fontWeight: "600",
+    },
+    viewAllText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: "500",
+    },
+    cardsContainer: {
+      gap: 10,
+    },
+    cardItem: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 2,
+      borderColor: "transparent",
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    cardItemDefault: {
+      borderColor: colors.primary + "40",
+      backgroundColor: colors.primary + "05",
+    },
+    cardLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 14,
+    },
+    cardIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      backgroundColor: colors.input,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    cardIconDefault: {
+      backgroundColor: colors.primary + "15",
+    },
+    cardTypeRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 2,
+    },
+    cardType: {
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    defaultBadge: {
+      backgroundColor: "#10B98120",
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 6,
+    },
+    defaultBadgeText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 10,
+      color: "#10B981",
+      fontWeight: "600",
+    },
+    cardNumber: {
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    cardRight: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    cardExpiry: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    recurringContainer: {
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      overflow: "hidden",
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.06,
+      shadowRadius: 12,
+      elevation: 3,
+    },
+    recurringItem: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+    },
+    recurringLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 14,
+      flex: 1,
+    },
+    subjectDot: {
+      width: 8,
+      height: 40,
+      borderRadius: 4,
+    },
+    recurringInfo: {
+      flex: 1,
+    },
+    recurringTutor: {
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    recurringMeta: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 4,
+    },
+    recurringSubject: {
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    recurringDot: {
+      width: 3,
+      height: 3,
+      borderRadius: 1.5,
+      backgroundColor: colors.textMuted,
+      marginHorizontal: 6,
+    },
+    recurringFreq: {
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    recurringNext: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    recurringRight: {
+      alignItems: "flex-end",
+      gap: 6,
+    },
+    recurringAmount: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 17,
+      color: colors.textPrimary,
+    },
+    statusBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 8,
+    },
+    statusActive: {
+      backgroundColor: "#10B98115",
+    },
+    statusPending: {
+      backgroundColor: "#F59E0B15",
+    },
+    statusText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 11,
+      fontWeight: "600",
+    },
+    statusTextActive: {
+      color: "#10B981",
+    },
+    statusTextPending: {
+      color: "#F59E0B",
+    },
+    historyContainer: {
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      overflow: "hidden",
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.06,
+      shadowRadius: 12,
+      elevation: 3,
+    },
+    historyItem: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: 16,
+    },
+    historyItemBorder: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+    },
+    historyLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      flex: 1,
+    },
+    historyIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    historyIconCompleted: {
+      backgroundColor: "#10B98115",
+    },
+    historyIconPending: {
+      backgroundColor: "#F59E0B15",
+    },
+    historyInfo: {
+      flex: 1,
+    },
+    historyTutor: {
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    historyDesc: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    historyAmount: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 16,
+      color: "#10B981",
+    },
+    historyAmountPending: {
+      color: "#F59E0B",
+    },
+    downloadSection: {
+      paddingHorizontal: 20,
+      marginTop: 24,
+    },
+    downloadButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 10,
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderStyle: "dashed",
+    },
+    downloadText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+  });

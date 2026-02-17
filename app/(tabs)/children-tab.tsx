@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ViewStyle,
+  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,8 +15,10 @@ import {
   Calendar,
   BookOpen,
   Edit,
+  Sparkles,
+  Users,
 } from "lucide-react-native";
-import Animated, { FadeInDown, Layout } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp, Layout } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
@@ -26,6 +28,10 @@ import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { addChild } from "@/store/slices/childrenSlice";
 import AddChildModal from "@/components/AddChildModal";
 import { Card, Badge, Avatar, EmptyState } from "@/components/ui";
+import { useTheme } from "@/hooks/use-theme";
+import { ThemeColors } from "@/constants/theme";
+
+const { width: SCREEN_WIDTH } = Dimensions.
 
 interface Child {
   id: number;
@@ -64,106 +70,118 @@ const ChildDetailCard: React.FC<ChildCardProps> = ({
   child,
   delay,
   onPress,
-}) => (
-  <Animated.View
-    entering={FadeInDown.delay(delay).duration(600)}
-    layout={Layout.duration(300)}
-  >
-    <Card variant="elevated" padding="none" style={styles.childDetailCard}>
-      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-        <LinearGradient
-          colors={[child.color + "20", child.color + "10"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.childCardGradient}
-        >
-          {/* Header */}
-          <View style={styles.childCardHeader}>
-            <View style={styles.childCardHeaderLeft}>
-              <Avatar
-                name={child.name}
-                size="lg"
-                style={{
-                  ...styles.childDetailAvatar,
-                  backgroundColor: child.color + "40",
-                }}
-              />
-              <View>
-                <Text style={styles.childDetailName}>{child.name}</Text>
-                <View style={styles.childInfo}>
-                  <Badge label={child.grade} variant="secondary" size="sm" />
-                  <Text style={styles.childAge}>
-                    {calculateAge(child.dateOfBirth)} ans
-                  </Text>
+}) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  return (
+    <Animated.View
+      entering={FadeInDown.delay(delay).duration(600)}
+      layout={Layout.duration(300)}
+    >
+      <Card variant="elevated" padding="none" style={styles.childDetailCard}>
+        <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+          <LinearGradient
+            colors={[child.color + "20", child.color + "10"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.childCardGradient}
+          >
+            {/* Header */}
+            <View style={styles.childCardHeader}>
+              <View style={styles.childCardHeaderLeft}>
+                <Avatar
+                  name={child.name}
+                  size="lg"
+                  style={{
+                    ...styles.childDetailAvatar,
+                    backgroundColor: child.color + "40",
+                  }}
+                />
+                <View>
+                  <Text style={styles.childDetailName}>{child.name}</Text>
+                  <View style={styles.childInfo}>
+                    <Badge label={child.grade} variant="secondary" size="sm" />
+                    <Text style={styles.childAge}>
+                      {calculateAge(child.dateOfBirth)} ans
+                    </Text>
+                  </View>
                 </View>
               </View>
-            </View>
-            <TouchableOpacity
-              style={[
-                styles.editButton,
-                { backgroundColor: child.color + "20" },
-              ]}
-            >
-              <Edit size={18} color={child.color} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Progress Section */}
-          <View style={styles.progressSection}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressLabel}>Progression globale</Text>
-              <Badge label={`${child.progress}%`} variant="success" size="sm" />
-            </View>
-            <View style={styles.progressBarContainer}>
-              <View
+              <TouchableOpacity
                 style={[
-                  styles.progressBarFill,
-                  {
-                    width: `${child.progress}%`,
-                    backgroundColor: child.color,
-                  },
+                  styles.editButton,
+                  { backgroundColor: child.color + "20" },
                 ]}
-              />
-            </View>
-          </View>
-
-          {/* Stats */}
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <BookOpen size={20} color={COLORS.secondary[500]} />
-              <Text style={styles.statValue}>
-                {child.lessonsCompleted}/{child.totalLessons}
-              </Text>
-              <Text style={styles.statLabel}>Leçons</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Calendar size={20} color={COLORS.secondary[500]} />
-              <Text style={styles.statValue}>5</Text>
-              <Text style={styles.statLabel}>Cette semaine</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <TrendingUp size={20} color={COLORS.primary.DEFAULT} />
-              <Text
-                style={[styles.statValue, { color: COLORS.primary.DEFAULT }]}
               >
-                +12%
-              </Text>
-              <Text style={styles.statLabel}>Ce mois</Text>
+                <Edit size={18} color={child.color} />
+              </TouchableOpacity>
             </View>
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
-    </Card>
-  </Animated.View>
-);
+
+            {/* Progress Section */}
+            <View style={styles.progressSection}>
+              <View style={styles.progressHeader}>
+                <Text style={styles.progressLabel}>Progression globale</Text>
+                <Badge
+                  label={`${child.progress}%`}
+                  variant="success"
+                  size="sm"
+                />
+              </View>
+              <View style={styles.progressBarContainer}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    {
+                      width: `${child.progress}%`,
+                      backgroundColor: child.color,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+
+            {/* Stats */}
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <BookOpen size={20} color={colors.icon} />
+                <Text style={styles.statValue}>
+                  {child.lessonsCompleted}/{child.totalLessons}
+                </Text>
+                <Text style={styles.statLabel}>Leçons</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Calendar size={20} color={colors.icon} />
+                <Text style={styles.statValue}>5</Text>
+                <Text style={styles.statLabel}>Cette semaine</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <TrendingUp size={20} color={COLORS.primary.DEFAULT} />
+                <Text
+                  style={[styles.statValue, { color: COLORS.primary.DEFAULT }]}
+                >
+                  +12%
+                </Text>
+                <Text style={styles.statLabel}>Ce mois</Text>
+              </View>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Card>
+    </Animated.View>
+  );
+};
 
 export default function ChildrenTab() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const { colors } = useTheme();
   const childrenFromStore = useAppSelector((state) => state.children.children);
   const [addModalVisible, setAddModalVisible] = useState(false);
+
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Map Redux children to local Child interface
   const children: Child[] = childrenFromStore.map((child) => ({
@@ -216,7 +234,7 @@ export default function ChildrenTab() {
       >
         {children.length === 0 ? (
           <EmptyState
-            icon={<Plus size={48} color={COLORS.neutral[400]} />}
+            icon={<Plus size={48} color={colors.textMuted} />}
             title="Aucun enfant ajouté"
             description="Commencez par ajouter un profil pour votre enfant afin de suivre sa progression"
             actionLabel="Ajouter un enfant"
@@ -238,39 +256,25 @@ export default function ChildrenTab() {
 
             {/* Add Child Button */}
             <Animated.View entering={FadeInDown.delay(400).duration(600)}>
-              <Card variant="outlined" padding="none">
-                <TouchableOpacity
-                  style={styles.addChildButton}
-                  onPress={() => setAddModalVisible(true)}
-                  activeOpacity={0.7}
+              <TouchableOpacity
+                style={styles.addChildButton}
+                onPress={() => setAddModalVisible(true)}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={[COLORS.primary.DEFAULT, COLORS.primary[600]]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.addChildGradient}
                 >
-                  <View style={styles.addChildIcon}>
-                    <Plus size={24} color={COLORS.primary.DEFAULT} />
+                  <View style={styles.addChildIconWrapper}>
+                    <Plus size={24} color={COLORS.neutral.white} />
                   </View>
-                  <View style={styles.addChildText}>
-                    <Text style={styles.addChildTitle}>Ajouter un enfant</Text>
-                    <Text style={styles.addChildSubtitle}>
-                      Créer un nouveau profil
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </Card>
-            </Animated.View>
-
-            {/* Info Card */}
-            <Animated.View entering={FadeInDown.delay(500).duration(600)}>
-              <Card variant="default" padding="md" style={styles.infoCard}>
-                <Badge
-                  label="Conseil"
-                  variant="warning"
-                  size="sm"
-                  style={styles.infoBadge}
-                />
-                <Text style={styles.infoText}>
-                  Pour chaque enfant, vous pouvez personnaliser le plan
-                  hebdomadaire et suivre sa progression matière par matière.
-                </Text>
-              </Card>
+                  <Text style={styles.addChildButtonText}>
+                    Ajouter un enfant
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </Animated.View>
           </>
         )}
@@ -285,177 +289,182 @@ export default function ChildrenTab() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.neutral[50],
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-  },
-  headerTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 24,
-    color: COLORS.secondary[900],
-  },
-  scrollContent: {
-    padding: SPACING.lg,
-    paddingTop: SPACING.sm,
-  },
-  // Child Detail Card
-  childDetailCard: {
-    marginBottom: SPACING.lg,
-    borderRadius: 24,
-    overflow: "hidden",
-  },
-  childCardGradient: {
-    padding: 20,
-    backgroundColor: COLORS.neutral.white,
-  },
-  childCardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  childCardHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  childDetailAvatar: {
-    marginRight: SPACING.md,
-  },
-  childInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
-    gap: SPACING.sm,
-  },
-  childAge: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[500],
-  },
-  childDetailName: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 22,
-    color: COLORS.secondary[900],
-    marginBottom: 4,
-  },
+const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      paddingBottom: 64,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 24,
+      paddingVertical: 16,
+    },
+    headerTitle: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 24,
+      color: colors.textPrimary,
+    },
+    scrollContent: {
+      padding: SPACING.lg,
+      paddingTop: SPACING.sm,
+    },
+    // Child Detail Card
+    childDetailCard: {
+      marginBottom: SPACING.lg,
+      borderRadius: 24,
+      overflow: "hidden",
+    },
+    childCardGradient: {
+      padding: 20,
+      backgroundColor: colors.card,
+    },
+    childCardHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 20,
+    },
+    childCardHeaderLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      flex: 1,
+    },
+    childDetailAvatar: {
+      marginRight: SPACING.md,
+    },
+    childInfo: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 4,
+      gap: SPACING.sm,
+    },
+    childAge: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    childDetailName: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 22,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
 
-  editButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  // Progress
-  progressSection: {
-    marginBottom: 20,
-  },
-  progressHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: SPACING.md,
-  },
-  progressLabel: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[600],
-    fontWeight: "600",
-  },
+    editButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    // Progress
+    progressSection: {
+      marginBottom: 20,
+    },
+    progressHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: SPACING.md,
+    },
+    progressLabel: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: "600",
+    },
 
-  progressBarContainer: {
-    height: 10,
-    backgroundColor: COLORS.neutral[200],
-    borderRadius: 5,
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: "100%",
-    borderRadius: 5,
-  },
-  // Stats
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.neutral[200],
-  },
-  statItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statValue: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.secondary[900],
-    fontWeight: "700",
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontFamily: FONTS.secondary,
-    fontSize: 11,
-    color: COLORS.secondary[500],
-    textAlign: "center",
-  },
-  statDivider: {
-    width: 1,
-    height: "100%",
-    backgroundColor: COLORS.neutral[200],
-  },
-  // Add Child Button
-  addChildButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: SPACING.lg,
-    marginBottom: SPACING.lg,
-  },
-  addChildIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.primary[50],
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
-  },
-  addChildText: {
-    flex: 1,
-  },
-  addChildTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.secondary[900],
-    marginBottom: 4,
-  },
-  addChildSubtitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[500],
-  },
-  // Info Card
-  infoCard: {
-    backgroundColor: "#FEF3C7",
-    borderLeftWidth: 4,
-    borderLeftColor: "#F59E0B",
-  },
-  infoBadge: {
-    marginBottom: SPACING.sm,
-  },
-  infoText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[700],
-    lineHeight: 20,
-  },
-});
+    progressBarContainer: {
+      height: 10,
+      backgroundColor: colors.progressBg,
+      borderRadius: 5,
+      overflow: "hidden",
+    },
+    progressBarFill: {
+      height: "100%",
+      borderRadius: 5,
+    },
+    // Stats
+    statsRow: {
+      flexDirection: "row",
+      justifyContent: "space-around",
+      paddingTop: 16,
+      borderTopWidth: 1,
+      borderTopColor: colors.divider,
+    },
+    statItem: {
+      alignItems: "center",
+      flex: 1,
+    },
+    statValue: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 18,
+      color: colors.textPrimary,
+      fontWeight: "700",
+      marginTop: 8,
+      marginBottom: 4,
+    },
+    statLabel: {
+      fontFamily: FONTS.secondary,
+      fontSize: 11,
+      color: colors.textSecondary,
+      textAlign: "center",
+    },
+    statDivider: {
+      width: 1,
+      height: "100%",
+      backgroundColor: colors.divider,
+    },
+    // Add Child Button
+    addChildButton: {
+      marginBottom: SPACING.lg,
+      borderRadius: 16,
+      overflow: "hidden",
+      elevation: 4,
+      shadowColor: COLORS.primary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+    },
+    addChildGradient: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 20,
+      paddingHorizontal: SPACING.lg,
+      gap: 12,
+    },
+    addChildIconWrapper: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: "rgba(255, 255, 255, 0.2)",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    addChildButtonText: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 18,
+      fontWeight: "700",
+      color: COLORS.neutral.white,
+    },
+    // Info Card
+    infoCard: {
+      backgroundColor: colors.infoCardBg,
+      borderLeftWidth: 4,
+      borderLeftColor: colors.infoCardBorder,
+    },
+    infoBadge: {
+      marginBottom: SPACING.sm,
+    },
+    infoText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.infoCardText,
+      lineHeight: 20,
+    },
+  });

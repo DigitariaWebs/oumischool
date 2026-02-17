@@ -14,11 +14,16 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { BackHandler, Platform } from "react-native";
 import "react-native-reanimated";
-import { Provider } from "react-redux";
+import { Provider, useDispatch } from "react-redux";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { store } from "../store/store";
 import { AnimatedSplashScreen } from "@/components/AnimatedSplashScreen";
+import {
+  loadThemePreference,
+  setSystemColorScheme,
+} from "@/store/slices/themeSlice";
+import { useAppSelector } from "@/store/hooks";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -28,7 +33,6 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     Fredoka: Fredoka_400Regular,
     "Fredoka-Bold": Fredoka_700Bold,
@@ -52,29 +56,56 @@ export default function RootLayout() {
 
   return (
     <Provider store={store}>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <StackWithBackHandler>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="welcome" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="onboarding" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="(tabs-child)" />
-          <Stack.Screen name="(tabs-tutor)" />
-          <Stack.Screen name="weekly-plan" />
-          <Stack.Screen name="ai-coach" />
-          <Stack.Screen name="resources" />
-          <Stack.Screen name="messaging" />
-          <Stack.Screen name="pricing" />
-          <Stack.Screen name="dev-accounts" />
-          <Stack.Screen
-            name="modal"
-            options={{ presentation: "modal", title: "Modal" }}
-          />
-        </StackWithBackHandler>
-        <StatusBar style="auto" />
-      </ThemeProvider>
+      <RootLayoutWithTheme />
     </Provider>
+  );
+}
+
+function RootLayoutWithTheme() {
+  const dispatch = useDispatch();
+  const systemColorScheme = useColorScheme();
+  const themeState = useAppSelector((state) => state.theme);
+
+  useEffect(() => {
+    dispatch(loadThemePreference() as any);
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (systemColorScheme) {
+      dispatch(setSystemColorScheme(systemColorScheme));
+    }
+  }, [systemColorScheme, dispatch]);
+
+  const activeColorScheme =
+    themeState.colorScheme === "system"
+      ? (systemColorScheme ?? "light")
+      : themeState.colorScheme;
+
+  return (
+    <ThemeProvider
+      value={activeColorScheme === "dark" ? DarkTheme : DefaultTheme}
+    >
+      <StackWithBackHandler>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="welcome" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(tabs-child)" />
+        <Stack.Screen name="(tabs-tutor)" />
+        <Stack.Screen name="weekly-plan" />
+        <Stack.Screen name="ai-coach" />
+        <Stack.Screen name="resources" />
+        <Stack.Screen name="messaging" />
+        <Stack.Screen name="pricing" />
+        <Stack.Screen name="dev-accounts" />
+        <Stack.Screen
+          name="modal"
+          options={{ presentation: "modal", title: "Modal" }}
+        />
+      </StackWithBackHandler>
+      <StatusBar style="auto" />
+    </ThemeProvider>
   );
 }
 

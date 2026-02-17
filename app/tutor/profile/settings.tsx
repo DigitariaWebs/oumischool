@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -26,14 +26,15 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector } from "@/store/hooks";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function SettingsScreen() {
   const router = useRouter();
   const user = useAppSelector((state) => state.auth.user);
+  const { isDark, setTheme } = useTheme();
 
   const [notifications, setNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
   const [publicProfile, setPublicProfile] = useState(true);
   const [showAvailability, setShowAvailability] = useState(true);
 
@@ -274,8 +275,8 @@ export default function SettingsScreen() {
                   </Text>
                 </View>
                 <Switch
-                  value={darkMode}
-                  onValueChange={setDarkMode}
+                  value={isDark}
+                  onValueChange={(value) => setTheme(value ? "dark" : "light")}
                   trackColor={{
                     false: COLORS.neutral[300],
                     true: COLORS.primary.DEFAULT,

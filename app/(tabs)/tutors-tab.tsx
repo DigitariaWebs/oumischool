@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -27,6 +27,7 @@ import { FONTS } from "@/config/fonts";
 import { SPACING } from "@/constants/tokens";
 import { Tutor, Subject, TutorRecommendation } from "@/types";
 import { Card, Badge, Avatar, EmptyState } from "@/components/ui";
+import { useTheme } from "@/hooks/use-theme";
 
 // Mock data - in real app, this would come from API/store
 const subjects: Subject[] = [
@@ -138,6 +139,8 @@ const TutorCard: React.FC<TutorCardProps> = ({
   delay,
 }) => {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const cardStyle: ViewStyle = {
     ...styles.tutorCard,
@@ -169,13 +172,13 @@ const TutorCard: React.FC<TutorCardProps> = ({
               </Text>
             </View>
             <View style={styles.tutorExperience}>
-              <GraduationCap size={14} color={COLORS.secondary[500]} />
+              <GraduationCap size={14} color={colors.icon} />
               <Text style={styles.experienceText}>
                 {tutor.experience} ans d&apos;expérience
               </Text>
             </View>
           </View>
-          <ChevronRight size={22} color={COLORS.primary.DEFAULT} />
+          <ChevronRight size={22} color={colors.primary} />
         </View>
 
         <View style={styles.tutorSubjects}>
@@ -228,11 +231,7 @@ const TutorCard: React.FC<TutorCardProps> = ({
         {recommendation && (
           <View style={styles.recommendationReasonContainer}>
             <View style={styles.recommendationIcon}>
-              <Star
-                size={14}
-                color={COLORS.primary.DEFAULT}
-                fill={COLORS.primary.DEFAULT}
-              />
+              <Star size={14} color={colors.primary} fill={colors.primary} />
             </View>
             <Text style={styles.recommendationReason}>
               {recommendation.reason}
@@ -254,36 +253,44 @@ const SubjectChip: React.FC<SubjectChipProps> = ({
   subject,
   isSelected,
   onPress,
-}) => (
-  <TouchableOpacity
-    style={[
-      styles.subjectChip,
-      isSelected && {
-        backgroundColor: subject.color + "20",
-        borderColor: subject.color,
-      },
-    ]}
-    onPress={onPress}
-    activeOpacity={0.7}
-  >
-    <Text
+}) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  return (
+    <TouchableOpacity
       style={[
-        styles.subjectChipText,
-        isSelected && { color: subject.color, fontWeight: "700" },
+        styles.subjectChip,
+        isSelected && {
+          backgroundColor: subject.color + "20",
+          borderColor: subject.color,
+        },
       ]}
+      onPress={onPress}
+      activeOpacity={0.7}
     >
-      {subject.name}
-    </Text>
-  </TouchableOpacity>
-);
+      <Text
+        style={[
+          styles.subjectChipText,
+          isSelected && { color: subject.color, fontWeight: "700" },
+        ]}
+      >
+        {subject.name}
+      </Text>
+    </TouchableOpacity>
+  );
+};
 
 export default function TutorsTab() {
+  const { colors } = useTheme();
   const [browseMode, setBrowseMode] = useState<"recommended" | "tutor">(
     "recommended",
   );
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [sortByRating, setSortByRating] = useState(true);
   const [selectedChild, setSelectedChild] = useState<string>("all");
+
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const recommendedTutors = mockTutors.filter((tutor) =>
     mockRecommendations.some((rec) => rec.tutorId === tutor.id),
@@ -309,7 +316,7 @@ export default function TutorsTab() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Browse Mode Toggle */}
+        {/* Mode Toggle */}
         <View style={styles.modeToggleContainer}>
           <View style={styles.modeToggle}>
             <TouchableOpacity
@@ -318,13 +325,15 @@ export default function TutorsTab() {
                 browseMode === "recommended" && styles.modeButtonActive,
               ]}
               onPress={() => setBrowseMode("recommended")}
+              activeOpacity={0.7}
             >
               <Sparkles
-                size={16}
+                size={18}
                 color={
-                  browseMode === "recommended" ? "white" : COLORS.secondary[600]
+                  browseMode === "recommended"
+                    ? COLORS.neutral.white
+                    : colors.textSecondary
                 }
-                fill={browseMode === "recommended" ? "white" : "transparent"}
               />
               <Text
                 style={[
@@ -341,10 +350,15 @@ export default function TutorsTab() {
                 browseMode === "tutor" && styles.modeButtonActive,
               ]}
               onPress={() => setBrowseMode("tutor")}
+              activeOpacity={0.7}
             >
               <Users
-                size={16}
-                color={browseMode === "tutor" ? "white" : COLORS.secondary[600]}
+                size={18}
+                color={
+                  browseMode === "tutor"
+                    ? COLORS.neutral.white
+                    : colors.textSecondary
+                }
               />
               <Text
                 style={[
@@ -352,29 +366,143 @@ export default function TutorsTab() {
                   browseMode === "tutor" && styles.modeButtonTextActive,
                 ]}
               >
-                Tous les Tuteurs
+                Tous les tuteurs
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {browseMode === "recommended" ? (
-          /* Recommended Tutors */
+        {browseMode === "tutor" ? (
+          <View style={styles.tutorModeContainer}>
+            {/* Subject Filters */}
+            <View style={styles.filtersContainer}>
+              <View style={styles.filterHeader}>
+                <Filter size={18} color={colors.textPrimary} />
+                <Text style={styles.sectionTitle}>Filtrer par matière</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.subjectsContainer}
+              >
+                <SubjectChip
+                  subject={{
+                    id: "all",
+                    name: "Tout",
+                    icon: "",
+                    color: COLORS.secondary[600],
+                  }}
+                  isSelected={selectedSubject === "all"}
+                  onPress={() => setSelectedSubject("all")}
+                />
+                {subjects.map((subject) => (
+                  <SubjectChip
+                    key={subject.id}
+                    subject={subject}
+                    isSelected={selectedSubject === subject.id}
+                    onPress={() => setSelectedSubject(subject.id)}
+                  />
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Sort Controls */}
+            <View style={styles.sortContainerWrapper}>
+              <View style={styles.sortContainer}>
+                <View style={styles.filterHeader}>
+                  <TrendingUp size={18} color={colors.textPrimary} />
+                  <Text style={styles.sortLabel}>Trier par</Text>
+                </View>
+                <View style={styles.sortButtonsGroup}>
+                  <TouchableOpacity
+                    style={[
+                      styles.sortButton,
+                      sortByRating && styles.sortButtonActive,
+                    ]}
+                    onPress={() => setSortByRating(true)}
+                    activeOpacity={0.7}
+                  >
+                    <Star
+                      size={16}
+                      color={
+                        sortByRating
+                          ? COLORS.neutral.white
+                          : colors.textSecondary
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.sortButtonText,
+                        sortByRating && styles.sortButtonTextActive,
+                      ]}
+                    >
+                      Meilleure note
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.sortButton,
+                      !sortByRating && styles.sortButtonActive,
+                    ]}
+                    onPress={() => setSortByRating(false)}
+                    activeOpacity={0.7}
+                  >
+                    <DollarSign
+                      size={16}
+                      color={
+                        !sortByRating
+                          ? COLORS.neutral.white
+                          : colors.textSecondary
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.sortButtonText,
+                        !sortByRating && styles.sortButtonTextActive,
+                      ]}
+                    >
+                      Prix
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            {/* Tutors List */}
+            <View style={styles.tutorsSection}>
+              <View style={styles.tutorListHeader}>
+                <Text style={styles.tutorCountText}>
+                  <Text style={styles.tutorCountBadge}>
+                    {filteredTutors.length}
+                  </Text>{" "}
+                  tuteur{filteredTutors.length > 1 ? "s" : ""} disponible
+                  {filteredTutors.length > 1 ? "s" : ""}
+                </Text>
+              </View>
+              {filteredTutors.map((tutor, index) => (
+                <TutorCard
+                  key={tutor.id}
+                  tutor={tutor}
+                  delay={200 + index * 100}
+                />
+              ))}
+            </View>
+          </View>
+        ) : (
           <View style={styles.recommendedMainContent}>
-            {/* Child Filters */}
+            {/* Child Filter Chips */}
             <View style={styles.childFiltersContainer}>
               <View style={styles.filterHeaderRow}>
                 <View style={styles.filterTitleContainer}>
-                  <Filter size={18} color={COLORS.primary.DEFAULT} />
-                  <Text style={styles.filterTitle}>Filtrer par enfant</Text>
+                  <Users size={18} color={colors.textPrimary} />
+                  <Text style={styles.sectionTitle}>Recommandations pour</Text>
                 </View>
                 {selectedChild !== "all" && (
                   <TouchableOpacity
                     style={styles.clearFilterButton}
                     onPress={() => setSelectedChild("all")}
-                    activeOpacity={0.7}
                   >
-                    <X size={14} color={COLORS.secondary[600]} />
+                    <X size={14} color={colors.textSecondary} />
                     <Text style={styles.clearFilterText}>Réinitialiser</Text>
                   </TouchableOpacity>
                 )}
@@ -406,13 +534,7 @@ export default function TutorsTab() {
                     key={child.id}
                     style={[
                       styles.childChip,
-                      selectedChild === child.id && [
-                        styles.childChipActive,
-                        {
-                          backgroundColor: child.color + "20",
-                          borderColor: child.color,
-                        },
-                      ],
+                      selectedChild === child.id && styles.childChipActive,
                     ]}
                     onPress={() => setSelectedChild(child.id)}
                     activeOpacity={0.7}
@@ -426,10 +548,8 @@ export default function TutorsTab() {
                     <Text
                       style={[
                         styles.childChipText,
-                        selectedChild === child.id && [
+                        selectedChild === child.id &&
                           styles.childChipTextActive,
-                          { color: child.color },
-                        ],
                       ]}
                     >
                       {child.name}
@@ -439,738 +559,596 @@ export default function TutorsTab() {
               </ScrollView>
             </View>
 
-            {(() => {
-              const filteredRecommendations = recommendedTutors.filter(
-                (tutor) => {
-                  const rec = mockRecommendations.find(
-                    (r) => r.tutorId === tutor.id,
-                  );
-                  return (
-                    selectedChild === "all" || rec?.childId === selectedChild
-                  );
-                },
-              );
+            {/* Recommended Tutors */}
+            <View style={styles.recommendedContainer}>
+              {mockRecommendations
+                .filter(
+                  (rec) =>
+                    selectedChild === "all" || rec.childId === selectedChild,
+                )
+                .map((rec, index) => {
+                  const tutor = mockTutors.find((t) => t.id === rec.tutorId);
+                  const child = mockChildren.find((c) => c.id === rec.childId);
+                  const subject = subjects.find((s) => s.id === rec.subjectId);
 
-              return filteredRecommendations.length > 0 ? (
-                <View style={styles.recommendedContainer}>
-                  {filteredRecommendations.map((tutor, index) => {
-                    const rec = mockRecommendations.find(
-                      (rec) => rec.tutorId === tutor.id,
-                    );
-                    const child = mockChildren.find(
-                      (c) => c.id === rec?.childId,
-                    );
-                    const subject = subjects.find(
-                      (s) => s.id === rec?.subjectId,
-                    );
-                    return (
+                  if (!tutor || !child || !subject) return null;
+
+                  return (
+                    <View
+                      key={`${rec.tutorId}-${rec.childId}-${index}`}
+                      style={styles.recommendedCardWrapper}
+                    >
                       <View
-                        key={tutor.id}
-                        style={styles.recommendedCardWrapper}
+                        style={[
+                          styles.recommendationHeader,
+                          {
+                            backgroundColor: child.color + "15",
+                            borderColor: child.color + "40",
+                          },
+                        ]}
                       >
-                        <View
-                          style={[
-                            styles.recommendationHeader,
-                            { backgroundColor: child?.color + "15" },
-                            { borderColor: child?.color + "40" },
-                          ]}
-                        >
-                          <View style={styles.recommendationHeaderContent}>
-                            <View
-                              style={[
-                                styles.childIndicator,
-                                { backgroundColor: child?.color },
-                              ]}
-                            />
-                            <View style={styles.recommendationHeaderText}>
-                              <Text style={styles.recommendationForText}>
-                                Recommandé pour
-                              </Text>
-                              <Text
-                                style={[
-                                  styles.childNameText,
-                                  { color: child?.color },
-                                ]}
-                              >
-                                {child?.name}
-                              </Text>
-                            </View>
-                          </View>
-                          <Badge
-                            label={subject?.name || ""}
-                            variant="info"
-                            size="sm"
-                            style={{
-                              backgroundColor: subject?.color + "20",
-                              borderColor: subject?.color + "60",
-                              borderWidth: 1,
-                            }}
-                            textStyle={{ color: subject?.color }}
+                        <View style={styles.recommendationHeaderContent}>
+                          <View
+                            style={[
+                              styles.childIndicator,
+                              { backgroundColor: child.color },
+                            ]}
                           />
+                          <View style={styles.recommendationHeaderText}>
+                            <Text style={styles.recommendationForText}>
+                              RECOMMANDÉ POUR
+                            </Text>
+                            <Text
+                              style={[
+                                styles.childNameText,
+                                { color: child.color },
+                              ]}
+                            >
+                              {child.name}
+                            </Text>
+                          </View>
                         </View>
-                        <TutorCard
-                          tutor={tutor}
-                          recommendation={rec}
-                          delay={0}
+                        <Badge
+                          label={subject.name}
+                          variant="info"
+                          size="sm"
+                          style={{
+                            backgroundColor: subject.color + "20",
+                            borderColor: subject.color,
+                            borderWidth: 1,
+                          }}
+                          textStyle={{ color: subject.color }}
                         />
                       </View>
-                    );
-                  })}
-                </View>
-              ) : (
-                <EmptyState
-                  icon={<Star size={48} color={COLORS.secondary[400]} />}
-                  title="Aucune recommandation pour cet enfant"
-                  description="Essayez de sélectionner un autre enfant ou consultez tous les enfants"
-                />
-              );
-            })()}
-          </View>
-        ) : (
-          <View style={styles.tutorModeContainer}>
-            {/* Subject Filters */}
-            <View style={styles.filtersContainer}>
-              <View style={styles.filterHeaderRow}>
-                <View style={styles.filterTitleContainer}>
-                  <Filter size={18} color={COLORS.primary.DEFAULT} />
-                  <Text style={styles.filterTitle}>Matières</Text>
-                </View>
-                {selectedSubject !== "all" && (
-                  <TouchableOpacity
-                    style={styles.clearFilterButton}
-                    onPress={() => setSelectedSubject("all")}
-                    activeOpacity={0.7}
-                  >
-                    <X size={14} color={COLORS.secondary[600]} />
-                    <Text style={styles.clearFilterText}>Réinitialiser</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.subjectsContainer}
-              >
-                <SubjectChip
-                  subject={{
-                    id: "all",
-                    name: "Toutes les matières",
-                    icon: "",
-                    color: COLORS.secondary[600],
-                  }}
-                  isSelected={selectedSubject === "all"}
-                  onPress={() => setSelectedSubject("all")}
-                />
-                {subjects.map((subject) => (
-                  <SubjectChip
-                    key={subject.id}
-                    subject={subject}
-                    isSelected={selectedSubject === subject.id}
-                    onPress={() => setSelectedSubject(subject.id)}
-                  />
-                ))}
-              </ScrollView>
-            </View>
-
-            {/* Sort Toggle */}
-            <View style={styles.sortContainerWrapper}>
-              <View style={styles.sortContainer}>
-                <View style={styles.filterTitleContainer}>
-                  <TrendingUp size={18} color={COLORS.primary.DEFAULT} />
-                  <Text style={styles.sortLabel}>Trier par</Text>
-                </View>
-                <View style={styles.sortButtonsGroup}>
-                  <TouchableOpacity
-                    style={[
-                      styles.sortButton,
-                      sortByRating && styles.sortButtonActive,
-                    ]}
-                    onPress={() => setSortByRating(true)}
-                    activeOpacity={0.7}
-                  >
-                    <Star
-                      size={15}
-                      color={sortByRating ? "white" : COLORS.secondary[600]}
-                      fill={sortByRating ? "white" : "transparent"}
-                    />
-                    <Text
-                      style={[
-                        styles.sortButtonText,
-                        sortByRating && styles.sortButtonTextActive,
-                      ]}
-                    >
-                      Meilleure note
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.sortButton,
-                      !sortByRating && styles.sortButtonActive,
-                    ]}
-                    onPress={() => setSortByRating(false)}
-                    activeOpacity={0.7}
-                  >
-                    <DollarSign
-                      size={15}
-                      color={!sortByRating ? "white" : COLORS.secondary[600]}
-                    />
-                    <Text
-                      style={[
-                        styles.sortButtonText,
-                        !sortByRating && styles.sortButtonTextActive,
-                      ]}
-                    >
-                      Prix bas
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-
-            {/* Tutors List */}
-            <View style={styles.tutorsSection}>
-              <View style={styles.tutorListHeader}>
-                <Text style={styles.tutorCountText}>
-                  {filteredTutors.length} tuteur
-                  {filteredTutors.length > 1 ? "s" : ""} disponible
-                  {filteredTutors.length > 1 ? "s" : ""}
-                </Text>
-              </View>
-              {filteredTutors.map((tutor, index) => (
-                <TutorCard key={tutor.id} tutor={tutor} delay={0} />
-              ))}
+                      <TutorCard
+                        tutor={tutor}
+                        recommendation={rec}
+                        delay={200 + index * 100}
+                      />
+                    </View>
+                  );
+                })}
             </View>
           </View>
-        )}
-
-        {/* Empty State */}
-        {filteredTutors.length === 0 && browseMode === "tutor" && (
-          <EmptyState
-            icon={<GraduationCap size={48} color={COLORS.secondary[400]} />}
-            title="Aucun tuteur trouvé"
-            description="Essayez de modifier vos filtres ou votre recherche"
-          />
         )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.neutral[50],
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-  },
-  headerTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 24,
-    color: COLORS.secondary[900],
-  },
-
-  scrollContent: {
-    paddingBottom: SPACING.lg,
-  },
-  sectionTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 20,
-    color: COLORS.secondary[900],
-    marginBottom: 2,
-  },
-  sectionSubtitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    color: COLORS.secondary[500],
-    fontWeight: "500",
-  },
-  modeToggleContainer: {
-    marginBottom: 24,
-  },
-  filtersContainer: {
-    marginBottom: 20,
-  },
-  sortContainerWrapper: {
-    marginBottom: 24,
-  },
-  subjectModeContainer: {
-    paddingHorizontal: 16,
-  },
-  tutorModeContainer: {
-    flex: 1,
-  },
-  filterHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 4,
-  },
-  filterHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-    marginBottom: 8,
-  },
-  filterTitleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  filterTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 15,
-    color: COLORS.secondary[800],
-    fontWeight: "700",
-  },
-  clearFilterButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: COLORS.secondary[100],
-    borderRadius: 16,
-  },
-  clearFilterText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    color: COLORS.secondary[600],
-    fontWeight: "600",
-  },
-  tutorListHeader: {
-    marginBottom: 12,
-  },
-  tutorCountText: {
-    fontFamily: FONTS.primary,
-    fontSize: 16,
-    color: COLORS.secondary[700],
-    fontWeight: "600",
-  },
-  tutorCountBadge: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  subjectHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flex: 1,
-  },
-  subjectHeaderRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  subjectIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  subjectTutorsList: {
-    paddingHorizontal: 16,
-  },
-  recommendedMainContent: {
-    paddingHorizontal: 24,
-  },
-  childFiltersContainer: {
-    marginBottom: 20,
-  },
-  childFiltersScroll: {
-    paddingHorizontal: 24,
-    gap: 10,
-    marginTop: 12,
-  },
-  childChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: COLORS.secondary[200],
-    gap: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  childChipActive: {
-    backgroundColor: COLORS.primary[50],
-    borderColor: COLORS.primary.DEFAULT,
-    shadowColor: COLORS.primary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  childChipText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[700],
-    fontWeight: "600",
-  },
-  childChipTextActive: {
-    color: COLORS.primary.DEFAULT,
-    fontWeight: "700",
-  },
-  childChipDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  recommendedContainer: {
-    gap: 16,
-  },
-  recommendedCardWrapper: {
-    marginBottom: 20,
-    borderRadius: 20,
-    overflow: "hidden",
-    backgroundColor: COLORS.neutral.white,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  modeToggle: {
-    flexDirection: "row",
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    marginHorizontal: 24,
-    marginBottom: 24,
-    padding: 4,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  modeButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 8,
-    flexDirection: "row",
-    gap: 6,
-  },
-  modeButtonActive: {
-    backgroundColor: COLORS.primary.DEFAULT,
-    shadowColor: COLORS.primary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  modeButtonText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[600],
-    fontWeight: "600",
-  },
-  modeButtonTextActive: {
-    color: COLORS.neutral.white,
-  },
-  subjectsContainer: {
-    paddingHorizontal: 24,
-    gap: 10,
-    marginBottom: 16,
-  },
-  subjectChip: {
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: COLORS.secondary[200],
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  subjectChipText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[700],
-    fontWeight: "600",
-  },
-  sortContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-    marginBottom: 20,
-    gap: 16,
-  },
-  sortLabel: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    color: COLORS.secondary[800],
-    fontWeight: "600",
-  },
-  sortButtonsGroup: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  sortButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 9,
-    paddingHorizontal: 16,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 20,
-    gap: 6,
-    borderWidth: 2,
-    borderColor: COLORS.secondary[200],
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  sortButtonActive: {
-    backgroundColor: COLORS.primary.DEFAULT,
-    borderColor: COLORS.primary.DEFAULT,
-    shadowColor: COLORS.primary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  sortButtonText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[700],
-    fontWeight: "600",
-  },
-  sortButtonTextActive: {
-    color: COLORS.neutral.white,
-    fontWeight: "700",
-  },
-  tutorsSection: {
-    paddingHorizontal: 16,
-    marginTop: 4,
-  },
-  tutorCard: {
-    marginBottom: SPACING.md,
-  },
-  recommendationCard: {
-    borderWidth: 2,
-    borderColor: COLORS.primary[100],
-    shadowColor: COLORS.primary.DEFAULT,
-    shadowOpacity: 0.15,
-  },
-  tutorHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: SPACING.md,
-  },
-  tutorAvatarContainer: {
-    position: "relative",
-    marginRight: SPACING.md,
-  },
-  recommendationBadgeFloat: {
-    position: "absolute",
-    bottom: -2,
-    right: -2,
-    backgroundColor: COLORS.primary.DEFAULT,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: COLORS.neutral.white,
-  },
-  tutorInfo: {
-    flex: 1,
-  },
-  tutorName: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.secondary[900],
-    marginBottom: 6,
-    fontWeight: "600",
-  },
-  tutorRating: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: 6,
-  },
-  ratingText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    color: COLORS.secondary[900],
-    fontWeight: "700",
-  },
-  reviewsText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[500],
-    fontWeight: "500",
-  },
-  tutorExperience: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  experienceText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    color: COLORS.secondary[600],
-    fontWeight: "500",
-  },
-  tutorBio: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[600],
-    marginBottom: 14,
-    lineHeight: 21,
-    marginTop: 12,
-  },
-  tutorSubjects: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: SPACING.sm,
-    marginBottom: SPACING.md,
-  },
-  tutorFooter: {
-    marginTop: 4,
-  },
-  pricingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.primary[50],
-    borderRadius: 12,
-    padding: 12,
-    gap: 16,
-  },
-  priceItem: {
-    flex: 1,
-  },
-  priceLabel: {
-    fontFamily: FONTS.secondary,
-    fontSize: 11,
-    color: COLORS.secondary[600],
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-
-  priceDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: COLORS.primary[200],
-  },
-
-  recommendationHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderWidth: 1,
-  },
-  recommendationHeaderContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
-  childIndicator: {
-    width: 4,
-    height: 40,
-    borderRadius: 2,
-  },
-  recommendationHeaderText: {
-    flex: 1,
-  },
-  recommendationForText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 11,
-    color: COLORS.secondary[600],
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  childNameText: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    fontWeight: "700",
-  },
-
-  recommendationReasonContainer: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.neutral[200],
-  },
-  recommendationIcon: {
-    marginTop: 2,
-  },
-  recommendationReason: {
-    flex: 1,
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[700],
-    lineHeight: 19,
-    fontStyle: "italic",
-  },
-
-  subjectSection: {
-    marginBottom: 28,
-  },
-  subjectHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  subjectHeaderText: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  seeMoreButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    marginHorizontal: 24,
-    gap: 8,
-  },
-  seeMoreText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.primary.DEFAULT,
-    fontWeight: "600",
-  },
-});
+const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 24,
+      paddingVertical: 16,
+    },
+    headerTitle: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 24,
+      color: colors.textPrimary,
+    },
+    scrollContent: {
+      paddingBottom: 100,
+    },
+    sectionTitle: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 18,
+      color: colors.textPrimary,
+    },
+    sectionSubtitle: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: "600",
+    },
+    modeToggleContainer: {
+      marginBottom: 24,
+    },
+    filtersContainer: {
+      marginBottom: 20,
+    },
+    sortContainerWrapper: {
+      marginBottom: 20,
+    },
+    subjectModeContainer: {
+      paddingHorizontal: 24,
+    },
+    tutorModeContainer: {
+      flex: 1,
+    },
+    filterHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 12,
+    },
+    filterHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 24,
+      marginBottom: 12,
+    },
+    filterTitleContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    filterTitle: {
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      color: colors.textPrimary,
+      fontWeight: "700",
+    },
+    clearFilterButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      backgroundColor: colors.buttonSecondary,
+      borderRadius: 12,
+    },
+    clearFilterText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      color: colors.textSecondary,
+      fontWeight: "600",
+    },
+    tutorListHeader: {
+      marginBottom: 12,
+    },
+    tutorCountText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: "500",
+    },
+    tutorCountBadge: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 16,
+      fontWeight: "700",
+    },
+    subjectHeaderLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      flex: 1,
+    },
+    subjectHeaderRight: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    subjectIconContainer: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    subjectTutorsList: {
+      paddingHorizontal: 24,
+    },
+    recommendedMainContent: {
+      paddingHorizontal: 24,
+    },
+    childFiltersContainer: {
+      marginBottom: 24,
+    },
+    childFiltersScroll: {
+      paddingHorizontal: 24,
+      gap: 10,
+      marginTop: 8,
+    },
+    childChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      borderWidth: 2,
+      borderColor: colors.border,
+      gap: 8,
+      shadowColor: COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    childChipActive: {
+      backgroundColor: COLORS.primary[50],
+      borderColor: COLORS.primary.DEFAULT,
+      shadowColor: COLORS.primary.DEFAULT,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 6,
+      elevation: 3,
+    },
+    childChipText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: "600",
+    },
+    childChipTextActive: {
+      color: COLORS.primary.DEFAULT,
+      fontWeight: "700",
+    },
+    childChipDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+    },
+    recommendedContainer: {
+      gap: 16,
+    },
+    recommendedCardWrapper: {
+      marginBottom: SPACING.lg,
+      borderRadius: 16,
+      overflow: "hidden",
+      backgroundColor: colors.card,
+      shadowColor: COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    modeToggle: {
+      flexDirection: "row",
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      marginHorizontal: SPACING.lg,
+      marginBottom: SPACING.md,
+      padding: 4,
+      shadowColor: COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    modeButton: {
+      flex: 1,
+      paddingVertical: 12,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 10,
+      flexDirection: "row",
+      gap: 8,
+    },
+    modeButtonActive: {
+      backgroundColor: COLORS.primary.DEFAULT,
+      shadowColor: COLORS.primary.DEFAULT,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    modeButtonText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: "600",
+    },
+    modeButtonTextActive: {
+      color: COLORS.neutral.white,
+    },
+    subjectsContainer: {
+      paddingHorizontal: 24,
+      gap: 8,
+      marginBottom: 8,
+    },
+    subjectChip: {
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      borderWidth: 2,
+      borderColor: colors.border,
+      shadowColor: COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    subjectChipText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: "600",
+    },
+    sortContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 24,
+      marginBottom: 16,
+      gap: 12,
+    },
+    sortLabel: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: "600",
+    },
+    sortButtonsGroup: {
+      flexDirection: "row",
+      gap: 8,
+    },
+    sortButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      gap: 6,
+      borderWidth: 2,
+      borderColor: colors.border,
+      shadowColor: COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    sortButtonActive: {
+      backgroundColor: COLORS.primary.DEFAULT,
+      borderColor: COLORS.primary.DEFAULT,
+      shadowColor: COLORS.primary.DEFAULT,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    sortButtonText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      color: colors.textSecondary,
+      fontWeight: "600",
+    },
+    sortButtonTextActive: {
+      color: COLORS.neutral.white,
+      fontWeight: "700",
+    },
+    tutorsSection: {
+      paddingHorizontal: 24,
+      marginTop: 8,
+    },
+    tutorCard: {
+      marginBottom: 16,
+      backgroundColor: colors.card,
+    },
+    recommendationCard: {
+      borderWidth: 0,
+      borderColor: colors.primary + "40",
+      shadowColor: colors.primary,
+      shadowOpacity: 0.1,
+    },
+    tutorHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 12,
+    },
+    tutorAvatarContainer: {
+      position: "relative",
+      marginRight: 12,
+    },
+    recommendationBadgeFloat: {
+      position: "absolute",
+      bottom: -2,
+      right: -2,
+      backgroundColor: colors.primary,
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      justifyContent: "center",
+      alignItems: "center",
+      borderWidth: 2,
+      borderColor: colors.card,
+    },
+    tutorInfo: {
+      flex: 1,
+    },
+    tutorName: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 18,
+      color: colors.textPrimary,
+      marginBottom: 4,
+      fontWeight: "700",
+    },
+    tutorRating: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginBottom: 6,
+    },
+    ratingText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      color: colors.textPrimary,
+      fontWeight: "700",
+    },
+    reviewsText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      color: colors.textSecondary,
+      fontWeight: "500",
+    },
+    tutorExperience: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    experienceText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      color: colors.textSecondary,
+      fontWeight: "500",
+    },
+    tutorBio: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 12,
+      lineHeight: 20,
+      marginTop: 8,
+    },
+    tutorSubjects: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginBottom: 12,
+    },
+    tutorFooter: {
+      marginTop: 8,
+    },
+    pricingContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.input,
+      borderRadius: 12,
+      padding: 12,
+      gap: 12,
+    },
+    priceItem: {
+      flex: 1,
+    },
+    priceLabel: {
+      fontFamily: FONTS.secondary,
+      fontSize: 11,
+      color: colors.textSecondary,
+      fontWeight: "600",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      marginBottom: 6,
+    },
+    priceDivider: {
+      width: 1,
+      height: 30,
+      backgroundColor: colors.divider,
+    },
+    recommendationHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderTopLeftRadius: 16,
+      borderTopRightRadius: 16,
+      borderWidth: 1,
+    },
+    recommendationHeaderContent: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      flex: 1,
+    },
+    childIndicator: {
+      width: 8,
+      height: 32,
+      borderRadius: 4,
+    },
+    recommendationHeaderText: {
+      flex: 1,
+    },
+    recommendationForText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 10,
+      color: colors.textSecondary,
+      fontWeight: "700",
+      textTransform: "uppercase",
+      letterSpacing: 0.8,
+      marginBottom: 2,
+    },
+    childNameText: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 15,
+      fontWeight: "700",
+      color: colors.textPrimary,
+    },
+    recommendationReasonContainer: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 10,
+      marginTop: 12,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.divider,
+    },
+    recommendationIcon: {
+      marginTop: 2,
+    },
+    recommendationReason: {
+      flex: 1,
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 18,
+      fontStyle: "italic",
+    },
+    subjectSection: {
+      marginBottom: 24,
+    },
+    subjectHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 12,
+      marginBottom: 12,
+      shadowColor: COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    subjectHeaderText: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 18,
+      fontWeight: "700",
+      color: colors.textPrimary,
+    },
+    seeMoreButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 12,
+      marginHorizontal: 24,
+      gap: 8,
+    },
+    seeMoreText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      color: COLORS.primary.DEFAULT,
+      fontWeight: "600",
+    },
+  });

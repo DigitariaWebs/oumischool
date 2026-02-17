@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   Modal,
+  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -20,15 +21,21 @@ import {
   BookOpen,
   Video,
   Users,
-  ChevronRight,
+  ChevronDown,
   X,
   Calendar,
   Check,
   MessageSquare,
+  ArrowLeft,
+  Heart,
+  Zap,
 } from "lucide-react-native";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
+import { useTheme } from "@/hooks/use-theme";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 // Mock data - will be replaced with actual data from API
 const mockTutor = {
@@ -138,29 +145,31 @@ const mockChildren = [
 ];
 
 const daysOfWeek = [
-  { key: "monday", label: "Lundi" },
-  { key: "tuesday", label: "Mardi" },
-  { key: "wednesday", label: "Mercredi" },
-  { key: "thursday", label: "Jeudi" },
-  { key: "friday", label: "Vendredi" },
-  { key: "saturday", label: "Samedi" },
-  { key: "sunday", label: "Dimanche" },
+  { key: "monday", label: "Lun" },
+  { key: "tuesday", label: "Mar" },
+  { key: "wednesday", label: "Mer" },
+  { key: "thursday", label: "Jeu" },
+  { key: "friday", label: "Ven" },
+  { key: "saturday", label: "Sam" },
+  { key: "sunday", label: "Dim" },
 ];
 
 export default function TutorProfileScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [bookingModalVisible, setBookingModalVisible] = useState(false);
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
   const [selectedMode, setSelectedMode] = useState<"online" | "inPerson">(
     "online",
   );
-  const [selectedDay, setSelectedDay] = useState<string>("");
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>("");
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   const [expandedCurriculum, setExpandedCurriculum] = useState<string | null>(
     null,
   );
 
-  const tutor = mockTutor; // In real app, fetch based on id
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
+  const tutor = mockTutor;
 
   const toggleChildSelection = (childId: string) => {
     setSelectedChildren((prev) =>
@@ -195,7 +204,7 @@ export default function TutorProfileScreen() {
 
     setBookingModalVisible(false);
     router.push({
-      pathname: "/parent/profile/payment",
+      pathname: "/parent/profile/checkout",
       params: bookingData,
     });
   };
@@ -208,116 +217,186 @@ export default function TutorProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header with Avatar */}
-        <View style={styles.header}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Organic Header with Blob Shape */}
+        <View style={styles.headerWrapper}>
+          <View style={styles.blobBackground} />
+          <View style={styles.blobAccent} />
+
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <X size={24} color={COLORS.secondary[700]} />
+            <ArrowLeft size={20} color={colors.textPrimary} />
           </TouchableOpacity>
-          <View style={styles.avatarContainer}>
+
+          <TouchableOpacity style={styles.favoriteButton}>
+            <Heart size={20} color={COLORS.error} />
+          </TouchableOpacity>
+
+          {/* Stacked Avatar with Decorative Elements */}
+          <View style={styles.avatarStack}>
+            <View style={styles.avatarGlow} />
             <Image source={{ uri: tutor.avatar }} style={styles.avatar} />
-            <View style={styles.verifiedBadge}>
-              <Check size={16} color="white" />
-            </View>
+            <View style={styles.onlineIndicator} />
           </View>
-          <Text style={styles.name}>{tutor.name}</Text>
-          <View style={styles.ratingContainer}>
-            <Star size={20} color="#F59E0B" fill="#F59E0B" />
-            <Text style={styles.ratingText}>{tutor.rating}</Text>
-            <Text style={styles.reviewsText}>({tutor.reviewsCount} avis)</Text>
+
+          {/* Name and Quick Info */}
+          <Text style={styles.tutorName}>{tutor.name}</Text>
+
+          {/* Rating Bubble */}
+          <View style={styles.ratingBubble}>
+            <Star size={16} color="#F59E0B" fill="#F59E0B" />
+            <Text style={styles.ratingValue}>{tutor.rating}</Text>
+            <Text style={styles.ratingDivider}>•</Text>
+            <Text style={styles.reviewCount}>{tutor.reviewsCount} avis</Text>
           </View>
-          <View style={styles.locationContainer}>
-            <MapPin size={16} color={COLORS.secondary[500]} />
+
+          {/* Location Chip */}
+          <View style={styles.locationChip}>
+            <MapPin size={14} color={COLORS.primary.DEFAULT} />
             <Text style={styles.locationText}>{tutor.region}</Text>
           </View>
         </View>
 
-        {/* Quick Info */}
-        <View style={styles.quickInfoSection}>
-          <View style={styles.quickInfoCard}>
-            <GraduationCap size={24} color={COLORS.primary.DEFAULT} />
-            <Text style={styles.quickInfoValue}>{tutor.experience} ans</Text>
-            <Text style={styles.quickInfoLabel}>d&apos;expérience</Text>
+        {/* Horizontal Scrolling Stats */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.statsScroll}
+        >
+          <View style={[styles.statBubble, styles.statBubbleFirst]}>
+            <View
+              style={[
+                styles.statIconWrap,
+                { backgroundColor: COLORS.primary[100] },
+              ]}
+            >
+              <GraduationCap size={20} color={COLORS.primary.DEFAULT} />
+            </View>
+            <View>
+              <Text style={styles.statNumber}>{tutor.experience}</Text>
+              <Text style={styles.statUnit}>ans d'exp.</Text>
+            </View>
           </View>
-          <View style={styles.quickInfoCard}>
-            <Languages size={24} color={COLORS.primary.DEFAULT} />
-            <Text style={styles.quickInfoValue}>{tutor.languages.length}</Text>
-            <Text style={styles.quickInfoLabel}>langues</Text>
-          </View>
-          <View style={styles.quickInfoCard}>
-            <BookOpen size={24} color={COLORS.primary.DEFAULT} />
-            <Text style={styles.quickInfoValue}>{tutor.subjects.length}</Text>
-            <Text style={styles.quickInfoLabel}>matières</Text>
-          </View>
-        </View>
 
-        {/* Bio */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>À propos</Text>
+          <View style={styles.statBubble}>
+            <View style={[styles.statIconWrap, { backgroundColor: "#FEF3C7" }]}>
+              <Award size={20} color="#F59E0B" />
+            </View>
+            <View>
+              <Text style={styles.statNumber}>{tutor.rating}</Text>
+              <Text style={styles.statUnit}>note /5</Text>
+            </View>
+          </View>
+
+          <View style={styles.statBubble}>
+            <View style={[styles.statIconWrap, { backgroundColor: "#DBEAFE" }]}>
+              <Users size={20} color={COLORS.info} />
+            </View>
+            <View>
+              <Text style={styles.statNumber}>{tutor.reviewsCount}</Text>
+              <Text style={styles.statUnit}>élèves</Text>
+            </View>
+          </View>
+
+          <View style={styles.statBubble}>
+            <View style={[styles.statIconWrap, { backgroundColor: "#FCE7F3" }]}>
+              <Zap size={20} color="#EC4899" />
+            </View>
+            <View>
+              <Text style={styles.statNumber}>98%</Text>
+              <Text style={styles.statUnit}>satisfaction</Text>
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* Bio Section with Wavy Top */}
+        <View style={styles.bioSection}>
+          <View style={styles.sectionLabelWrap}>
+            <Text style={styles.sectionEmoji}>👋</Text>
+            <Text style={styles.sectionLabel}>À propos de moi</Text>
+          </View>
           <Text style={styles.bioText}>{tutor.bio}</Text>
         </View>
 
-        {/* Languages */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Languages size={20} color={COLORS.primary.DEFAULT} />
-            <Text style={styles.sectionTitle}>Langues parlées</Text>
+        {/* Languages as Floating Pills */}
+        <View style={styles.pillSection}>
+          <View style={styles.sectionLabelWrap}>
+            <Text style={styles.sectionEmoji}>🗣️</Text>
+            <Text style={styles.sectionLabel}>Langues parlées</Text>
           </View>
-          <View style={styles.languagesContainer}>
+          <View style={styles.pillContainer}>
             {tutor.languages.map((language, index) => (
-              <View key={index} style={styles.languageChip}>
-                <Text style={styles.languageText}>{language}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Subjects */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <BookOpen size={20} color={COLORS.primary.DEFAULT} />
-            <Text style={styles.sectionTitle}>Matières enseignées</Text>
-          </View>
-          <View style={styles.subjectsContainer}>
-            {tutor.subjects.map((subject) => (
               <View
-                key={subject.id}
+                key={index}
                 style={[
-                  styles.subjectCard,
-                  { backgroundColor: subject.color + "15" },
-                  { borderColor: subject.color + "40" },
+                  styles.languagePill,
+                  index === 0 && styles.languagePillPrimary,
                 ]}
               >
-                <View
+                <Text
                   style={[
-                    styles.subjectIconContainer,
-                    { backgroundColor: subject.color + "20" },
+                    styles.languagePillText,
+                    index === 0 && styles.languagePillTextPrimary,
                   ]}
                 >
-                  <BookOpen size={20} color={subject.color} />
-                </View>
-                <Text style={[styles.subjectName, { color: subject.color }]}>
-                  {subject.name}
+                  {language}
                 </Text>
               </View>
             ))}
           </View>
         </View>
 
-        {/* Lesson Portfolio */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Award size={20} color={COLORS.primary.DEFAULT} />
-            <Text style={styles.sectionTitle}>Programmes et Cours</Text>
+        {/* Subjects as Playful Cards */}
+        <View style={styles.subjectsSection}>
+          <View style={styles.sectionLabelWrap}>
+            <Text style={styles.sectionEmoji}>📚</Text>
+            <Text style={styles.sectionLabel}>Matières</Text>
           </View>
-          <Text style={styles.sectionSubtitle}>
-            Curriculums complets avec ressources pédagogiques
+          <View style={styles.subjectCards}>
+            {tutor.subjects.map((subject, index) => (
+              <View
+                key={subject.id}
+                style={[
+                  styles.subjectCard,
+                  {
+                    transform: [{ rotate: index % 2 === 0 ? "-2deg" : "2deg" }],
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.subjectIconCircle,
+                    { backgroundColor: subject.color },
+                  ]}
+                >
+                  <BookOpen size={24} color={COLORS.neutral.white} />
+                </View>
+                <Text style={styles.subjectCardName}>{subject.name}</Text>
+                <View style={styles.subjectExpertTag}>
+                  <Text style={styles.subjectExpertText}>Expert</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Curriculum Section - Accordion Style */}
+        <View style={styles.curriculumSection}>
+          <View style={styles.sectionLabelWrap}>
+            <Text style={styles.sectionEmoji}>🎯</Text>
+            <Text style={styles.sectionLabel}>Programmes disponibles</Text>
+          </View>
+          <Text style={styles.sectionSubtext}>
+            Parcours structurés avec ressources pédagogiques
           </Text>
+
           {tutor.lessonPortfolio.map((curriculum) => (
-            <View key={curriculum.id} style={styles.curriculumCard}>
+            <View key={curriculum.id} style={styles.curriculumItem}>
               <TouchableOpacity
                 style={styles.curriculumHeader}
                 onPress={() =>
@@ -325,158 +404,199 @@ export default function TutorProfileScreen() {
                     expandedCurriculum === curriculum.id ? null : curriculum.id,
                   )
                 }
-                activeOpacity={0.7}
+                activeOpacity={0.8}
               >
-                <View style={styles.curriculumHeaderLeft}>
-                  <View
-                    style={[
-                      styles.curriculumIcon,
-                      { backgroundColor: curriculum.subjectColor + "20" },
-                    ]}
-                  >
-                    <BookOpen size={20} color={curriculum.subjectColor} />
-                  </View>
-                  <View style={styles.curriculumInfo}>
-                    <Text style={styles.curriculumTitle}>
-                      {curriculum.title}
+                <View
+                  style={[
+                    styles.curriculumColorDot,
+                    { backgroundColor: curriculum.subjectColor },
+                  ]}
+                />
+                <View style={styles.curriculumHeaderContent}>
+                  <Text style={styles.curriculumTitle}>{curriculum.title}</Text>
+                  <View style={styles.curriculumMeta}>
+                    <Text style={styles.curriculumMetaText}>
+                      {curriculum.lessonsCount} leçons
                     </Text>
-                    <Text style={styles.curriculumMeta}>
-                      {curriculum.lessonsCount} leçons • {curriculum.duration} •{" "}
+                    <Text style={styles.curriculumMetaDot}>•</Text>
+                    <Text style={styles.curriculumMetaText}>
+                      {curriculum.duration}
+                    </Text>
+                    <Text style={styles.curriculumMetaDot}>•</Text>
+                    <Text style={styles.curriculumMetaText}>
                       {curriculum.level}
                     </Text>
                   </View>
                 </View>
-                <ChevronRight
-                  size={20}
-                  color={COLORS.secondary[400]}
-                  style={{
-                    transform: [
-                      {
-                        rotate:
-                          expandedCurriculum === curriculum.id
-                            ? "90deg"
-                            : "0deg",
-                      },
-                    ],
-                  }}
-                />
+                <View
+                  style={[
+                    styles.expandButton,
+                    expandedCurriculum === curriculum.id &&
+                      styles.expandButtonActive,
+                  ]}
+                >
+                  <ChevronDown
+                    size={18}
+                    color={
+                      expandedCurriculum === curriculum.id
+                        ? COLORS.neutral.white
+                        : colors.textSecondary
+                    }
+                    style={{
+                      transform: [
+                        {
+                          rotate:
+                            expandedCurriculum === curriculum.id
+                              ? "180deg"
+                              : "0deg",
+                        },
+                      ],
+                    }}
+                  />
+                </View>
               </TouchableOpacity>
-              <Text style={styles.curriculumDescription}>
-                {curriculum.description}
-              </Text>
+
               {expandedCurriculum === curriculum.id && (
-                <View style={styles.lessonsList}>
-                  {curriculum.lessons.map((lesson, index) => (
-                    <View key={lesson.id} style={styles.lessonItem}>
-                      <View style={styles.lessonNumber}>
-                        <Text style={styles.lessonNumberText}>
-                          {lesson.order}
+                <View style={styles.curriculumExpanded}>
+                  <Text style={styles.curriculumDescription}>
+                    {curriculum.description}
+                  </Text>
+                  <View style={styles.lessonTimeline}>
+                    {curriculum.lessons.map((lesson, index) => (
+                      <View key={lesson.id} style={styles.lessonTimelineItem}>
+                        <View style={styles.timelineLeft}>
+                          <View
+                            style={[
+                              styles.timelineDot,
+                              { backgroundColor: curriculum.subjectColor },
+                            ]}
+                          />
+                          {index < curriculum.lessons.length - 1 && (
+                            <View
+                              style={[
+                                styles.timelineLine,
+                                {
+                                  backgroundColor:
+                                    curriculum.subjectColor + "40",
+                                },
+                              ]}
+                            />
+                          )}
+                        </View>
+                        <Text style={styles.lessonTimelineText}>
+                          {lesson.title}
                         </Text>
                       </View>
-                      <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                    </View>
-                  ))}
-                  {curriculum.lessonsCount > curriculum.lessons.length && (
-                    <Text style={styles.moreLessonsText}>
-                      +{curriculum.lessonsCount - curriculum.lessons.length}{" "}
-                      autres leçons
-                    </Text>
-                  )}
+                    ))}
+                    {curriculum.lessonsCount > curriculum.lessons.length && (
+                      <View style={styles.moreIndicator}>
+                        <Text style={styles.moreIndicatorText}>
+                          +{curriculum.lessonsCount - curriculum.lessons.length}{" "}
+                          autres leçons
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
               )}
             </View>
           ))}
         </View>
 
-        {/* Methodology */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Award size={20} color={COLORS.primary.DEFAULT} />
-            <Text style={styles.sectionTitle}>Méthodologie</Text>
+        {/* Methodology - Quote Style */}
+        <View style={styles.methodologySection}>
+          <View style={styles.sectionLabelWrap}>
+            <Text style={styles.sectionEmoji}>💡</Text>
+            <Text style={styles.sectionLabel}>Ma méthodologie</Text>
           </View>
-          <Text style={styles.methodologyText}>
-            {tutor.methodology.approach}
-          </Text>
-          <View style={styles.techniquesContainer}>
+          <View style={styles.methodologyQuote}>
+            <Text style={styles.methodologyQuoteText}>
+              "{tutor.methodology.approach}"
+            </Text>
+          </View>
+          <View style={styles.techniqueGrid}>
             {tutor.methodology.techniques.map((technique, index) => (
-              <View key={index} style={styles.techniqueItem}>
-                <View style={styles.techniqueBullet}>
-                  <Check size={14} color={COLORS.primary.DEFAULT} />
-                </View>
-                <Text style={styles.techniqueText}>{technique}</Text>
+              <View key={index} style={styles.techniqueChip}>
+                <Check size={14} color={COLORS.success} />
+                <Text style={styles.techniqueChipText}>{technique}</Text>
               </View>
             ))}
           </View>
         </View>
 
-        {/* Reviews */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Star size={20} color={COLORS.primary.DEFAULT} />
-            <Text style={styles.sectionTitle}>
-              Avis des parents ({tutor.reviewsCount})
+        {/* Reviews - Card Stack */}
+        <View style={styles.reviewsSection}>
+          <View style={styles.sectionLabelWrap}>
+            <Text style={styles.sectionEmoji}>⭐</Text>
+            <Text style={styles.sectionLabel}>
+              Avis parents ({tutor.reviewsCount})
             </Text>
           </View>
-          {tutor.reviews.map((review) => (
-            <View key={review.id} style={styles.reviewCard}>
-              <View style={styles.reviewHeader}>
+
+          {tutor.reviews.map((review, index) => (
+            <View
+              key={review.id}
+              style={[styles.reviewCard, index === 0 && styles.reviewCardFirst]}
+            >
+              <View style={styles.reviewTop}>
+                <View style={styles.reviewStars}>
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      size={14}
+                      color="#F59E0B"
+                      fill={i < review.rating ? "#F59E0B" : "transparent"}
+                    />
+                  ))}
+                </View>
+                <Text style={styles.reviewDateText}>{review.date}</Text>
+              </View>
+              <Text style={styles.reviewCommentText}>{review.comment}</Text>
+              <View style={styles.reviewAuthor}>
+                <View style={styles.reviewAuthorAvatar}>
+                  <Text style={styles.reviewAuthorInitial}>
+                    {review.parentName.charAt(0)}
+                  </Text>
+                </View>
                 <View>
-                  <Text style={styles.reviewParentName}>
+                  <Text style={styles.reviewAuthorName}>
                     {review.parentName}
                   </Text>
-                  <Text style={styles.reviewChildName}>
+                  <Text style={styles.reviewAuthorChild}>
                     Parent de {review.childName}
                   </Text>
                 </View>
-                <View style={styles.reviewRatingContainer}>
-                  <Star size={16} color="#F59E0B" fill="#F59E0B" />
-                  <Text style={styles.reviewRating}>{review.rating}</Text>
-                </View>
               </View>
-              <Text style={styles.reviewComment}>{review.comment}</Text>
-              <Text style={styles.reviewDate}>{review.date}</Text>
             </View>
           ))}
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 140 }} />
       </ScrollView>
 
-      {/* Fixed Bottom Bar */}
-      <View style={styles.bottomBar}>
-        <View style={styles.pricingInfo}>
-          <View style={styles.priceItem}>
-            <Video size={18} color={COLORS.secondary[600]} />
-            <Text style={styles.priceLabel}>En ligne</Text>
-            <Text style={styles.priceValue}>{tutor.hourlyRate}€/h</Text>
-          </View>
-          {tutor.inPersonAvailable && (
-            <>
-              <View style={styles.priceDivider} />
-              <View style={styles.priceItem}>
-                <Users size={18} color={COLORS.secondary[600]} />
-                <Text style={styles.priceLabel}>Présentiel</Text>
-                <Text style={styles.priceValue}>{tutor.inPersonRate}€/h</Text>
-              </View>
-            </>
-          )}
+      {/* Floating Bottom Bar */}
+      <View style={styles.bottomFloating}>
+        <View style={styles.priceTag}>
+          <Text style={styles.priceFrom}>À partir de</Text>
+          <Text style={styles.priceAmount}>{tutor.hourlyRate}€</Text>
+          <Text style={styles.priceUnit}>/h</Text>
         </View>
-        <View style={styles.ctaButtonsContainer}>
+
+        <View style={styles.bottomActions}>
           <TouchableOpacity
-            style={styles.messageButton}
+            style={styles.messageBtn}
             onPress={() => router.push("/messaging")}
             activeOpacity={0.8}
           >
-            <MessageSquare size={20} color={COLORS.primary.DEFAULT} />
-            <Text style={styles.messageButtonText}>Message</Text>
+            <MessageSquare size={22} color={COLORS.primary.DEFAULT} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.bookButton}
+            style={styles.bookBtn}
             onPress={() => setBookingModalVisible(true)}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
           >
-            <Calendar size={20} color="white" />
-            <Text style={styles.bookButtonText}>Réserver</Text>
+            <Text style={styles.bookBtnText}>Réserver</Text>
+            <Calendar size={18} color={COLORS.neutral.white} />
           </TouchableOpacity>
         </View>
       </View>
@@ -489,126 +609,162 @@ export default function TutorProfileScreen() {
         onRequestClose={() => setBookingModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Réserver avec {tutor.name}</Text>
+          <View style={styles.modalSheet}>
+            {/* Modal Handle */}
+            <View style={styles.modalHandle} />
+
+            <View style={styles.modalHeaderRow}>
+              <View>
+                <Text style={styles.modalTitle}>Réservation</Text>
+                <Text style={styles.modalWith}>avec {tutor.name}</Text>
+              </View>
               <TouchableOpacity
+                style={styles.modalCloseBtn}
                 onPress={() => setBookingModalVisible(false)}
-                style={styles.modalCloseButton}
               >
-                <X size={24} color={COLORS.secondary[700]} />
+                <X size={20} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Select Children */}
-              <View style={styles.modalSection}>
-                <Text style={styles.modalSectionTitle}>
-                  Sélectionnez vos enfants
+              {/* Children Selection */}
+              <View style={styles.modalBlock}>
+                <Text style={styles.modalBlockTitle}>
+                  👶 Sélectionnez vos enfants
                 </Text>
                 {mockChildren.map((child) => (
                   <TouchableOpacity
                     key={child.id}
                     style={[
-                      styles.childOption,
+                      styles.childRow,
                       selectedChildren.includes(child.id) &&
-                        styles.childOptionSelected,
+                        styles.childRowSelected,
                     ]}
                     onPress={() => toggleChildSelection(child.id)}
                     activeOpacity={0.7}
                   >
-                    <View style={styles.childOptionInfo}>
-                      <Text style={styles.childOptionName}>{child.name}</Text>
-                      <Text style={styles.childOptionDetails}>
+                    <View
+                      style={[
+                        styles.childInitial,
+                        selectedChildren.includes(child.id) &&
+                          styles.childInitialSelected,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.childInitialText,
+                          selectedChildren.includes(child.id) &&
+                            styles.childInitialTextSelected,
+                        ]}
+                      >
+                        {child.name.charAt(0)}
+                      </Text>
+                    </View>
+                    <View style={styles.childInfo}>
+                      <Text style={styles.childName}>{child.name}</Text>
+                      <Text style={styles.childDetails}>
                         {child.age} ans • {child.grade}
                       </Text>
                     </View>
                     <View
                       style={[
-                        styles.checkbox,
+                        styles.checkCircle,
                         selectedChildren.includes(child.id) &&
-                          styles.checkboxChecked,
+                          styles.checkCircleChecked,
                       ]}
                     >
                       {selectedChildren.includes(child.id) && (
-                        <Check size={16} color="white" />
+                        <Check size={14} color={COLORS.neutral.white} />
                       )}
                     </View>
                   </TouchableOpacity>
                 ))}
               </View>
 
-              {/* Select Mode */}
-              <View style={styles.modalSection}>
-                <Text style={styles.modalSectionTitle}>Mode de cours</Text>
-                <View style={styles.modeOptions}>
+              {/* Mode Selection */}
+              <View style={styles.modalBlock}>
+                <Text style={styles.modalBlockTitle}>📍 Mode de cours</Text>
+                <View style={styles.modeRow}>
                   <TouchableOpacity
                     style={[
-                      styles.modeOption,
-                      selectedMode === "online" && styles.modeOptionSelected,
+                      styles.modeCard,
+                      selectedMode === "online" && styles.modeCardSelected,
                     ]}
                     onPress={() => setSelectedMode("online")}
                     activeOpacity={0.7}
                   >
-                    <Video
-                      size={20}
-                      color={
-                        selectedMode === "online"
-                          ? COLORS.primary.DEFAULT
-                          : COLORS.secondary[600]
-                      }
-                    />
+                    <View
+                      style={[
+                        styles.modeIconBg,
+                        selectedMode === "online" && styles.modeIconBgSelected,
+                      ]}
+                    >
+                      <Video
+                        size={24}
+                        color={
+                          selectedMode === "online"
+                            ? COLORS.neutral.white
+                            : colors.textSecondary
+                        }
+                      />
+                    </View>
                     <Text
                       style={[
-                        styles.modeOptionText,
-                        selectedMode === "online" &&
-                          styles.modeOptionTextSelected,
+                        styles.modeLabel,
+                        selectedMode === "online" && styles.modeLabelSelected,
                       ]}
                     >
                       En ligne
                     </Text>
                     <Text
                       style={[
-                        styles.modeOptionPrice,
-                        selectedMode === "online" &&
-                          styles.modeOptionPriceSelected,
+                        styles.modePrice,
+                        selectedMode === "online" && styles.modePriceSelected,
                       ]}
                     >
                       {tutor.hourlyRate}€/h
                     </Text>
                   </TouchableOpacity>
+
                   {tutor.inPersonAvailable && (
                     <TouchableOpacity
                       style={[
-                        styles.modeOption,
-                        selectedMode === "inPerson" &&
-                          styles.modeOptionSelected,
+                        styles.modeCard,
+                        selectedMode === "inPerson" && styles.modeCardSelected,
                       ]}
                       onPress={() => setSelectedMode("inPerson")}
                       activeOpacity={0.7}
                     >
-                      <Users
-                        size={20}
-                        color={
-                          selectedMode === "inPerson"
-                            ? COLORS.primary.DEFAULT
-                            : COLORS.secondary[600]
-                        }
-                      />
+                      <View
+                        style={[
+                          styles.modeIconBg,
+                          selectedMode === "inPerson" &&
+                            styles.modeIconBgSelected,
+                        ]}
+                      >
+                        <Users
+                          size={24}
+                          color={
+                            selectedMode === "inPerson"
+                              ? COLORS.neutral.white
+                              : colors.textSecondary
+                          }
+                        />
+                      </View>
                       <Text
                         style={[
-                          styles.modeOptionText,
+                          styles.modeLabel,
                           selectedMode === "inPerson" &&
-                            styles.modeOptionTextSelected,
+                            styles.modeLabelSelected,
                         ]}
                       >
                         Présentiel
                       </Text>
                       <Text
                         style={[
-                          styles.modeOptionPrice,
+                          styles.modePrice,
                           selectedMode === "inPerson" &&
-                            styles.modeOptionPriceSelected,
+                            styles.modePriceSelected,
                         ]}
                       >
                         {tutor.inPersonRate}€/h
@@ -618,21 +774,19 @@ export default function TutorProfileScreen() {
                 </View>
               </View>
 
-              {/* Select Day */}
-              <View style={styles.modalSection}>
-                <Text style={styles.modalSectionTitle}>
-                  Jour de la semaine (cours hebdomadaire)
-                </Text>
-                <View style={styles.daysGrid}>
+              {/* Day Selection */}
+              <View style={styles.modalBlock}>
+                <Text style={styles.modalBlockTitle}>📅 Jour</Text>
+                <View style={styles.dayPills}>
                   {daysOfWeek.map((day) => {
                     const hasSlots = getAvailableTimeSlots(day.key).length > 0;
                     return (
                       <TouchableOpacity
                         key={day.key}
                         style={[
-                          styles.dayOption,
-                          selectedDay === day.key && styles.dayOptionSelected,
-                          !hasSlots && styles.dayOptionDisabled,
+                          styles.dayPill,
+                          selectedDay === day.key && styles.dayPillSelected,
+                          !hasSlots && styles.dayPillDisabled,
                         ]}
                         onPress={() => hasSlots && setSelectedDay(day.key)}
                         disabled={!hasSlots}
@@ -640,10 +794,10 @@ export default function TutorProfileScreen() {
                       >
                         <Text
                           style={[
-                            styles.dayOptionText,
+                            styles.dayPillText,
                             selectedDay === day.key &&
-                              styles.dayOptionTextSelected,
-                            !hasSlots && styles.dayOptionTextDisabled,
+                              styles.dayPillTextSelected,
+                            !hasSlots && styles.dayPillTextDisabled,
                           ]}
                         >
                           {day.label}
@@ -654,29 +808,28 @@ export default function TutorProfileScreen() {
                 </View>
               </View>
 
-              {/* Select Time Slot */}
+              {/* Time Slots */}
               {selectedDay && (
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalSectionTitle}>
-                    Horaire disponible
-                  </Text>
-                  <View style={styles.timeSlotsContainer}>
+                <View style={styles.modalBlock}>
+                  <Text style={styles.modalBlockTitle}>⏰ Horaire</Text>
+                  <View style={styles.timeSlotRow}>
                     {getAvailableTimeSlots(selectedDay).map((slot, index) => (
                       <TouchableOpacity
                         key={index}
                         style={[
-                          styles.timeSlot,
-                          selectedTimeSlot === slot && styles.timeSlotSelected,
+                          styles.timeSlotPill,
+                          selectedTimeSlot === slot &&
+                            styles.timeSlotPillSelected,
                         ]}
                         onPress={() => setSelectedTimeSlot(slot)}
                         activeOpacity={0.7}
                       >
                         <Clock
-                          size={16}
+                          size={14}
                           color={
                             selectedTimeSlot === slot
-                              ? "white"
-                              : COLORS.secondary[600]
+                              ? COLORS.neutral.white
+                              : colors.textSecondary
                           }
                         />
                         <Text
@@ -694,15 +847,15 @@ export default function TutorProfileScreen() {
                 </View>
               )}
 
-              {/* Price Summary */}
+              {/* Summary */}
               {selectedChildren.length > 0 && (
-                <View style={styles.priceSummary}>
-                  <View style={styles.priceSummaryRow}>
-                    <Text style={styles.priceSummaryLabel}>
+                <View style={styles.summaryBox}>
+                  <View style={styles.summaryLine}>
+                    <Text style={styles.summaryLabel}>
                       {selectedChildren.length} enfant
                       {selectedChildren.length > 1 ? "s" : ""}
                     </Text>
-                    <Text style={styles.priceSummaryValue}>
+                    <Text style={styles.summaryVal}>
                       {selectedChildren.length} ×{" "}
                       {selectedMode === "online"
                         ? tutor.hourlyRate
@@ -710,12 +863,10 @@ export default function TutorProfileScreen() {
                       €
                     </Text>
                   </View>
-                  <View style={styles.priceSummaryDivider} />
-                  <View style={styles.priceSummaryRow}>
-                    <Text style={styles.priceSummaryTotalLabel}>
-                      Total par séance
-                    </Text>
-                    <Text style={styles.priceSummaryTotalValue}>
+                  <View style={styles.summaryDivider} />
+                  <View style={styles.summaryLine}>
+                    <Text style={styles.summaryTotalLabel}>Total / séance</Text>
+                    <Text style={styles.summaryTotalVal}>
                       {calculateTotalPrice()}€
                     </Text>
                   </View>
@@ -723,17 +874,13 @@ export default function TutorProfileScreen() {
               )}
             </ScrollView>
 
-            {/* Book Button */}
             <TouchableOpacity
-              style={[
-                styles.modalBookButton,
-                !canBook && styles.modalBookButtonDisabled,
-              ]}
+              style={[styles.confirmBtn, !canBook && styles.confirmBtnDisabled]}
               onPress={handleBooking}
               disabled={!canBook}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
-              <Text style={styles.modalBookButtonText}>
+              <Text style={styles.confirmBtnText}>
                 Confirmer la réservation
               </Text>
             </TouchableOpacity>
@@ -744,730 +891,930 @@ export default function TutorProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.neutral.white,
-  },
-  header: {
-    alignItems: "center",
-    paddingVertical: 24,
-    paddingHorizontal: 24,
-    backgroundColor: COLORS.neutral.white,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  backButton: {
-    position: "absolute",
-    top: 16,
-    left: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.secondary[100],
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 10,
-  },
-  avatarContainer: {
-    position: "relative",
-    marginBottom: 16,
-  },
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 4,
-    borderColor: COLORS.primary.DEFAULT,
-  },
-  verifiedBadge: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.primary.DEFAULT,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 3,
-    borderColor: COLORS.neutral.white,
-  },
-  name: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 28,
-    color: COLORS.secondary[900],
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  ratingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: 8,
-  },
-  ratingText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 18,
-    color: COLORS.secondary[900],
-    fontWeight: "700",
-  },
-  reviewsText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    color: COLORS.secondary[600],
-    fontWeight: "500",
-  },
-  locationContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  locationText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[600],
-    fontWeight: "500",
-  },
-  quickInfoSection: {
-    flexDirection: "row",
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-    gap: 12,
-  },
-  quickInfoCard: {
-    flex: 1,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  quickInfoValue: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 22,
-    color: COLORS.secondary[900],
-    fontWeight: "700",
-    marginTop: 8,
-  },
-  quickInfoLabel: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    color: COLORS.secondary[600],
-    fontWeight: "500",
-    textAlign: "center",
-    marginTop: 4,
-  },
-  section: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 20,
-    color: COLORS.secondary[900],
-    fontWeight: "700",
-  },
-  sectionSubtitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[600],
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  bioText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    color: COLORS.secondary[700],
-    lineHeight: 24,
-  },
-  languagesContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  languageChip: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: COLORS.primary[50],
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.primary[200],
-  },
-  languageText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.primary.DEFAULT,
-    fontWeight: "600",
-  },
-  subjectsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  subjectCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    gap: 10,
-  },
-  subjectIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  subjectName: {
-    fontFamily: FONTS.primary,
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  curriculumCard: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  curriculumHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  curriculumHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
-  curriculumIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  curriculumInfo: {
-    flex: 1,
-  },
-  curriculumTitle: {
-    fontFamily: FONTS.primary,
-    fontSize: 16,
-    color: COLORS.secondary[900],
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  curriculumMeta: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[600],
-    fontWeight: "500",
-  },
-  curriculumDescription: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[700],
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  lessonsList: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.secondary[200],
-  },
-  lessonItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 10,
-  },
-  lessonNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary[50],
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  lessonNumberText: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 14,
-    color: COLORS.primary.DEFAULT,
-    fontWeight: "700",
-  },
-  lessonTitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[700],
-    flex: 1,
-  },
-  moreLessonsText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[500],
-    fontStyle: "italic",
-    marginTop: 8,
-    textAlign: "center",
-  },
-  methodologyText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    color: COLORS.secondary[700],
-    lineHeight: 24,
-    marginBottom: 16,
-  },
-  techniquesContainer: {
-    gap: 12,
-  },
-  techniqueItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-  },
-  techniqueBullet: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: COLORS.primary[50],
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 2,
-  },
-  techniqueText: {
-    flex: 1,
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[700],
-    lineHeight: 22,
-  },
-  reviewCard: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  reviewHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 12,
-  },
-  reviewParentName: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 15,
-    color: COLORS.secondary[900],
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  reviewChildName: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[600],
-    fontWeight: "500",
-  },
-  reviewRatingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  reviewRating: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 15,
-    color: COLORS.secondary[900],
-    fontWeight: "700",
-  },
-  reviewComment: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[700],
-    lineHeight: 22,
-    marginBottom: 8,
-  },
-  reviewDate: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    color: COLORS.secondary[500],
-    fontWeight: "500",
-  },
-  bottomBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: COLORS.neutral.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 16,
-    paddingBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 10,
-  },
-  pricingInfo: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 12,
-    paddingVertical: 8,
-    gap: 16,
-  },
-  priceItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  priceLabel: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[600],
-    fontWeight: "500",
-  },
-  priceValue: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 16,
-    color: COLORS.secondary[900],
-    fontWeight: "700",
-  },
-  priceDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: COLORS.secondary[300],
-  },
-  ctaButtonsContainer: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  messageButton: {
-    flex: 1,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    paddingVertical: 16,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-    borderWidth: 2,
-    borderColor: COLORS.primary.DEFAULT,
-  },
-  messageButtonText: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.primary.DEFAULT,
-    fontWeight: "700",
-  },
-  bookButton: {
-    flex: 1,
-    backgroundColor: COLORS.primary.DEFAULT,
-    borderRadius: 16,
-    paddingVertical: 16,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-    shadowColor: COLORS.primary.DEFAULT,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  bookButtonText: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.neutral.white,
-    fontWeight: "700",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    backgroundColor: COLORS.neutral.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: "90%",
-    paddingBottom: 24,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.secondary[200],
-  },
-  modalTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 22,
-    color: COLORS.secondary[900],
-    fontWeight: "700",
-  },
-  modalCloseButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.secondary[100],
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalSection: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-  },
-  modalSectionTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 16,
-    color: COLORS.secondary[900],
-    fontWeight: "700",
-    marginBottom: 12,
-  },
-  childOption: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-    borderWidth: 2,
-    borderColor: COLORS.secondary[200],
-  },
-  childOptionSelected: {
-    borderColor: COLORS.primary.DEFAULT,
-    backgroundColor: COLORS.primary[50],
-  },
-  childOptionInfo: {
-    flex: 1,
-  },
-  childOptionName: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 16,
-    color: COLORS.secondary[900],
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  childOptionDetails: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[600],
-    fontWeight: "500",
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: COLORS.secondary[300],
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  checkboxChecked: {
-    backgroundColor: COLORS.primary.DEFAULT,
-    borderColor: COLORS.primary.DEFAULT,
-  },
-  modeOptions: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  modeOption: {
-    flex: 1,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: COLORS.secondary[200],
-    alignItems: "center",
-    gap: 8,
-  },
-  modeOptionSelected: {
-    borderColor: COLORS.primary.DEFAULT,
-    backgroundColor: COLORS.primary[50],
-  },
-  modeOptionText: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 14,
-    color: COLORS.secondary[700],
-    fontWeight: "600",
-  },
-  modeOptionTextSelected: {
-    color: COLORS.primary.DEFAULT,
-    fontWeight: "700",
-  },
-  modeOptionPrice: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.secondary[900],
-    fontWeight: "700",
-  },
-  modeOptionPriceSelected: {
-    color: COLORS.primary.DEFAULT,
-  },
-  daysGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  dayOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: COLORS.secondary[200],
-    minWidth: "30%",
-    alignItems: "center",
-  },
-  dayOptionSelected: {
-    borderColor: COLORS.primary.DEFAULT,
-    backgroundColor: COLORS.primary[50],
-  },
-  dayOptionDisabled: {
-    backgroundColor: COLORS.secondary[50],
-    borderColor: COLORS.secondary[100],
-  },
-  dayOptionText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[700],
-    fontWeight: "600",
-  },
-  dayOptionTextSelected: {
-    color: COLORS.primary.DEFAULT,
-    fontWeight: "700",
-  },
-  dayOptionTextDisabled: {
-    color: COLORS.secondary[400],
-  },
-  timeSlotsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  timeSlot: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: COLORS.secondary[200],
-  },
-  timeSlotSelected: {
-    borderColor: COLORS.primary.DEFAULT,
-    backgroundColor: COLORS.primary.DEFAULT,
-  },
-  timeSlotText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[700],
-    fontWeight: "600",
-  },
-  timeSlotTextSelected: {
-    color: COLORS.neutral.white,
-    fontWeight: "700",
-  },
-  priceSummary: {
-    marginHorizontal: 24,
-    marginTop: 8,
-    marginBottom: 16,
-    padding: 16,
-    backgroundColor: COLORS.primary[50],
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.primary[200],
-  },
-  priceSummaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  priceSummaryLabel: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[700],
-    fontWeight: "500",
-  },
-  priceSummaryValue: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[700],
-    fontWeight: "600",
-  },
-  priceSummaryDivider: {
-    height: 1,
-    backgroundColor: COLORS.primary[200],
-    marginVertical: 8,
-  },
-  priceSummaryTotalLabel: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 16,
-    color: COLORS.secondary[900],
-    fontWeight: "700",
-  },
-  priceSummaryTotalValue: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 22,
-    color: COLORS.primary.DEFAULT,
-    fontWeight: "700",
-  },
-  modalBookButton: {
-    marginHorizontal: 24,
-    marginTop: 16,
-    backgroundColor: COLORS.primary.DEFAULT,
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: "center",
-    shadowColor: COLORS.primary.DEFAULT,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  modalBookButtonDisabled: {
-    backgroundColor: COLORS.secondary[300],
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  modalBookButtonText: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.neutral.white,
-    fontWeight: "700",
-  },
-});
+const createStyles = (
+  colors: import("@/constants/theme").ThemeColors,
+  isDark: boolean,
+) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollContent: {
+      paddingBottom: 20,
+    },
+
+    // Header with Organic Blob
+    headerWrapper: {
+      paddingTop: 16,
+      paddingBottom: 28,
+      alignItems: "center",
+      position: "relative",
+      overflow: "hidden",
+    },
+    blobBackground: {
+      position: "absolute",
+      top: -80,
+      left: -40,
+      width: SCREEN_WIDTH + 80,
+      height: 320,
+      backgroundColor: COLORS.primary[100],
+      borderBottomLeftRadius: 999,
+      borderBottomRightRadius: 999,
+      transform: [{ scaleX: 1.2 }],
+    },
+    blobAccent: {
+      position: "absolute",
+      top: -100,
+      right: -60,
+      width: 180,
+      height: 180,
+      backgroundColor: COLORS.primary[200],
+      borderRadius: 999,
+      opacity: 0.6,
+    },
+    backButton: {
+      position: "absolute",
+      top: 12,
+      left: 16,
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: colors.card,
+      justifyContent: "center",
+      alignItems: "center",
+      shadowColor: COLORS.neutral.black,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 4,
+      zIndex: 10,
+    },
+    favoriteButton: {
+      position: "absolute",
+      top: 12,
+      right: 16,
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: colors.card,
+      justifyContent: "center",
+      alignItems: "center",
+      shadowColor: COLORS.neutral.black,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 4,
+      zIndex: 10,
+    },
+
+    // Avatar Stack
+    avatarStack: {
+      marginTop: 40,
+      marginBottom: 16,
+      position: "relative",
+    },
+    avatarGlow: {
+      position: "absolute",
+      top: -8,
+      left: -8,
+      width: 126,
+      height: 126,
+      borderRadius: 63,
+      backgroundColor: COLORS.primary.DEFAULT,
+      opacity: 0.15,
+    },
+    avatar: {
+      width: 110,
+      height: 110,
+      borderRadius: 55,
+      borderWidth: 4,
+      borderColor: colors.card,
+    },
+    onlineIndicator: {
+      position: "absolute",
+      bottom: 6,
+      right: 6,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: COLORS.success,
+      borderWidth: 3,
+      borderColor: colors.card,
+    },
+
+    tutorName: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 28,
+      color: colors.textPrimary,
+      fontWeight: "700",
+      marginBottom: 10,
+      letterSpacing: -0.5,
+    },
+
+    ratingBubble: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.card,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 20,
+      gap: 6,
+      marginBottom: 10,
+      shadowColor: COLORS.neutral.black,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 6,
+      elevation: 3,
+    },
+    ratingValue: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 16,
+      color: colors.textPrimary,
+      fontWeight: "700",
+    },
+    ratingDivider: {
+      color: colors.textSecondary,
+      fontSize: 12,
+    },
+    reviewCount: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: "500",
+    },
+
+    locationChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      backgroundColor: COLORS.primary[50],
+      borderRadius: 14,
+    },
+    locationText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      color: COLORS.primary.DEFAULT,
+      fontWeight: "600",
+    },
+
+    // Stats Scroll
+    statsScroll: {
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      gap: 12,
+    },
+    statBubble: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.card,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderRadius: 20,
+      gap: 12,
+      shadowColor: COLORS.neutral.black,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    statBubbleFirst: {
+      marginLeft: 0,
+    },
+    statIconWrap: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    statNumber: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 20,
+      color: colors.textPrimary,
+      fontWeight: "700",
+    },
+    statUnit: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontWeight: "500",
+    },
+
+    // Bio Section
+    bioSection: {
+      paddingHorizontal: 24,
+      paddingTop: 24,
+      paddingBottom: 16,
+    },
+    sectionLabelWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 14,
+    },
+    sectionEmoji: {
+      fontSize: 22,
+    },
+    sectionLabel: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 20,
+      color: colors.textPrimary,
+      fontWeight: "700",
+    },
+    bioText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      color: colors.textPrimary,
+      lineHeight: 24,
+      letterSpacing: 0.1,
+    },
+
+    // Pills Section
+    pillSection: {
+      paddingHorizontal: 24,
+      paddingVertical: 16,
+    },
+    pillContainer: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 10,
+    },
+    languagePill: {
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+      borderRadius: 20,
+      backgroundColor: colors.input,
+    },
+    languagePillPrimary: {
+      backgroundColor: COLORS.primary.DEFAULT,
+    },
+    languagePillText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textPrimary,
+      fontWeight: "600",
+    },
+    languagePillTextPrimary: {
+      color: COLORS.neutral.white,
+    },
+
+    // Subjects Section
+    subjectsSection: {
+      paddingHorizontal: 24,
+      paddingVertical: 16,
+    },
+    subjectCards: {
+      flexDirection: "row",
+      gap: 16,
+    },
+    subjectCard: {
+      flex: 1,
+      backgroundColor: colors.card,
+      borderRadius: 24,
+      padding: 20,
+      alignItems: "center",
+      shadowColor: COLORS.neutral.black,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 12,
+      elevation: 5,
+    },
+    subjectIconCircle: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: 12,
+    },
+    subjectCardName: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 17,
+      color: colors.textPrimary,
+      fontWeight: "700",
+      marginBottom: 8,
+    },
+    subjectExpertTag: {
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      backgroundColor: COLORS.success + "20",
+      borderRadius: 10,
+    },
+    subjectExpertText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 11,
+      color: COLORS.success,
+      fontWeight: "700",
+      textTransform: "uppercase",
+    },
+
+    // Curriculum Section
+    curriculumSection: {
+      paddingHorizontal: 24,
+      paddingVertical: 16,
+    },
+    sectionSubtext: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 16,
+      marginTop: -6,
+    },
+    curriculumItem: {
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      marginBottom: 12,
+      overflow: "hidden",
+      shadowColor: COLORS.neutral.black,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    curriculumHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: 16,
+      gap: 12,
+    },
+    curriculumColorDot: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+    },
+    curriculumHeaderContent: {
+      flex: 1,
+    },
+    curriculumTitle: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 16,
+      color: colors.textPrimary,
+      fontWeight: "700",
+      marginBottom: 4,
+    },
+    curriculumMeta: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    curriculumMetaText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontWeight: "500",
+    },
+    curriculumMetaDot: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginHorizontal: 6,
+    },
+    expandButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.input,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    expandButtonActive: {
+      backgroundColor: COLORS.primary.DEFAULT,
+    },
+    curriculumExpanded: {
+      paddingHorizontal: 16,
+      paddingBottom: 16,
+    },
+    curriculumDescription: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 16,
+    },
+
+    // Timeline
+    lessonTimeline: {
+      paddingLeft: 4,
+    },
+    lessonTimelineItem: {
+      flexDirection: "row",
+      minHeight: 36,
+    },
+    timelineLeft: {
+      width: 24,
+      alignItems: "center",
+    },
+    timelineDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      marginTop: 4,
+    },
+    timelineLine: {
+      width: 2,
+      flex: 1,
+      marginTop: 4,
+    },
+    lessonTimelineText: {
+      flex: 1,
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textPrimary,
+      marginLeft: 12,
+      paddingBottom: 12,
+    },
+    moreIndicator: {
+      marginLeft: 36,
+      paddingVertical: 8,
+    },
+    moreIndicatorText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      color: COLORS.primary.DEFAULT,
+      fontWeight: "600",
+    },
+
+    // Methodology
+    methodologySection: {
+      paddingHorizontal: 24,
+      paddingVertical: 16,
+    },
+    methodologyQuote: {
+      backgroundColor: COLORS.primary[50],
+      borderRadius: 20,
+      padding: 20,
+      marginBottom: 16,
+    },
+    methodologyQuoteText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      color: colors.textPrimary,
+      lineHeight: 24,
+      fontStyle: "italic",
+    },
+    techniqueGrid: {
+      gap: 10,
+    },
+    techniqueChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      backgroundColor: colors.card,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 14,
+    },
+    techniqueChipText: {
+      flex: 1,
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textPrimary,
+      fontWeight: "500",
+    },
+
+    // Reviews
+    reviewsSection: {
+      paddingHorizontal: 24,
+      paddingVertical: 16,
+    },
+    reviewCard: {
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      padding: 20,
+      marginBottom: 12,
+      shadowColor: COLORS.neutral.black,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    reviewCardFirst: {
+      marginTop: 0,
+    },
+    reviewTop: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 12,
+    },
+    reviewStars: {
+      flexDirection: "row",
+      gap: 3,
+    },
+    reviewDateText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    reviewCommentText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textPrimary,
+      lineHeight: 22,
+      marginBottom: 16,
+    },
+    reviewAuthor: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    reviewAuthorAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: COLORS.primary.DEFAULT,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    reviewAuthorInitial: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 18,
+      color: COLORS.neutral.white,
+      fontWeight: "700",
+    },
+    reviewAuthorName: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textPrimary,
+      fontWeight: "700",
+    },
+    reviewAuthorChild: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+
+    // Bottom Floating Bar
+    bottomFloating: {
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      paddingBottom: 32,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      shadowColor: COLORS.neutral.black,
+      shadowOffset: { width: 0, height: -8 },
+      shadowOpacity: 0.12,
+      shadowRadius: 20,
+      elevation: 16,
+    },
+    priceTag: {
+      flexDirection: "row",
+      alignItems: "baseline",
+    },
+    priceFrom: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginRight: 4,
+    },
+    priceAmount: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 28,
+      color: COLORS.primary.DEFAULT,
+      fontWeight: "700",
+    },
+    priceUnit: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: "600",
+    },
+    bottomActions: {
+      flexDirection: "row",
+      gap: 10,
+    },
+    messageBtn: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor: COLORS.primary[50],
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    bookBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: COLORS.primary.DEFAULT,
+      paddingHorizontal: 28,
+      paddingVertical: 16,
+      borderRadius: 26,
+      shadowColor: COLORS.primary.DEFAULT,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.35,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    bookBtnText: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 17,
+      color: COLORS.neutral.white,
+      fontWeight: "700",
+    },
+
+    // Modal
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      justifyContent: "flex-end",
+    },
+    modalSheet: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 32,
+      borderTopRightRadius: 32,
+      maxHeight: "92%",
+      paddingBottom: 32,
+    },
+    modalHandle: {
+      width: 40,
+      height: 4,
+      backgroundColor: colors.border,
+      borderRadius: 2,
+      alignSelf: "center",
+      marginTop: 12,
+      marginBottom: 8,
+    },
+    modalHeaderRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: 24,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    modalTitle: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 24,
+      color: colors.textPrimary,
+      fontWeight: "700",
+    },
+    modalWith: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    modalCloseBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.input,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    modalBlock: {
+      paddingHorizontal: 24,
+      paddingVertical: 20,
+    },
+    modalBlockTitle: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 17,
+      color: colors.textPrimary,
+      fontWeight: "700",
+      marginBottom: 16,
+    },
+
+    // Child Selection
+    childRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.input,
+      borderRadius: 18,
+      padding: 14,
+      marginBottom: 10,
+      gap: 12,
+    },
+    childRowSelected: {
+      backgroundColor: COLORS.primary[50],
+    },
+    childInitial: {
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      backgroundColor: colors.card,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    childInitialSelected: {
+      backgroundColor: COLORS.primary.DEFAULT,
+    },
+    childInitialText: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 20,
+      color: colors.textPrimary,
+      fontWeight: "700",
+    },
+    childInitialTextSelected: {
+      color: COLORS.neutral.white,
+    },
+    childInfo: {
+      flex: 1,
+    },
+    childName: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 16,
+      color: colors.textPrimary,
+      fontWeight: "700",
+    },
+    childDetails: {
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    checkCircle: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      borderWidth: 2,
+      borderColor: colors.border,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    checkCircleChecked: {
+      backgroundColor: COLORS.primary.DEFAULT,
+      borderColor: COLORS.primary.DEFAULT,
+    },
+
+    // Mode Cards
+    modeRow: {
+      flexDirection: "row",
+      gap: 12,
+    },
+    modeCard: {
+      flex: 1,
+      backgroundColor: colors.input,
+      borderRadius: 20,
+      padding: 18,
+      alignItems: "center",
+      gap: 10,
+    },
+    modeCardSelected: {
+      backgroundColor: COLORS.primary[50],
+    },
+    modeIconBg: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor: colors.card,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    modeIconBgSelected: {
+      backgroundColor: COLORS.primary.DEFAULT,
+    },
+    modeLabel: {
+      fontFamily: FONTS.secondary,
+      fontSize: 15,
+      color: colors.textPrimary,
+      fontWeight: "700",
+    },
+    modeLabelSelected: {
+      color: COLORS.primary.DEFAULT,
+    },
+    modePrice: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 18,
+      color: colors.textSecondary,
+      fontWeight: "700",
+    },
+    modePriceSelected: {
+      color: COLORS.primary.DEFAULT,
+    },
+
+    // Day Pills
+    dayPills: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+    },
+    dayPill: {
+      paddingHorizontal: 18,
+      paddingVertical: 12,
+      backgroundColor: colors.input,
+      borderRadius: 16,
+    },
+    dayPillSelected: {
+      backgroundColor: COLORS.primary.DEFAULT,
+    },
+    dayPillDisabled: {
+      opacity: 0.4,
+    },
+    dayPillText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textPrimary,
+      fontWeight: "700",
+    },
+    dayPillTextSelected: {
+      color: COLORS.neutral.white,
+    },
+    dayPillTextDisabled: {
+      color: colors.textMuted,
+    },
+
+    // Time Slots
+    timeSlotRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 10,
+    },
+    timeSlotPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.input,
+      borderRadius: 14,
+    },
+    timeSlotPillSelected: {
+      backgroundColor: COLORS.primary.DEFAULT,
+    },
+    timeSlotText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textPrimary,
+      fontWeight: "600",
+    },
+    timeSlotTextSelected: {
+      color: COLORS.neutral.white,
+    },
+
+    // Summary Box
+    summaryBox: {
+      marginHorizontal: 24,
+      marginTop: 12,
+      padding: 20,
+      backgroundColor: COLORS.primary[50],
+      borderRadius: 20,
+    },
+    summaryLine: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    summaryLabel: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    summaryVal: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 16,
+      color: colors.textPrimary,
+      fontWeight: "700",
+    },
+    summaryDivider: {
+      height: 1,
+      backgroundColor: COLORS.primary[200],
+      marginVertical: 14,
+    },
+    summaryTotalLabel: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 16,
+      color: colors.textPrimary,
+      fontWeight: "700",
+    },
+    summaryTotalVal: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 24,
+      color: COLORS.primary.DEFAULT,
+      fontWeight: "700",
+    },
+
+    // Confirm Button
+    confirmBtn: {
+      marginHorizontal: 24,
+      marginTop: 20,
+      backgroundColor: COLORS.primary.DEFAULT,
+      borderRadius: 20,
+      paddingVertical: 18,
+      alignItems: "center",
+      shadowColor: COLORS.primary.DEFAULT,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.35,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    confirmBtnDisabled: {
+      backgroundColor: COLORS.secondary[300],
+      shadowOpacity: 0,
+      elevation: 0,
+    },
+    confirmBtnText: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 17,
+      color: COLORS.neutral.white,
+      fontWeight: "700",
+    },
+  });

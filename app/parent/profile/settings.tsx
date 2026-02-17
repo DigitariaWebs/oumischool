@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -36,6 +36,7 @@ import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { updateUser } from "@/store/slices/authSlice";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function ParentSettingsScreen() {
   const router = useRouter();
@@ -52,7 +53,7 @@ export default function ParentSettingsScreen() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [darkMode, setDarkMode] = useState(false);
+  const { isDark, setTheme } = useTheme();
   const [language, setLanguage] = useState("Français");
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -343,8 +344,8 @@ export default function ParentSettingsScreen() {
                 <Text style={styles.preferenceLabel}>Mode sombre</Text>
               </View>
               <Switch
-                value={darkMode}
-                onValueChange={setDarkMode}
+                value={isDark}
+                onValueChange={(value) => setTheme(value ? "dark" : "light")}
                 trackColor={{
                   false: COLORS.neutral[300],
                   true: COLORS.primary.DEFAULT,
@@ -571,7 +572,7 @@ export default function ParentSettingsScreen() {
           <View style={styles.card}>
             <TouchableOpacity
               style={styles.helpRow}
-              onPress={() => router.push("/parent/prifile/help")}
+              onPress={() => router.push("/parent/profile/help")}
             >
               <HelpCircle size={20} color={COLORS.secondary[700]} />
               <Text style={styles.helpText}>Centre d'aide</Text>

@@ -2,12 +2,14 @@ import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "./slices/authSlice";
 import childrenReducer from "./slices/childrenSlice";
 import aiContextReducer from "./slices/aiContextSlice";
+import themeReducer from "./slices/themeSlice";
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
     children: childrenReducer,
     aiContext: aiContextReducer,
+    theme: themeReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

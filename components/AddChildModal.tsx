@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
+import { useTheme } from "@/hooks/use-theme";
 
 interface AddChildModalProps {
   visible: boolean;
@@ -57,6 +58,7 @@ export default function AddChildModal({
   onClose,
   onAdd,
 }: AddChildModalProps) {
+  const { colors } = useTheme();
   const [name, setName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("");
@@ -67,6 +69,8 @@ export default function AddChildModal({
     dateOfBirth?: string;
     grade?: string;
   }>({});
+
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Calculate age from date of birth
   const calculateAge = (dob: string): number => {
@@ -200,7 +204,7 @@ export default function AddChildModal({
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Ajouter un enfant</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <X size={24} color={COLORS.secondary[600]} />
+              <X size={24} color={colors.icon} />
             </TouchableOpacity>
           </View>
 
@@ -219,7 +223,7 @@ export default function AddChildModal({
                   setName(text);
                   if (errors.name) setErrors({ ...errors, name: undefined });
                 }}
-                placeholderTextColor={COLORS.neutral[400]}
+                placeholderTextColor={colors.inputPlaceholder}
               />
               {errors.name && (
                 <Text style={styles.errorText}>{errors.name}</Text>
@@ -374,211 +378,212 @@ export default function AddChildModal({
   );
 }
 
-const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  modalContent: {
-    backgroundColor: COLORS.neutral.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 24,
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-    maxHeight: "90%",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 24,
-    fontWeight: "700",
-    color: COLORS.secondary[900],
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral[100],
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  scrollView: {
-    maxHeight: "70%",
-  },
-  inputGroup: {
-    marginBottom: 24,
-  },
-  label: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.secondary[700],
-    marginBottom: 8,
-  },
-  input: {
-    fontFamily: FONTS.primary,
-    fontSize: 16,
-    color: COLORS.secondary[900],
-    backgroundColor: COLORS.neutral[50],
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: COLORS.neutral[200],
-  },
-  dateInput: {
-    fontFamily: FONTS.primary,
-    fontSize: 16,
-    backgroundColor: COLORS.neutral[50],
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: COLORS.neutral[200],
-    justifyContent: "center",
-  },
-  dateInputText: {
-    fontFamily: FONTS.primary,
-    fontSize: 16,
-    color: COLORS.secondary[900],
-  },
-  dateInputPlaceholder: {
-    color: COLORS.neutral[400],
-  },
+const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
+  StyleSheet.create({
+    modalContainer: {
+      flex: 1,
+      justifyContent: "flex-end",
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+    },
+    backdrop: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    modalContent: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      paddingTop: 24,
+      paddingHorizontal: 24,
+      paddingBottom: 40,
+      maxHeight: "90%",
+    },
+    modalHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 24,
+    },
+    modalTitle: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 24,
+      fontWeight: "700",
+      color: colors.textPrimary,
+    },
+    closeButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.buttonSecondary,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    scrollView: {
+      maxHeight: "70%",
+    },
+    inputGroup: {
+      marginBottom: 24,
+    },
+    label: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+      marginBottom: 8,
+    },
+    input: {
+      fontFamily: FONTS.primary,
+      fontSize: 16,
+      color: colors.textPrimary,
+      backgroundColor: colors.input,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 2,
+      borderColor: colors.inputBorder,
+    },
+    dateInput: {
+      fontFamily: FONTS.primary,
+      fontSize: 16,
+      backgroundColor: colors.input,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 2,
+      borderColor: colors.inputBorder,
+      justifyContent: "center",
+    },
+    dateInputText: {
+      fontFamily: FONTS.primary,
+      fontSize: 16,
+      color: colors.textPrimary,
+    },
+    dateInputPlaceholder: {
+      color: colors.inputPlaceholder,
+    },
 
-  inputError: {
-    borderColor: COLORS.error,
-  },
-  errorText: {
-    fontFamily: FONTS.primary,
-    fontSize: 12,
-    color: COLORS.error,
-    marginTop: 4,
-  },
-  gradeGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  gradeButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: COLORS.neutral[100],
-    borderWidth: 2,
-    borderColor: COLORS.neutral[200],
-  },
-  gradeButtonSelected: {
-    backgroundColor: COLORS.primary[50],
-    borderColor: COLORS.primary.DEFAULT,
-  },
-  gradeButtonText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.secondary[600],
-  },
-  gradeButtonTextSelected: {
-    color: COLORS.primary.DEFAULT,
-  },
-  colorGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  colorButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 3,
-    borderColor: "transparent",
-  },
-  colorButtonSelected: {
-    borderColor: COLORS.secondary[300],
-  },
-  colorCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  previewCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.neutral[50],
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 8,
-  },
-  previewAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
-  },
-  previewAvatarText: {
-    fontSize: 28,
-    fontFamily: FONTS.fredoka,
-    fontWeight: "700",
-  },
-  previewInfo: {
-    flex: 1,
-  },
-  previewName: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.secondary[900],
-    marginBottom: 4,
-  },
-  previewDetails: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[500],
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 24,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: COLORS.neutral[100],
-    alignItems: "center",
-  },
-  cancelButtonText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.secondary[700],
-  },
-  submitButton: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary.DEFAULT,
-    alignItems: "center",
-  },
-  submitButtonDisabled: {
-    opacity: 0.5,
-  },
-  submitButtonText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    fontWeight: "700",
-    color: COLORS.neutral.white,
-  },
-});
+    inputError: {
+      borderColor: COLORS.error,
+    },
+    errorText: {
+      fontFamily: FONTS.primary,
+      fontSize: 12,
+      color: COLORS.error,
+      marginTop: 4,
+    },
+    gradeGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+    },
+    gradeButton: {
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 12,
+      backgroundColor: colors.buttonSecondary,
+      borderWidth: 2,
+      borderColor: colors.inputBorder,
+    },
+    gradeButtonSelected: {
+      backgroundColor: COLORS.primary[50],
+      borderColor: COLORS.primary.DEFAULT,
+    },
+    gradeButtonText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+    },
+    gradeButtonTextSelected: {
+      color: COLORS.primary.DEFAULT,
+    },
+    colorGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 12,
+    },
+    colorButton: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      justifyContent: "center",
+      alignItems: "center",
+      borderWidth: 3,
+      borderColor: "transparent",
+    },
+    colorButtonSelected: {
+      borderColor: colors.border,
+    },
+    colorCircle: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+    },
+    previewCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.input,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 8,
+    },
+    previewAvatar: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      justifyContent: "center",
+      alignItems: "center",
+      marginRight: 16,
+    },
+    previewAvatarText: {
+      fontSize: 28,
+      fontFamily: FONTS.fredoka,
+      fontWeight: "700",
+    },
+    previewInfo: {
+      flex: 1,
+    },
+    previewName: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 18,
+      fontWeight: "700",
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    previewDetails: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    buttonContainer: {
+      flexDirection: "row",
+      gap: 12,
+      marginTop: 24,
+    },
+    cancelButton: {
+      flex: 1,
+      paddingVertical: 16,
+      borderRadius: 12,
+      backgroundColor: colors.buttonSecondary,
+      alignItems: "center",
+    },
+    cancelButtonText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.buttonSecondaryText,
+    },
+    submitButton: {
+      flex: 1,
+      paddingVertical: 16,
+      borderRadius: 12,
+      backgroundColor: COLORS.primary.DEFAULT,
+      alignItems: "center",
+    },
+    submitButtonDisabled: {
+      opacity: 0.5,
+    },
+    submitButtonText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 16,
+      fontWeight: "700",
+      color: COLORS.neutral.white,
+    },
+  });
