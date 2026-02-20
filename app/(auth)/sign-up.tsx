@@ -9,33 +9,13 @@ import {
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
-// Removed SafeAreaView
-import { Mail, Lock, User, ArrowLeft, ArrowRight } from "lucide-react-native";
+import { Mail, Lock, User, ArrowLeft } from "lucide-react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
-import Svg, { Path } from "react-native-svg";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
-
-// Reusing same header background logic
-const HeaderBackground = () => (
-  <View style={styles.headerBackgroundContainer}>
-    <Svg
-      height="100%"
-      width="100%"
-      viewBox="0 0 375 300"
-      preserveAspectRatio="none"
-      style={StyleSheet.absoluteFill}
-    >
-      <Path
-        d="M0 0H375V220C375 220 280 280 187.5 280C95 280 0 220 0 220V0Z"
-        fill={COLORS.primary.DEFAULT}
-      />
-    </Svg>
-  </View>
-);
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -45,19 +25,17 @@ export default function SignUpScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // LOGIQUE INTACTE
   const handleSignUp = () => {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      // After signup, go to OTP verification first
       router.replace("/otp-verification");
     }, 1500);
   };
 
   return (
     <View style={styles.container}>
-      <HeaderBackground />
-
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
@@ -66,35 +44,40 @@ export default function SignUpScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {/* Header / Nav */}
-          <Animated.View
-            entering={FadeInUp.delay(200).duration(600)}
-            style={styles.header}
-          >
+          {/* Bouton retour */}
+          <Animated.View entering={FadeInUp.delay(200).duration(600)}>
             <TouchableOpacity
               style={styles.backButton}
               onPress={() => router.back()}
             >
-              <ArrowLeft size={24} color={COLORS.neutral.white} />
+              <ArrowLeft size={22} color="#1E293B" />
             </TouchableOpacity>
-            <Text style={styles.title}>Créer un compte</Text>
-            <Text style={styles.subtitle}>
-              Rejoignez la famille Oumi&apos;School
+          </Animated.View>
+
+          {/* Header */}
+          <Animated.View
+            entering={FadeInUp.delay(300).duration(600)}
+            style={styles.header}
+          >
+            <Text style={styles.headerLabel}>INSCRIPTION</Text>
+            <Text style={styles.headerTitle}>Créer un compte</Text>
+            <Text style={styles.headerSubtitle}>
+              Rejoignez la famille Oumi'School
             </Text>
           </Animated.View>
 
-          {/* Form Card */}
+          {/* Formulaire */}
           <Animated.View
             entering={FadeInDown.delay(400).duration(600)}
-            style={styles.card}
+            style={styles.formCard}
           >
             <Input
               label="Nom complet"
-              placeholder="Votre Nom"
+              placeholder="Votre nom"
               value={name}
               onChangeText={setName}
-              icon={<User size={20} color={COLORS.neutral[400]} />}
-              style={{ marginBottom: 20 }}
+              icon={<User size={18} color="#94A3B8" />}
+              containerStyle={styles.inputContainer}
             />
 
             <Input
@@ -104,8 +87,8 @@ export default function SignUpScreen() {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
-              icon={<Mail size={20} color={COLORS.neutral[400]} />}
-              style={{ marginBottom: 20 }}
+              icon={<Mail size={18} color="#94A3B8" />}
+              containerStyle={styles.inputContainer}
             />
 
             <Input
@@ -114,8 +97,8 @@ export default function SignUpScreen() {
               value={password}
               onChangeText={setPassword}
               isPassword
-              icon={<Lock size={20} color={COLORS.neutral[400]} />}
-              style={{ marginBottom: 20 }}
+              icon={<Lock size={18} color="#94A3B8" />}
+              containerStyle={styles.inputContainer}
             />
 
             <Input
@@ -124,7 +107,8 @@ export default function SignUpScreen() {
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               isPassword
-              icon={<Lock size={20} color={COLORS.neutral[400]} />}
+              icon={<Lock size={18} color="#94A3B8" />}
+              containerStyle={styles.inputContainer}
             />
 
             <Button
@@ -132,12 +116,7 @@ export default function SignUpScreen() {
               onPress={handleSignUp}
               isLoading={isLoading}
               fullWidth
-              style={{
-                marginTop: 24,
-                marginBottom: 16,
-                height: 56,
-              }}
-              icon={<ArrowRight size={20} color="white" />}
+              style={styles.signUpButton}
             />
           </Animated.View>
 
@@ -160,77 +139,83 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral[50],
-  },
-  headerBackgroundContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 350,
-    zIndex: 0,
+    backgroundColor: "#FFFFFF",
   },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 60, // Space for status bar + back button
+    paddingTop: 60,
     paddingBottom: 40,
   },
-  header: {
-    marginBottom: 30,
-    zIndex: 1,
-  },
+  
+  // Bouton retour
   backButton: {
     width: 44,
     height: 44,
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 999,
-    marginBottom: 20,
-  },
-  title: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 32,
-    color: COLORS.neutral.white,
-    marginBottom: 8,
-    textShadowColor: "rgba(0,0,0,0.1)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  subtitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    color: COLORS.neutral[100],
-    opacity: 0.9,
-  },
-  // Card
-  card: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 8,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
     marginBottom: 24,
   },
+
+  // Header
+  header: {
+    marginBottom: 24,
+  },
+  headerLabel: {
+    fontFamily: FONTS.secondary,
+    fontSize: 12,
+    color: "#6366F1",
+    letterSpacing: 1.2,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  headerTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 28,
+    color: "#1E293B",
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    fontSize: 15,
+    color: "#64748B",
+  },
+
+  // Formulaire
+  formCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    marginBottom: 24,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  signUpButton: {
+    marginTop: 8,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: "#6366F1",
+  },
+
+  // Footer
   footer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
   },
   footerText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    color: COLORS.secondary[600],
+    fontSize: 14,
+    color: "#64748B",
   },
   signInText: {
-    fontFamily: FONTS.secondary,
+    fontSize: 14,
     fontWeight: "700",
-    fontSize: 15,
-    color: COLORS.primary.DEFAULT,
+    color: "#6366F1",
   },
 });

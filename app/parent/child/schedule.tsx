@@ -6,8 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  StatusBar,
-  FlatList,
   Modal,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -20,15 +18,14 @@ import {
   Clock,
   MapPin,
   CalendarDays,
-  User2,
   X,
+  Users,
 } from "lucide-react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector } from "@/store/hooks";
-import { useTheme } from "@/hooks/use-theme";
 
 interface Session {
   id: string;
@@ -49,12 +46,19 @@ interface DaySchedule {
   sessions: Session[];
 }
 
-// Mock data - replace with API calls
+// Images pour les tuteurs
+const tutorImages = [
+  "https://cdn-icons-png.flaticon.com/512/4140/4140048.png",
+  "https://cdn-icons-png.flaticon.com/512/4140/4140049.png",
+  "https://cdn-icons-png.flaticon.com/512/4140/4140050.png",
+  "https://cdn-icons-png.flaticon.com/512/4140/4140051.png",
+];
+
 const mockSessions: Session[] = [
   {
     id: "1",
     tutorName: "Marie Dupont",
-    tutorAvatar: "https://via.placeholder.com/100",
+    tutorAvatar: tutorImages[0],
     subject: "Maths",
     subjectColor: "#3B82F6",
     time: "14:00",
@@ -63,8 +67,8 @@ const mockSessions: Session[] = [
   },
   {
     id: "2",
-    tutorName: "Marie Dupont",
-    tutorAvatar: "https://via.placeholder.com/100",
+    tutorName: "Jean Martin",
+    tutorAvatar: tutorImages[1],
     subject: "Français",
     subjectColor: "#EF4444",
     time: "16:00",
@@ -74,8 +78,8 @@ const mockSessions: Session[] = [
   },
   {
     id: "3",
-    tutorName: "Jean Martin",
-    tutorAvatar: "https://via.placeholder.com/100",
+    tutorName: "Sophie Leroy",
+    tutorAvatar: tutorImages[2],
     subject: "Sciences",
     subjectColor: "#10B981",
     time: "10:00",
@@ -85,32 +89,19 @@ const mockSessions: Session[] = [
 ];
 
 const getDayName = (date: Date): string => {
-  const days = [
-    "Dimanche",
-    "Lundi",
-    "Mardi",
-    "Mercredi",
-    "Jeudi",
-    "Vendredi",
-    "Samedi",
-  ];
+  const days = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+  return days[date.getDay()];
+};
+
+const getFullDayName = (date: Date): string => {
+  const days = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
   return days[date.getDay()];
 };
 
 const getMonthName = (date: Date): string => {
   const months = [
-    "Janvier",
-    "Février",
-    "Mars",
-    "Avril",
-    "Mai",
-    "Juin",
-    "Juillet",
-    "Août",
-    "Septembre",
-    "Octobre",
-    "Novembre",
-    "Décembre",
+    "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+    "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
   ];
   return months[date.getMonth()];
 };
@@ -119,26 +110,18 @@ const getWeekDates = (currentDate: Date): DaySchedule[] => {
   const week: DaySchedule[] = [];
   const startOfWeek = new Date(currentDate);
   const day = startOfWeek.getDay();
-  const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); // Start from Monday
+  const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
   startOfWeek.setDate(diff);
 
   for (let i = 0; i < 7; i++) {
     const date = new Date(startOfWeek);
     date.setDate(startOfWeek.getDate() + i);
 
-    // Mock: assign sessions to specific days
     let sessions: Session[] = [];
     const dayOfWeek = date.getDay();
-    if (dayOfWeek === 1) {
-      // Monday
-      sessions = [mockSessions[0]];
-    } else if (dayOfWeek === 3) {
-      // Wednesday
-      sessions = [mockSessions[1], mockSessions[2]];
-    } else if (dayOfWeek === 5) {
-      // Friday
-      sessions = [mockSessions[0]];
-    }
+    if (dayOfWeek === 1) sessions = [mockSessions[0]];
+    else if (dayOfWeek === 3) sessions = [mockSessions[1], mockSessions[2]];
+    else if (dayOfWeek === 5) sessions = [mockSessions[0]];
 
     week.push({
       date,
@@ -147,7 +130,6 @@ const getWeekDates = (currentDate: Date): DaySchedule[] => {
       sessions,
     });
   }
-
   return week;
 };
 
@@ -155,25 +137,17 @@ export default function ChildScheduleScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const childId = params.id as string;
-  const { isDark } = useTheme();
 
   const child = useAppSelector((state) =>
     state.children.children.find((c) => c.id === childId),
   );
 
-  const childColor = child?.color || COLORS.primary.DEFAULT;
+  const childColor = child?.color || "#6366F1";
 
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [weekDates, setWeekDates] = useState<DaySchedule[]>(
-    getWeekDates(new Date()),
-  );
+  const [weekDates, setWeekDates] = useState<DaySchedule[]>(getWeekDates(new Date()));
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
   const [selectedDay, setSelectedDay] = useState<DaySchedule | null>(null);
-
-  const styles = useMemo(
-    () => createStyles(isDark, childColor),
-    [isDark, childColor],
-  );
 
   const goToPreviousWeek = () => {
     const newDate = new Date(currentDate);
@@ -204,12 +178,8 @@ export default function ChildScheduleScreen() {
     );
   };
 
-  const totalSessions = weekDates.reduce(
-    (acc, day) => acc + day.sessions.length,
-    0,
-  );
+  const totalSessions = weekDates.reduce((acc, day) => acc + day.sessions.length, 0);
 
-  // Generate month calendar
   const getMonthDates = (): DaySchedule[] => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -217,42 +187,22 @@ export default function ChildScheduleScreen() {
     const lastDay = new Date(year, month + 1, 0);
     const dates: DaySchedule[] = [];
 
-    // Get day of week for first day (0 = Sunday, 1 = Monday, etc.)
     const startDay = firstDay.getDay();
-    const startOffset = startDay === 0 ? 6 : startDay - 1; // Convert to Monday start
+    const startOffset = startDay === 0 ? 6 : startDay - 1;
 
-    // Add empty slots for days before month starts
     for (let i = 0; i < startOffset; i++) {
       const date = new Date(year, month, 1 - (startOffset - i));
-      dates.push({
-        date,
-        dayName: getDayName(date),
-        dayNumber: date.getDate(),
-        sessions: [],
-      });
+      dates.push({ date, dayName: getDayName(date), dayNumber: date.getDate(), sessions: [] });
     }
 
-    // Add all days in month
     for (let day = 1; day <= lastDay.getDate(); day++) {
       const date = new Date(year, month, day);
-      let sessions: Session[] = [];
       const dayOfWeek = date.getDay();
-
-      // Mock: assign sessions to specific days
-      if (dayOfWeek === 1) {
-        sessions = [mockSessions[0]];
-      } else if (dayOfWeek === 3) {
-        sessions = [mockSessions[1], mockSessions[2]];
-      } else if (dayOfWeek === 5) {
-        sessions = [mockSessions[0]];
-      }
-
-      dates.push({
-        date,
-        dayName: getDayName(date),
-        dayNumber: date.getDate(),
-        sessions,
-      });
+      let sessions: Session[] = [];
+      if (dayOfWeek === 1) sessions = [mockSessions[0]];
+      else if (dayOfWeek === 3) sessions = [mockSessions[1], mockSessions[2]];
+      else if (dayOfWeek === 5) sessions = [mockSessions[0]];
+      dates.push({ date, dayName: getDayName(date), dayNumber: date.getDate(), sessions });
     }
 
     return dates;
@@ -275,13 +225,9 @@ export default function ChildScheduleScreen() {
   if (!child) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Enfant non trouvé</Text>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backButtonText}>Retour</Text>
           </TouchableOpacity>
         </View>
@@ -291,951 +237,753 @@ export default function ChildScheduleScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButtonIcon}
-          onPress={() => router.back()}
-        >
-          <ChevronLeft size={24} color={childColor} />
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <ChevronLeft size={22} color="#1E293B" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Planning de {child.name}</Text>
-          <Text style={styles.headerSubtitle}>
-            {viewMode === "week"
-              ? `${totalSessions} séance${totalSessions > 1 ? "s" : ""} cette semaine`
-              : getMonthName(currentDate)}
-          </Text>
+          <Text style={styles.headerTitle}>Planning</Text>
+          <Text style={styles.headerSubtitle}>{child.name}</Text>
         </View>
         <TouchableOpacity
-          style={styles.viewModeButton}
+          style={[styles.viewModeButton, { backgroundColor: childColor + "15" }]}
           onPress={() => setViewMode(viewMode === "week" ? "month" : "week")}
         >
           {viewMode === "week" ? (
-            <CalendarDays size={20} color={childColor} />
+            <CalendarDays size={18} color={childColor} />
           ) : (
-            <Calendar size={20} color={childColor} />
+            <Calendar size={18} color={childColor} />
           )}
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {viewMode === "week" ? (
-          <>
-            {/* Week Navigation */}
-            <Animated.View
-              entering={FadeInDown.duration(400)}
-              style={styles.weekNavigation}
-            >
-              <TouchableOpacity
-                style={styles.navButton}
-                onPress={goToPreviousWeek}
-                activeOpacity={0.7}
-              >
-                <ChevronLeft size={20} color={childColor} />
-              </TouchableOpacity>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Navigation */}
+        <View style={styles.navigation}>
+          <TouchableOpacity style={styles.navButton} onPress={viewMode === "week" ? goToPreviousWeek : goToPreviousMonth}>
+            <ChevronLeft size={18} color={childColor} />
+          </TouchableOpacity>
 
-              <View style={styles.weekInfoContainer}>
-                <Text style={styles.weekMonth}>
-                  {getMonthName(weekDates[0].date)}{" "}
-                  {weekDates[0].date.getFullYear()}
-                </Text>
-                <Text style={styles.weekRange}>
-                  {weekDates[0].dayNumber} - {weekDates[6].dayNumber}{" "}
-                  {weekDates[0].date.getMonth() !==
-                    weekDates[6].date.getMonth() &&
-                    getMonthName(weekDates[6].date)}
-                </Text>
-              </View>
+          <View style={styles.navInfo}>
+            <Text style={styles.navMonth}>
+              {viewMode === "week"
+                ? `${getMonthName(weekDates[0].date)} ${weekDates[0].date.getFullYear()}`
+                : `${getMonthName(currentDate)} ${currentDate.getFullYear()}`}
+            </Text>
+            {viewMode === "week" && (
+              <Text style={styles.navRange}>
+                {weekDates[0].dayNumber} - {weekDates[6].dayNumber}
+              </Text>
+            )}
+          </View>
 
-              <TouchableOpacity
-                style={styles.todayButtonSmall}
-                onPress={goToToday}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.todayButtonSmallText}>Aujourd'hui</Text>
-              </TouchableOpacity>
+          <TouchableOpacity style={styles.todayButton} onPress={goToToday}>
+            <Text style={[styles.todayButtonText, { color: childColor }]}>Aujourd'hui</Text>
+          </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.navButton}
-                onPress={goToNextWeek}
-                activeOpacity={0.7}
-              >
-                <ChevronRight size={20} color={childColor} />
-              </TouchableOpacity>
-            </Animated.View>
+          <TouchableOpacity style={styles.navButton} onPress={viewMode === "week" ? goToNextWeek : goToNextMonth}>
+            <ChevronRight size={18} color={childColor} />
+          </TouchableOpacity>
+        </View>
 
-            {/* Weekly Calendar */}
-            <View style={styles.calendarContainer}>
-              {weekDates.map((day, index) => {
-                const today = isToday(day.date);
-                return (
-                  <Animated.View
-                    key={index}
-                    entering={FadeInDown.delay(150 + index * 50).duration(400)}
-                    style={styles.dayContainer}
-                  >
-                    {/* Day Header */}
-                    <View
-                      style={[styles.dayHeader, today && styles.dayHeaderToday]}
-                    >
-                      <Text
-                        style={[
-                          styles.dayNameText,
-                          today && styles.dayNameTextToday,
-                        ]}
-                      >
-                        {day.dayName}
-                      </Text>
-                      <View
-                        style={[
-                          styles.dayNumberContainer,
-                          today && styles.dayNumberContainerToday,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.dayNumberText,
-                            today && styles.dayNumberTextToday,
-                          ]}
-                        >
-                          {day.dayNumber}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Sessions */}
-                    {day.sessions.length > 0 ? (
-                      <View style={styles.sessionsColumn}>
-                        {day.sessions.map((session, sessionIndex) => (
-                          <TouchableOpacity
-                            key={session.id}
-                            style={styles.sessionCard}
-                            activeOpacity={0.7}
-                          >
-                            <View style={styles.sessionHeader}>
-                              <View
-                                style={[
-                                  styles.sessionTimeBlock,
-                                  {
-                                    backgroundColor:
-                                      session.subjectColor + "20",
-                                  },
-                                ]}
-                              >
-                                <Text
-                                  style={[
-                                    styles.sessionTime,
-                                    { color: session.subjectColor },
-                                  ]}
-                                >
-                                  {session.time}
-                                </Text>
-                              </View>
-
-                              <View style={styles.sessionInfo}>
-                                <View style={styles.sessionTitleRow}>
-                                  <Text style={styles.sessionSubject}>
-                                    {session.subject}
-                                  </Text>
-                                  <View
-                                    style={[
-                                      styles.sessionModeBadge,
-                                      { backgroundColor: childColor + "15" },
-                                    ]}
-                                  >
-                                    {session.mode === "online" ? (
-                                      <Video size={14} color={childColor} />
-                                    ) : (
-                                      <MapPin size={14} color={childColor} />
-                                    )}
-                                  </View>
-                                </View>
-
-                                <View style={styles.sessionMetaRow}>
-                                  <View style={styles.sessionTutorInfo}>
-                                    <Image
-                                      source={{ uri: session.tutorAvatar }}
-                                      style={styles.sessionTutorAvatar}
-                                    />
-                                    <Text style={styles.sessionTutor}>
-                                      {session.tutorName}
-                                    </Text>
-                                  </View>
-                                  <View style={styles.sessionDuration}>
-                                    <Clock
-                                      size={12}
-                                      color={
-                                        isDark
-                                          ? COLORS.neutral[500]
-                                          : COLORS.secondary[400]
-                                      }
-                                    />
-                                    <Text style={styles.sessionDurationText}>
-                                      {session.duration}min
-                                    </Text>
-                                  </View>
-                                </View>
-                              </View>
-                            </View>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    ) : (
-                      <View style={styles.emptyDay}>
-                        <Text style={styles.emptyDayText}>Aucune séance</Text>
-                      </View>
-                    )}
-                  </Animated.View>
-                );
-              })}
+        {/* Carte résumé */}
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryItem}>
+              <Users size={16} color="#64748B" />
+              <Text style={styles.summaryValue}>{totalSessions}</Text>
+              <Text style={styles.summaryLabel}>Sessions</Text>
             </View>
-          </>
-        ) : (
-          <>
-            {/* Month Navigation */}
-            <Animated.View
-              entering={FadeInDown.duration(400)}
-              style={styles.monthNavigation}
-            >
-              <TouchableOpacity
-                style={styles.navButton}
-                onPress={goToPreviousMonth}
-                activeOpacity={0.7}
-              >
-                <ChevronLeft size={20} color={childColor} />
-              </TouchableOpacity>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryItem}>
+              <Clock size={16} color="#64748B" />
+              <Text style={styles.summaryValue}>3</Text>
+              <Text style={styles.summaryLabel}>Tuteurs</Text>
+            </View>
+          </View>
+        </View>
 
-              <View style={styles.monthInfoContainer}>
-                <Text style={styles.monthTitle}>
-                  {getMonthName(currentDate)} {currentDate.getFullYear()}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                style={styles.todayButtonSmall}
-                onPress={goToToday}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.todayButtonSmallText}>Aujourd'hui</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.navButton}
-                onPress={goToNextMonth}
-                activeOpacity={0.7}
-              >
-                <ChevronRight size={20} color={childColor} />
-              </TouchableOpacity>
-            </Animated.View>
-
-            {/* Month Calendar */}
-            <Animated.View
-              entering={FadeInDown.delay(100).duration(400)}
-              style={styles.monthContainer}
-            >
-              {/* Weekday Headers */}
-              <View style={styles.weekdayHeaders}>
-                {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map(
-                  (day, idx) => (
-                    <Text key={idx} style={styles.weekdayHeader}>
-                      {day}
+        {viewMode === "week" ? (
+          // Vue semaine
+          <View style={styles.weekContainer}>
+            {weekDates.map((day, index) => {
+              const today = isToday(day.date);
+              return (
+                <Animated.View
+                  key={index}
+                  entering={FadeInDown.delay(100 + index * 50).duration(400)}
+                  style={[styles.dayCard, today && styles.dayCardToday]}
+                >
+                  <View style={styles.dayHeader}>
+                    <Text style={[styles.dayName, today && { color: childColor }]}>
+                      {day.dayName}
                     </Text>
-                  ),
-                )}
-              </View>
-
-              {/* Calendar Grid */}
-              <View style={styles.monthGrid}>
-                {monthDates.map((day, index) => {
-                  const today = isToday(day.date);
-                  const isCurrentMonth =
-                    day.date.getMonth() === currentDate.getMonth();
-                  return (
-                    <TouchableOpacity
-                      key={index}
-                      style={[
-                        styles.monthDay,
-                        !isCurrentMonth && styles.monthDayOtherMonth,
-                        today && styles.monthDayToday,
-                      ]}
-                      onPress={() => setSelectedDay(day)}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.monthDayNumber,
-                          !isCurrentMonth && styles.monthDayNumberOther,
-                          today && [
-                            styles.monthDayNumberToday,
-                            { color: childColor },
-                          ],
-                        ]}
-                      >
+                    <View style={[styles.dayNumber, today && { backgroundColor: childColor }]}>
+                      <Text style={[styles.dayNumberText, today && { color: "white" }]}>
                         {day.dayNumber}
                       </Text>
-                      {day.sessions.length > 0 && (
-                        <View style={styles.monthDayDots}>
-                          {day.sessions.slice(0, 3).map((session, idx) => (
-                            <View
-                              key={idx}
-                              style={[
-                                styles.monthDayDot,
-                                { backgroundColor: session.subjectColor },
-                              ]}
-                            />
-                          ))}
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </Animated.View>
-          </>
-        )}
-
-        {/* Day Detail Modal */}
-        <Modal
-          visible={selectedDay !== null}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setSelectedDay(null)}
-        >
-          <View style={styles.modalOverlay}>
-            <Animated.View
-              entering={FadeInDown.duration(300)}
-              style={styles.dayDetailModal}
-            >
-              {selectedDay && (
-                <>
-                  <View style={styles.dayDetailHeader}>
-                    <View style={styles.dayDetailTitleContainer}>
-                      <Text style={styles.dayDetailDate}>
-                        {selectedDay.dayName} {selectedDay.dayNumber}{" "}
-                        {getMonthName(selectedDay.date)}
-                      </Text>
-                      {isToday(selectedDay.date) && (
-                        <View
-                          style={[
-                            styles.todayBadge,
-                            { backgroundColor: childColor + "20" },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.todayBadgeText,
-                              { color: childColor },
-                            ]}
-                          >
-                            Aujourd'hui
-                          </Text>
-                        </View>
-                      )}
                     </View>
-                    <TouchableOpacity
-                      onPress={() => setSelectedDay(null)}
-                      style={styles.modalCloseButton}
-                    >
-                      <X
-                        size={24}
-                        color={
-                          isDark ? COLORS.neutral[400] : COLORS.secondary[500]
-                        }
-                      />
-                    </TouchableOpacity>
                   </View>
 
-                  {selectedDay.sessions.length > 0 ? (
-                    <ScrollView
-                      style={styles.dayDetailSessions}
-                      showsVerticalScrollIndicator={false}
-                    >
-                      {selectedDay.sessions.map((session, idx) => (
-                        <View key={session.id} style={styles.modalSessionCard}>
+                  {day.sessions.length > 0 ? (
+                    <View style={styles.sessionsList}>
+                      {day.sessions.map((session) => (
+                        <TouchableOpacity
+                          key={session.id}
+                          style={styles.sessionCard}
+                          onPress={() => setSelectedDay(day)}
+                        >
                           <View style={styles.sessionHeader}>
-                            <View
-                              style={[
-                                styles.sessionTimeBlock,
-                                {
-                                  backgroundColor: session.subjectColor + "20",
-                                },
-                              ]}
-                            >
-                              <Text
-                                style={[
-                                  styles.sessionTime,
-                                  { color: session.subjectColor },
-                                ]}
-                              >
+                            <View style={[styles.sessionTime, { backgroundColor: session.subjectColor + "15" }]}>
+                              <Text style={[styles.sessionTimeText, { color: session.subjectColor }]}>
                                 {session.time}
                               </Text>
                             </View>
-
-                            <View style={styles.sessionInfo}>
-                              <View style={styles.sessionTitleRow}>
-                                <Text style={styles.sessionSubject}>
-                                  {session.subject}
-                                </Text>
-                                <View
-                                  style={[
-                                    styles.sessionModeBadge,
-                                    { backgroundColor: childColor + "15" },
-                                  ]}
-                                >
-                                  {session.mode === "online" ? (
-                                    <Video size={14} color={childColor} />
-                                  ) : (
-                                    <MapPin size={14} color={childColor} />
-                                  )}
-                                </View>
-                              </View>
-
-                              <View style={styles.sessionMetaRow}>
-                                <View style={styles.sessionTutorInfo}>
-                                  <Image
-                                    source={{ uri: session.tutorAvatar }}
-                                    style={styles.sessionTutorAvatar}
-                                  />
-                                  <Text style={styles.sessionTutor}>
-                                    {session.tutorName}
-                                  </Text>
-                                </View>
-                                <View style={styles.sessionDuration}>
-                                  <Clock
-                                    size={12}
-                                    color={
-                                      isDark
-                                        ? COLORS.neutral[500]
-                                        : COLORS.secondary[400]
-                                    }
-                                  />
-                                  <Text style={styles.sessionDurationText}>
-                                    {session.duration}min
-                                  </Text>
-                                </View>
-                              </View>
+                            <View style={styles.sessionMode}>
+                              {session.mode === "online" ? (
+                                <Video size={12} color={childColor} />
+                              ) : (
+                                <MapPin size={12} color={childColor} />
+                              )}
                             </View>
                           </View>
-                        </View>
+
+                          <View style={styles.sessionContent}>
+                            <Text style={styles.sessionSubject}>{session.subject}</Text>
+                            <View style={styles.sessionTutor}>
+                              <Image source={{ uri: session.tutorAvatar }} style={styles.tutorAvatar} />
+                              <Text style={styles.tutorName}>{session.tutorName}</Text>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
                       ))}
-                    </ScrollView>
+                    </View>
                   ) : (
-                    <View style={styles.dayDetailEmpty}>
-                      <Calendar
-                        size={48}
-                        color={
-                          isDark ? COLORS.neutral[600] : COLORS.neutral[400]
-                        }
-                      />
-                      <Text style={styles.dayDetailEmptyText}>
-                        Aucune séance prévue ce jour
-                      </Text>
+                    <View style={styles.emptyDay}>
+                      <Text style={styles.emptyDayText}>Aucune séance</Text>
                     </View>
                   )}
-                </>
-              )}
-            </Animated.View>
+                </Animated.View>
+              );
+            })}
           </View>
-        </Modal>
+        ) : (
+          // Vue mois
+          <View style={styles.monthContainer}>
+            <View style={styles.weekdays}>
+              {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((day, idx) => (
+                <Text key={idx} style={styles.weekdayText}>{day}</Text>
+              ))}
+            </View>
 
-        {/* Legend */}
-        <Animated.View
-          entering={FadeInDown.delay(500).duration(400)}
-          style={styles.legend}
-        >
+            <View style={styles.monthGrid}>
+              {monthDates.map((day, index) => {
+                const today = isToday(day.date);
+                const isCurrentMonth = day.date.getMonth() === currentDate.getMonth();
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.monthDay,
+                      !isCurrentMonth && styles.monthDayOther,
+                      today && styles.monthDayToday,
+                    ]}
+                    onPress={() => setSelectedDay(day)}
+                  >
+                    <Text
+                      style={[
+                        styles.monthDayNumber,
+                        !isCurrentMonth && styles.monthDayNumberOther,
+                        today && { color: childColor, fontWeight: "700" },
+                      ]}
+                    >
+                      {day.dayNumber}
+                    </Text>
+                    {day.sessions.length > 0 && (
+                      <View style={styles.monthDayDots}>
+                        {day.sessions.map((session, idx) => (
+                          <View
+                            key={idx}
+                            style={[styles.monthDayDot, { backgroundColor: session.subjectColor }]}
+                          />
+                        ))}
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* Légende */}
+        <View style={styles.legend}>
           <Text style={styles.legendTitle}>Légende</Text>
           <View style={styles.legendItems}>
             <View style={styles.legendItem}>
-              <Video size={16} color={childColor} />
+              <Video size={14} color="#6366F1" />
               <Text style={styles.legendText}>En ligne</Text>
             </View>
             <View style={styles.legendItem}>
-              <MapPin size={16} color={childColor} />
+              <MapPin size={14} color="#6366F1" />
               <Text style={styles.legendText}>Présentiel</Text>
             </View>
           </View>
-        </Animated.View>
+        </View>
+
+        {/* Bouton Add source */}
+        <TouchableOpacity style={styles.sourceButton}>
+          <Text style={styles.sourceButtonText}>+ Demander une session</Text>
+        </TouchableOpacity>
       </ScrollView>
+
+      {/* Modal détails du jour */}
+      <Modal visible={selectedDay !== null} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalDate}>
+                  {selectedDay && getFullDayName(selectedDay.date)} {selectedDay?.dayNumber}
+                </Text>
+                <Text style={styles.modalMonth}>
+                  {selectedDay && getMonthName(selectedDay.date)}
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedDay(null)}>
+                <X size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            {selectedDay && selectedDay.sessions.length > 0 ? (
+              <ScrollView style={styles.modalSessions}>
+                {selectedDay.sessions.map((session) => (
+                  <View key={session.id} style={styles.modalSessionCard}>
+                    <View style={styles.modalSessionHeader}>
+                      <View style={[styles.modalSessionTime, { backgroundColor: session.subjectColor + "15" }]}>
+                        <Text style={[styles.modalSessionTimeText, { color: session.subjectColor }]}>
+                          {session.time}
+                        </Text>
+                      </View>
+                      <View style={styles.modalSessionMode}>
+                        {session.mode === "online" ? (
+                          <>
+                            <Video size={12} color="#6366F1" />
+                            <Text style={styles.modalSessionModeText}>En ligne</Text>
+                          </>
+                        ) : (
+                          <>
+                            <MapPin size={12} color="#6366F1" />
+                            <Text style={styles.modalSessionModeText}>{session.location}</Text>
+                          </>
+                        )}
+                      </View>
+                    </View>
+
+                    <View style={styles.modalSessionBody}>
+                      <Text style={styles.modalSessionSubject}>{session.subject}</Text>
+                      <View style={styles.modalSessionTutor}>
+                        <Image source={{ uri: session.tutorAvatar }} style={styles.modalTutorAvatar} />
+                        <View>
+                          <Text style={styles.modalTutorName}>{session.tutorName}</Text>
+                          <Text style={styles.modalTutorDuration}>{session.duration} minutes</Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <View style={styles.modalEmpty}>
+                <Calendar size={40} color="#CBD5E1" />
+                <Text style={styles.modalEmptyText}>Aucune séance prévue</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const createStyles = (isDark: boolean, accentColor: string) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: isDark ? COLORS.neutral[900] : COLORS.neutral[50],
-    },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      backgroundColor: isDark ? COLORS.neutral[800] : COLORS.neutral.white,
-      borderBottomWidth: 1,
-      borderBottomColor: isDark ? COLORS.neutral[700] : COLORS.neutral[200],
-    },
-    backButtonIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: isDark ? accentColor + "30" : accentColor + "20",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    headerCenter: {
-      flex: 1,
-      alignItems: "center",
-    },
-    headerTitle: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 18,
-      fontWeight: "700",
-      color: isDark ? COLORS.neutral[100] : COLORS.secondary[900],
-      marginBottom: 4,
-    },
-    headerSubtitle: {
-      fontFamily: FONTS.secondary,
-      fontSize: 13,
-      color: isDark ? COLORS.neutral[400] : COLORS.secondary[600],
-    },
-    weekNavigation: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      backgroundColor: isDark ? COLORS.neutral[800] : COLORS.neutral.white,
-      marginHorizontal: 20,
-      marginTop: 16,
-      borderRadius: 16,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: 8,
-      elevation: 3,
-    },
-    navButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: isDark ? accentColor + "30" : accentColor + "20",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    weekInfoContainer: {
-      alignItems: "center",
-    },
-    weekMonth: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 18,
-      fontWeight: "700",
-      color: isDark ? COLORS.neutral[100] : COLORS.secondary[900],
-      marginBottom: 4,
-    },
-    weekRange: {
-      fontFamily: FONTS.secondary,
-      fontSize: 13,
-      color: isDark ? COLORS.neutral[400] : COLORS.secondary[600],
-    },
-    todayButtonSmall: {
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      backgroundColor: isDark ? accentColor + "30" : accentColor + "20",
-      borderRadius: 10,
-    },
-    todayButtonSmallText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 12,
-      fontWeight: "700",
-      color: accentColor,
-    },
-    viewModeButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: isDark ? accentColor + "30" : accentColor + "20",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    calendarContainer: {
-      paddingHorizontal: 20,
-      paddingTop: 16,
-      gap: 12,
-    },
-    dayContainer: {
-      backgroundColor: isDark ? COLORS.neutral[800] : COLORS.neutral.white,
-      borderRadius: 16,
-      overflow: "hidden",
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: 8,
-      elevation: 3,
-    },
-    dayHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      backgroundColor: isDark ? COLORS.neutral[700] : COLORS.neutral[100],
-    },
-    dayHeaderToday: {
-      backgroundColor: isDark ? accentColor + "30" : accentColor + "20",
-    },
-    dayNameText: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 16,
-      fontWeight: "700",
-      color: isDark ? COLORS.neutral[100] : COLORS.secondary[900],
-    },
-    dayNameTextToday: {
-      color: accentColor,
-    },
-    dayNumberContainer: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: isDark ? COLORS.neutral[600] : COLORS.neutral[200],
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    dayNumberContainerToday: {
-      backgroundColor: accentColor,
-    },
-    dayNumberText: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 15,
-      fontWeight: "700",
-      color: isDark ? COLORS.neutral[300] : COLORS.secondary[700],
-    },
-    dayNumberTextToday: {
-      color: COLORS.neutral.white,
-    },
-    sessionsColumn: {
-      padding: 16,
-      gap: 12,
-    },
-    sessionCard: {
-      backgroundColor: isDark ? COLORS.neutral[700] : COLORS.neutral.white,
-      borderRadius: 12,
-      padding: 12,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: isDark ? 0.2 : 0.05,
-      shadowRadius: 4,
-      elevation: 2,
-    },
-    sessionHeader: {
-      flexDirection: "row",
-      gap: 12,
-    },
-    sessionTimeBlock: {
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      borderRadius: 8,
-      justifyContent: "center",
-      alignItems: "center",
-      minWidth: 60,
-    },
-    sessionTime: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 15,
-      fontWeight: "700",
-    },
-    sessionInfo: {
-      flex: 1,
-      gap: 8,
-    },
-    sessionTitleRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
-    sessionSubject: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 16,
-      fontWeight: "700",
-      color: isDark ? COLORS.neutral[100] : COLORS.secondary[900],
-    },
-    sessionMetaRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
-    sessionTutorInfo: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-    },
-    sessionTutorAvatar: {
-      width: 24,
-      height: 24,
-      borderRadius: 12,
-    },
-    sessionTutor: {
-      fontFamily: FONTS.secondary,
-      fontSize: 13,
-      color: isDark ? COLORS.neutral[400] : COLORS.secondary[600],
-    },
-    sessionDuration: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-    },
-    sessionDurationText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 12,
-      color: isDark ? COLORS.neutral[500] : COLORS.secondary[500],
-    },
-    sessionModeBadge: {
-      width: 28,
-      height: 28,
-      borderRadius: 8,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    emptyDay: {
-      padding: 24,
-      alignItems: "center",
-    },
-    emptyDayText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 13,
-      color: isDark ? COLORS.neutral[500] : COLORS.secondary[400],
-      fontStyle: "italic",
-    },
-    monthNavigation: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      backgroundColor: isDark ? COLORS.neutral[800] : COLORS.neutral.white,
-      marginHorizontal: 20,
-      marginTop: 16,
-      borderRadius: 16,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: 8,
-      elevation: 3,
-      gap: 12,
-    },
-    monthInfoContainer: {
-      flex: 1,
-      alignItems: "center",
-    },
-    monthTitle: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 18,
-      fontWeight: "700",
-      color: isDark ? COLORS.neutral[100] : COLORS.secondary[900],
-    },
-    monthContainer: {
-      backgroundColor: isDark ? COLORS.neutral[800] : COLORS.neutral.white,
-      marginHorizontal: 20,
-      marginTop: 16,
-      borderRadius: 16,
-      padding: 16,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: 8,
-      elevation: 3,
-    },
-    weekdayHeaders: {
-      flexDirection: "row",
-      marginBottom: 12,
-    },
-    weekdayHeader: {
-      flex: 1,
-      fontFamily: FONTS.secondary,
-      fontSize: 12,
-      fontWeight: "700",
-      color: isDark ? COLORS.neutral[400] : COLORS.secondary[600],
-      textAlign: "center",
-      textTransform: "uppercase",
-    },
-    monthGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-    },
-    monthDay: {
-      width: "14.28%",
-      aspectRatio: 1,
-      padding: 4,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    monthDayOtherMonth: {
-      opacity: 0.3,
-    },
-    monthDayToday: {
-      backgroundColor: isDark ? accentColor + "20" : accentColor + "15",
-      borderRadius: 8,
-    },
-    monthDayNumber: {
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      fontWeight: "600",
-      color: isDark ? COLORS.neutral[200] : COLORS.secondary[900],
-      marginBottom: 2,
-    },
-    monthDayNumberOther: {
-      color: isDark ? COLORS.neutral[600] : COLORS.secondary[400],
-    },
-    monthDayNumberToday: {
-      fontWeight: "700",
-    },
-    monthDayDots: {
-      flexDirection: "row",
-      gap: 2,
-    },
-    monthDayDot: {
-      width: 4,
-      height: 4,
-      borderRadius: 2,
-    },
-    legend: {
-      marginHorizontal: 20,
-      marginTop: 16,
-      marginBottom: 24,
-      padding: 16,
-      backgroundColor: isDark ? COLORS.neutral[800] : COLORS.neutral.white,
-      borderRadius: 16,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: 8,
-      elevation: 3,
-    },
-    legendTitle: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 15,
-      fontWeight: "700",
-      color: isDark ? COLORS.neutral[100] : COLORS.secondary[900],
-      marginBottom: 12,
-    },
-    legendItems: {
-      flexDirection: "row",
-      gap: 20,
-    },
-    legendItem: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-    },
-    legendText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 13,
-      color: isDark ? COLORS.neutral[300] : COLORS.secondary[700],
-    },
-    errorContainer: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-      padding: 20,
-    },
-    errorText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 16,
-      color: COLORS.error,
-      marginBottom: 16,
-    },
-    backButton: {
-      paddingHorizontal: 24,
-      paddingVertical: 12,
-      borderRadius: 12,
-      backgroundColor: accentColor,
-    },
-    backButtonText: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 16,
-      fontWeight: "700",
-      color: COLORS.neutral.white,
-    },
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
-      justifyContent: "flex-end",
-    },
-    dayDetailModal: {
-      backgroundColor: isDark ? COLORS.neutral[800] : COLORS.neutral.white,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      paddingTop: 20,
-      paddingHorizontal: 20,
-      paddingBottom: 40,
-      maxHeight: "80%",
-    },
-    dayDetailHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "flex-start",
-      marginBottom: 20,
-      paddingBottom: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: isDark ? COLORS.neutral[700] : COLORS.neutral[200],
-    },
-    dayDetailTitleContainer: {
-      flex: 1,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-      flexWrap: "wrap",
-    },
-    dayDetailDate: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 20,
-      fontWeight: "700",
-      color: isDark ? COLORS.neutral[100] : COLORS.secondary[900],
-      textTransform: "capitalize",
-    },
-    todayBadge: {
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 8,
-    },
-    todayBadgeText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 12,
-      fontWeight: "700",
-    },
-    modalCloseButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: isDark ? COLORS.neutral[700] : COLORS.neutral[100],
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    dayDetailSessions: {
-      maxHeight: 500,
-    },
-    modalSessionCard: {
-      backgroundColor: isDark ? COLORS.neutral[700] : COLORS.neutral[50],
-      borderRadius: 12,
-      padding: 12,
-      marginBottom: 12,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: isDark ? 0.2 : 0.05,
-      shadowRadius: 4,
-      elevation: 2,
-    },
-    dayDetailEmpty: {
-      paddingVertical: 60,
-      alignItems: "center",
-      gap: 16,
-    },
-    dayDetailEmptyText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 15,
-      color: isDark ? COLORS.neutral[500] : COLORS.secondary[500],
-    },
-  });
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+
+  // Header
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  headerCenter: {
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 18,
+    color: "#1E293B",
+    marginBottom: 2,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: "#64748B",
+  },
+  viewModeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  // Navigation
+  navigation: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F8FAFC",
+    marginHorizontal: 20,
+    marginTop: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  navButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  navInfo: {
+    alignItems: "center",
+  },
+  navMonth: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 15,
+    color: "#1E293B",
+  },
+  navRange: {
+    fontSize: 12,
+    color: "#64748B",
+  },
+  todayButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  todayButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+
+  // Summary Card
+  summaryCard: {
+    backgroundColor: "#F8FAFC",
+    marginHorizontal: 20,
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+  },
+  summaryItem: {
+    alignItems: "center",
+  },
+  summaryValue: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 22,
+    color: "#1E293B",
+    marginTop: 6,
+    marginBottom: 2,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: "#64748B",
+  },
+  summaryDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: "#F1F5F9",
+  },
+
+  // Week View
+  weekContainer: {
+    paddingHorizontal: 20,
+    marginTop: 16,
+    gap: 12,
+  },
+  dayCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 20,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  dayCardToday: {
+    borderColor: "#6366F1",
+  },
+  dayHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  dayName: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 15,
+    color: "#1E293B",
+  },
+  dayNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  dayNumberText: {
+    fontSize: 13,
+    color: "#1E293B",
+    fontWeight: "600",
+  },
+  sessionsList: {
+    gap: 10,
+  },
+  sessionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  sessionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  sessionTime: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  sessionTimeText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  sessionMode: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: "#F8FAFC",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  sessionContent: {
+    gap: 4,
+  },
+  sessionSubject: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1E293B",
+  },
+  sessionTutor: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  tutorAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+  },
+  tutorName: {
+    fontSize: 12,
+    color: "#64748B",
+  },
+  emptyDay: {
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  emptyDayText: {
+    fontSize: 12,
+    color: "#94A3B8",
+    fontStyle: "italic",
+  },
+
+  // Month View
+  monthContainer: {
+    backgroundColor: "#F8FAFC",
+    marginHorizontal: 20,
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  weekdays: {
+    flexDirection: "row",
+    marginBottom: 12,
+  },
+  weekdayText: {
+    flex: 1,
+    fontSize: 12,
+    color: "#64748B",
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  monthGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  monthDay: {
+    width: "14.28%",
+    aspectRatio: 1,
+    padding: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  monthDayOther: {
+    opacity: 0.3,
+  },
+  monthDayToday: {
+    backgroundColor: "#EEF2FF",
+    borderRadius: 8,
+  },
+  monthDayNumber: {
+    fontSize: 14,
+    color: "#1E293B",
+    marginBottom: 2,
+  },
+  monthDayNumberOther: {
+    color: "#94A3B8",
+  },
+  monthDayDots: {
+    flexDirection: "row",
+    gap: 2,
+  },
+  monthDayDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+
+  // Legend
+  legend: {
+    backgroundColor: "#F8FAFC",
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  legendTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 15,
+    color: "#1E293B",
+    marginBottom: 10,
+  },
+  legendItems: {
+    flexDirection: "row",
+    gap: 20,
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  legendText: {
+    fontSize: 13,
+    color: "#64748B",
+  },
+
+  // Source Button
+  sourceButton: {
+    backgroundColor: "#F1F5F9",
+    marginHorizontal: 20,
+    marginTop: 8,
+    paddingVertical: 14,
+    borderRadius: 30,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  sourceButtonText: {
+    fontSize: 15,
+    color: "#64748B",
+    fontWeight: "600",
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: "80%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+    marginBottom: 16,
+  },
+  modalDate: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 18,
+    color: "#1E293B",
+    marginBottom: 2,
+  },
+  modalMonth: {
+    fontSize: 14,
+    color: "#64748B",
+  },
+  modalClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#F8FAFC",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  modalSessions: {
+    gap: 12,
+  },
+  modalSessionCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  modalSessionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  modalSessionTime: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  modalSessionTimeText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  modalSessionMode: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  modalSessionModeText: {
+    fontSize: 11,
+    color: "#6366F1",
+    fontWeight: "600",
+  },
+  modalSessionBody: {
+    gap: 8,
+  },
+  modalSessionSubject: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1E293B",
+  },
+  modalSessionTutor: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  modalTutorAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+  },
+  modalTutorName: {
+    fontSize: 14,
+    color: "#1E293B",
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  modalTutorDuration: {
+    fontSize: 11,
+    color: "#64748B",
+  },
+  modalEmpty: {
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: 16,
+  },
+  modalEmptyText: {
+    fontSize: 15,
+    color: "#94A3B8",
+  },
+
+  // Error
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#EF4444",
+    marginBottom: 16,
+  },
+  backButtonText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+});

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,12 +11,11 @@ import {
   Platform,
 } from "react-native";
 import Animated, { FadeInDown, SlideInUp } from "react-native-reanimated";
-import { X } from "lucide-react-native";
+import { X, User, Cake, GraduationCap, Sparkles } from "lucide-react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
-import { useTheme } from "@/hooks/use-theme";
 
 interface AddChildModalProps {
   visible: boolean;
@@ -58,7 +57,6 @@ export default function AddChildModal({
   onClose,
   onAdd,
 }: AddChildModalProps) {
-  const { colors } = useTheme();
   const [name, setName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("");
@@ -70,19 +68,13 @@ export default function AddChildModal({
     grade?: string;
   }>({});
 
-  const styles = useMemo(() => createStyles(colors), [colors]);
-
-  // Calculate age from date of birth
   const calculateAge = (dob: string): number => {
     if (!dob) return 0;
     const today = new Date();
     const birthDate = new Date(dob);
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birthDate.getDate())
-    ) {
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
     return age;
@@ -90,7 +82,6 @@ export default function AddChildModal({
 
   const age = calculateAge(dateOfBirth);
 
-  // Format date for display
   const formatDateForDisplay = (dateStr: string): string => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
@@ -116,8 +107,7 @@ export default function AddChildModal({
   };
 
   const validate = () => {
-    const newErrors: { name?: string; dateOfBirth?: string; grade?: string } =
-      {};
+    const newErrors: { name?: string; dateOfBirth?: string; grade?: string } = {};
 
     if (!name.trim()) {
       newErrors.name = "Le nom est requis";
@@ -152,7 +142,6 @@ export default function AddChildModal({
     }
   };
 
-  // Calculate default date for picker (10 years ago)
   const getDefaultDate = (): Date => {
     if (dateOfBirth) {
       return new Date(dateOfBirth);
@@ -162,7 +151,6 @@ export default function AddChildModal({
     return defaultDate;
   };
 
-  // Calculate min/max dates for age 3-18
   const getMaxDate = (): Date => {
     const maxDate = new Date();
     maxDate.setFullYear(maxDate.getFullYear() - 3);
@@ -204,17 +192,17 @@ export default function AddChildModal({
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Ajouter un enfant</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <X size={24} color={colors.icon} />
+              <X size={20} color="#64748B" />
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            style={styles.scrollView}
-          >
-            {/* Name Input */}
+          <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
+            {/* Nom */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Prénom</Text>
+              <View style={styles.labelContainer}>
+                <User size={14} color="#64748B" />
+                <Text style={styles.label}>Prénom</Text>
+              </View>
               <TextInput
                 style={[styles.input, errors.name && styles.inputError]}
                 placeholder="Entrez le prénom"
@@ -223,22 +211,20 @@ export default function AddChildModal({
                   setName(text);
                   if (errors.name) setErrors({ ...errors, name: undefined });
                 }}
-                placeholderTextColor={colors.inputPlaceholder}
+                placeholderTextColor="#94A3B8"
               />
-              {errors.name && (
-                <Text style={styles.errorText}>{errors.name}</Text>
-              )}
+              {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
             </View>
 
-            {/* Date of Birth Input */}
+            {/* Date de naissance */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Date de naissance</Text>
+              <View style={styles.labelContainer}>
+                <Cake size={14} color="#64748B" />
+                <Text style={styles.label}>Date de naissance</Text>
+              </View>
               <TouchableOpacity
-                style={[
-                  styles.dateInput,
-                  errors.dateOfBirth && styles.inputError,
-                ]}
-                onPress={() => setShowDatePicker(!showDatePicker)}
+                style={[styles.dateInput, errors.dateOfBirth && styles.inputError]}
+                onPress={() => setShowDatePicker(true)}
               >
                 <Text
                   style={[
@@ -248,14 +234,13 @@ export default function AddChildModal({
                 >
                   {dateOfBirth
                     ? formatDateForDisplay(dateOfBirth)
-                    : "Sélectionner la date de naissance"}
+                    : "Sélectionner la date"}
                 </Text>
               </TouchableOpacity>
               {errors.dateOfBirth && (
                 <Text style={styles.errorText}>{errors.dateOfBirth}</Text>
               )}
 
-              {/* Native Date Picker */}
               {showDatePicker && (
                 <DateTimePicker
                   value={getDefaultDate()}
@@ -269,41 +254,45 @@ export default function AddChildModal({
               )}
             </View>
 
-            {/* Grade Selection */}
+            {/* Niveau scolaire */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Niveau scolaire</Text>
-              <View style={styles.gradeGrid}>
-                {GRADES.map((grade) => (
-                  <TouchableOpacity
-                    key={grade}
-                    style={[
-                      styles.gradeButton,
-                      selectedGrade === grade && styles.gradeButtonSelected,
-                    ]}
-                    onPress={() => {
-                      setSelectedGrade(grade);
-                      if (errors.grade)
-                        setErrors({ ...errors, grade: undefined });
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.gradeButtonText,
-                        selectedGrade === grade &&
-                          styles.gradeButtonTextSelected,
-                      ]}
-                    >
-                      {grade}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              <View style={styles.labelContainer}>
+                <GraduationCap size={14} color="#64748B" />
+                <Text style={styles.label}>Niveau scolaire</Text>
               </View>
-              {errors.grade && (
-                <Text style={styles.errorText}>{errors.grade}</Text>
-              )}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.gradeScroll}>
+                <View style={styles.gradeContainer}>
+                  {GRADES.map((grade) => (
+                    <TouchableOpacity
+                      key={grade}
+                      style={[
+                        styles.gradeChip,
+                        selectedGrade === grade && {
+                          backgroundColor: selectedColor + "15",
+                          borderColor: selectedColor,
+                        },
+                      ]}
+                      onPress={() => {
+                        setSelectedGrade(grade);
+                        if (errors.grade) setErrors({ ...errors, grade: undefined });
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.gradeChipText,
+                          selectedGrade === grade && { color: selectedColor },
+                        ]}
+                      >
+                        {grade}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+              {errors.grade && <Text style={styles.errorText}>{errors.grade}</Text>}
             </View>
 
-            {/* Color Selection */}
+            {/* Couleur */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Couleur du profil</Text>
               <View style={styles.colorGrid}>
@@ -311,35 +300,25 @@ export default function AddChildModal({
                   <TouchableOpacity
                     key={color}
                     style={[
-                      styles.colorButton,
-                      { backgroundColor: color + "30" },
-                      selectedColor === color && styles.colorButtonSelected,
+                      styles.colorOption,
+                      selectedColor === color && styles.colorOptionSelected,
                     ]}
                     onPress={() => setSelectedColor(color)}
                   >
-                    <View
-                      style={[styles.colorCircle, { backgroundColor: color }]}
-                    />
+                    <View style={[styles.colorCircle, { backgroundColor: color }]} />
                   </TouchableOpacity>
                 ))}
               </View>
             </View>
 
-            {/* Preview */}
+            {/* Aperçu */}
             {name && (
               <Animated.View
                 entering={FadeInDown.duration(400)}
-                style={styles.previewCard}
+                style={[styles.previewCard, { borderLeftColor: selectedColor }]}
               >
-                <View
-                  style={[
-                    styles.previewAvatar,
-                    { backgroundColor: selectedColor + "40" },
-                  ]}
-                >
-                  <Text
-                    style={[styles.previewAvatarText, { color: selectedColor }]}
-                  >
+                <View style={[styles.previewAvatar, { backgroundColor: selectedColor + "15" }]}>
+                  <Text style={[styles.previewAvatarText, { color: selectedColor }]}>
                     {name.charAt(0).toUpperCase()}
                   </Text>
                 </View>
@@ -351,11 +330,12 @@ export default function AddChildModal({
                     {selectedGrade}
                   </Text>
                 </View>
+                <Sparkles size={16} color={selectedColor} />
               </Animated.View>
             )}
           </ScrollView>
 
-          {/* Action Buttons */}
+          {/* Boutons */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.cancelButton} onPress={handleClose}>
               <Text style={styles.cancelButtonText}>Annuler</Text>
@@ -363,8 +343,8 @@ export default function AddChildModal({
             <TouchableOpacity
               style={[
                 styles.submitButton,
-                (!name || !dateOfBirth || !selectedGrade) &&
-                  styles.submitButtonDisabled,
+                { backgroundColor: selectedColor },
+                (!name || !dateOfBirth || !selectedGrade) && styles.submitButtonDisabled,
               ]}
               onPress={handleSubmit}
               disabled={!name || !dateOfBirth || !selectedGrade}
@@ -378,212 +358,205 @@ export default function AddChildModal({
   );
 }
 
-const createStyles = (colors: import("@/constants/theme").ThemeColors) =>
-  StyleSheet.create({
-    modalContainer: {
-      flex: 1,
-      justifyContent: "flex-end",
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
-    },
-    backdrop: {
-      ...StyleSheet.absoluteFillObject,
-    },
-    modalContent: {
-      backgroundColor: colors.card,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      paddingTop: 24,
-      paddingHorizontal: 24,
-      paddingBottom: 40,
-      maxHeight: "90%",
-    },
-    modalHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 24,
-    },
-    modalTitle: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 24,
-      fontWeight: "700",
-      color: colors.textPrimary,
-    },
-    closeButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.buttonSecondary,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    scrollView: {
-      maxHeight: "70%",
-    },
-    inputGroup: {
-      marginBottom: 24,
-    },
-    label: {
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      fontWeight: "600",
-      color: colors.textSecondary,
-      marginBottom: 8,
-    },
-    input: {
-      fontFamily: FONTS.primary,
-      fontSize: 16,
-      color: colors.textPrimary,
-      backgroundColor: colors.input,
-      borderRadius: 12,
-      padding: 16,
-      borderWidth: 2,
-      borderColor: colors.inputBorder,
-    },
-    dateInput: {
-      fontFamily: FONTS.primary,
-      fontSize: 16,
-      backgroundColor: colors.input,
-      borderRadius: 12,
-      padding: 16,
-      borderWidth: 2,
-      borderColor: colors.inputBorder,
-      justifyContent: "center",
-    },
-    dateInputText: {
-      fontFamily: FONTS.primary,
-      fontSize: 16,
-      color: colors.textPrimary,
-    },
-    dateInputPlaceholder: {
-      color: colors.inputPlaceholder,
-    },
-
-    inputError: {
-      borderColor: COLORS.error,
-    },
-    errorText: {
-      fontFamily: FONTS.primary,
-      fontSize: 12,
-      color: COLORS.error,
-      marginTop: 4,
-    },
-    gradeGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 8,
-    },
-    gradeButton: {
-      paddingHorizontal: 16,
-      paddingVertical: 10,
-      borderRadius: 12,
-      backgroundColor: colors.buttonSecondary,
-      borderWidth: 2,
-      borderColor: colors.inputBorder,
-    },
-    gradeButtonSelected: {
-      backgroundColor: COLORS.primary[50],
-      borderColor: COLORS.primary.DEFAULT,
-    },
-    gradeButtonText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      fontWeight: "600",
-      color: colors.textSecondary,
-    },
-    gradeButtonTextSelected: {
-      color: COLORS.primary.DEFAULT,
-    },
-    colorGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 12,
-    },
-    colorButton: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      justifyContent: "center",
-      alignItems: "center",
-      borderWidth: 3,
-      borderColor: "transparent",
-    },
-    colorButtonSelected: {
-      borderColor: colors.border,
-    },
-    colorCircle: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-    },
-    previewCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: colors.input,
-      borderRadius: 16,
-      padding: 16,
-      marginBottom: 8,
-    },
-    previewAvatar: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      justifyContent: "center",
-      alignItems: "center",
-      marginRight: 16,
-    },
-    previewAvatarText: {
-      fontSize: 28,
-      fontFamily: FONTS.fredoka,
-      fontWeight: "700",
-    },
-    previewInfo: {
-      flex: 1,
-    },
-    previewName: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 18,
-      fontWeight: "700",
-      color: colors.textPrimary,
-      marginBottom: 4,
-    },
-    previewDetails: {
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      color: colors.textSecondary,
-    },
-    buttonContainer: {
-      flexDirection: "row",
-      gap: 12,
-      marginTop: 24,
-    },
-    cancelButton: {
-      flex: 1,
-      paddingVertical: 16,
-      borderRadius: 12,
-      backgroundColor: colors.buttonSecondary,
-      alignItems: "center",
-    },
-    cancelButtonText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 16,
-      fontWeight: "600",
-      color: colors.buttonSecondaryText,
-    },
-    submitButton: {
-      flex: 1,
-      paddingVertical: 16,
-      borderRadius: 12,
-      backgroundColor: COLORS.primary.DEFAULT,
-      alignItems: "center",
-    },
-    submitButtonDisabled: {
-      opacity: 0.5,
-    },
-    submitButtonText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 16,
-      fontWeight: "700",
-      color: COLORS.neutral.white,
-    },
-  });
+const styles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+    maxHeight: "90%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 22,
+    color: "#1E293B",
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  scrollView: {
+    maxHeight: "70%",
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  labelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 6,
+  },
+  label: {
+    fontSize: 13,
+    color: "#64748B",
+    fontWeight: "600",
+  },
+  input: {
+    fontSize: 15,
+    color: "#1E293B",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  inputError: {
+    borderColor: "#EF4444",
+  },
+  errorText: {
+    fontSize: 11,
+    color: "#EF4444",
+    marginTop: 4,
+  },
+  dateInput: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  dateInputText: {
+    fontSize: 15,
+    color: "#1E293B",
+  },
+  dateInputPlaceholder: {
+    color: "#94A3B8",
+  },
+  gradeScroll: {
+    flexGrow: 0,
+  },
+  gradeContainer: {
+    flexDirection: "row",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  gradeChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  gradeChipText: {
+    fontSize: 13,
+    color: "#64748B",
+  },
+  colorGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 4,
+  },
+  colorOption: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  colorOptionSelected: {
+    borderColor: "#6366F1",
+  },
+  colorCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+  },
+  previewCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 20,
+    padding: 16,
+    marginVertical: 8,
+    borderLeftWidth: 4,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  previewAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 14,
+  },
+  previewAvatarText: {
+    fontSize: 22,
+    fontFamily: FONTS.fredoka,
+    fontWeight: "600",
+  },
+  previewInfo: {
+    flex: 1,
+  },
+  previewName: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 16,
+    color: "#1E293B",
+    marginBottom: 2,
+  },
+  previewDetails: {
+    fontSize: 13,
+    color: "#64748B",
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 20,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 30,
+    backgroundColor: "#F8FAFC",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  cancelButtonText: {
+    fontSize: 15,
+    color: "#64748B",
+    fontWeight: "600",
+  },
+  submitButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 30,
+    alignItems: "center",
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
+    backgroundColor: "#CBD5E1",
+  },
+  submitButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "white",
+  },
+});

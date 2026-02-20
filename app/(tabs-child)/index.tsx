@@ -1,442 +1,521 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  StatusBar,
-  Pressable,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Alert } from "react-native";
 import { useRouter } from "expo-router";
-import {
-  Star,
-  Trophy,
-  ChevronRight,
-  Play,
-  Sparkles,
-  Calculator,
-  FileText,
-  Droplets,
-  Flame,
-} from "lucide-react-native";
-import Animated, {
-  FadeInUp,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
-
+import { Search, Bell, Clock, Play, Sparkles, BookOpen, Brain, Award, Users, GraduationCap } from "lucide-react-native";
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector } from "@/store/hooks";
 import { AnimatedSection } from "@/components/ui";
 
+// Données pour les leçons (style photo)
 const TODAY_LESSONS = [
-  {
-    id: 1,
-    subject: "Maths",
-    title: "Les fractions",
-    duration: 25,
-    completed: false,
-    Icon: Calculator,
-    color: "#3B82F6",
-    route: "/lessons/math-fractions",
+  { 
+    id: 1, 
+    subject: "Mathématiques", 
+    title: "Les fractions", 
+    duration: "08:00", 
+    color: "#E0F2FE", 
+    accent: "#0EA5E9",
+    image: "https://cdn-icons-png.flaticon.com/512/2436/2436633.png", 
+    route: "/lessons/math-fractions" 
   },
-  {
-    id: 2,
-    subject: "Français",
-    title: "Conjugaison",
-    duration: 20,
-    completed: true,
-    Icon: FileText,
-    color: "#EC4899",
-    route: "/lessons/french-tenses",
+  { 
+    id: 2, 
+    subject: "Sciences", 
+    title: "Cycle de l'eau", 
+    duration: "09:30", 
+    color: "#DCFCE7", 
+    accent: "#22C55E",
+    image: "https://cdn-icons-png.flaticon.com/512/4148/4148441.png", 
+    route: "/lessons/science-solar-system" 
   },
-  {
-    id: 3,
-    subject: "Sciences",
-    title: "L'eau",
-    duration: 30,
-    completed: false,
-    Icon: Droplets,
-    color: "#10B981",
-    route: "/lessons/science-solar-system",
+  { 
+    id: 3, 
+    subject: "Français", 
+    title: "Conjugaison", 
+    duration: "10:30", 
+    color: "#FEF9C3", 
+    accent: "#EAB308",
+    image: "https://cdn-icons-png.flaticon.com/512/1670/1670915.png", 
+    route: "/lessons/french-tenses" 
   },
 ];
 
-const springConfig = { damping: 12, stiffness: 150 };
+// Données Oumi'School
+const PROGRAMME_SEMAINE = [
+  { jour: "Lun", heure: "08:00", cours: "Mathématiques", couleur: "#E0F2FE" },
+  { jour: "Mar", heure: "09:00", cours: "Français", couleur: "#FEF9C3" },
+  { jour: "Mer", heure: "10:00", cours: "Sciences", couleur: "#DCFCE7" },
+  { jour: "Jeu", heure: "11:00", cours: "Histoire", couleur: "#FFE4E6" },
+  { jour: "Ven", heure: "12:00", cours: "Géographie", couleur: "#F3E8FF" },
+  { jour: "Sam", heure: "13:00", cours: "Évaluation", couleur: "#F1F5F9" },
+];
 
-function BouncyCard({
-  children,
-  onPress,
-  delay,
-  style,
-}: {
-  children: React.ReactNode;
-  onPress?: () => void;
-  delay: number;
-  style?: object;
-}) {
-  const scale = useSharedValue(1);
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  return (
-    <Animated.View
-      entering={FadeInUp.delay(delay).springify().damping(14)}
-      style={[style, animatedStyle]}
-    >
-      <Pressable
-        onPress={onPress}
-        onPressIn={() => {
-          scale.value = withSpring(0.96, springConfig);
-        }}
-        onPressOut={() => {
-          scale.value = withSpring(1, springConfig);
-        }}
-        style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1 }]}
-      >
-        {children}
-      </Pressable>
-    </Animated.View>
-  );
-}
-
-export default function ChildDashboardScreen() {
+export default function ChildDashboard() {
   const router = useRouter();
   const user = useAppSelector((state) => state.auth.user);
 
-  const progress = 68;
-  const streak = 5;
-  const points = 420;
-
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#3B82F6" />
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Header - Big, friendly, animated */}
-        <AnimatedSection delay={100} style={styles.headerContainer}>
-          <LinearGradient
-            colors={["#3B82F6", "#2563EB"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.headerGradient}
+      {/* HEADER STYLE PHOTO */}
+      <View style={styles.header}>
+        <View>
+          <View style={styles.welcomeRow}>
+            <Text style={styles.headerLabel}>OUMI'SCHOOL</Text>
+            <Sparkles size={12} color={COLORS.primary.DEFAULT} style={{marginLeft: 4}} />
+          </View>
+          <Text style={styles.subHeader}>Parental Support Platform</Text>
+          <Text style={styles.userName}>Bonjour, {user?.name || "Élève"}</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <Pressable 
+            onPress={() => Alert.alert("Recherche", "Que veux-tu apprendre ?")} 
+            hitSlop={15}
+            style={({ pressed }) => [styles.iconBtn, pressed && styles.btnPressed]}
           >
-            <View style={styles.header}>
-              <View>
-                <Text style={styles.greeting}>Salut {user?.name} !</Text>
-                <Text style={styles.subGreeting}>Prêt à apprendre ?</Text>
-              </View>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.pointsBadge,
-                  { transform: [{ scale: pressed ? 0.95 : 1 }] },
-                ]}
-              >
-                <Star size={24} color="#FBBF24" fill="#FBBF24" />
-                <Text style={styles.pointsText}>{points}</Text>
-              </Pressable>
-            </View>
+            <Search size={22} color="#64748B" />
+          </Pressable>
+          <Pressable 
+            onPress={() => Alert.alert("Notifications", "Rappel : Leçon dans 30 min")}
+            hitSlop={15}
+            style={({ pressed }) => [styles.iconBtn, pressed && styles.btnPressed]}
+          >
+            <View style={styles.notifBadge} />
+            <Bell size={22} color="#64748B" />
+          </Pressable>
+        </View>
+      </View>
 
-            {/* Stats - Big numbers, easy to read */}
-            <AnimatedSection
-              delay={300}
-              direction="up"
-              style={styles.statsContainer}
-            >
-              <View style={styles.statItem}>
-                <Flame size={32} color="#FF9F43" />
-                <Text style={styles.statValue}>{streak}</Text>
-                <Text style={styles.statLabel}>Jours</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statValueBig}>{progress}%</Text>
-                <Text style={styles.statLabel}>Progrès</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statValueBig}>3</Text>
-                <Text style={styles.statLabel}>Leçons</Text>
-              </View>
-            </AnimatedSection>
-          </LinearGradient>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
+        
+        {/* CARD AUJOURD'HUI - STYLE PHOTO */}
+        <AnimatedSection delay={100} style={styles.todayCard}>
+          <View style={styles.todayContent}>
+            <Text style={styles.todayTitle}>Aujourd'hui</Text>
+            <View style={styles.liveContainer}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveText}>Prochaine leçon dans 2h</Text>
+            </View>
+            <Text style={styles.classMain}>Cours : Mathématiques - Fractions</Text>
+            <View style={styles.batchContainer}>
+              <GraduationCap size={16} color="white" />
+              <Text style={styles.batchText}>Niveau : CM2 (Groupe A)</Text>
+            </View>
+            <Pressable style={styles.joinButton}>
+              <Text style={styles.joinButtonText}>Commencer</Text>
+            </Pressable>
+          </View>
+          <Image 
+            source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2942/2942789.png' }} 
+            style={styles.todayImage} 
+          />
         </AnimatedSection>
 
-        {/* Today's Lessons - Big cards, easy to tap */}
-        <View style={styles.section}>
-          <AnimatedSection delay={400}>
-            <Text style={styles.sectionTitle}>Aujourd&apos;hui</Text>
-          </AnimatedSection>
+        {/* PROGRAMME DE LA SEMAINE - STYLE PHOTO */}
+        <View style={styles.scheduleSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Programme de la semaine</Text>
+            <Pressable onPress={() => router.push("/curriculum")}>
+              <Text style={styles.viewAll}>Voir tout</Text>
+            </Pressable>
+          </View>
 
-          {TODAY_LESSONS.map((lesson, index) => (
-            <BouncyCard
-              key={lesson.id}
-              delay={500 + index * 120}
-              onPress={() => {
-                if (lesson.route) {
-                  router.push(lesson.route as any);
-                }
-              }}
-              style={styles.lessonCard}
-            >
-              <View style={styles.lessonCardContent}>
-                <View
-                  style={[
-                    styles.lessonIcon,
-                    { backgroundColor: lesson.color + "25" },
-                  ]}
-                >
-                  <lesson.Icon size={36} color={lesson.color} />
-                </View>
-                <View style={styles.lessonInfo}>
-                  <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                  <Text style={styles.lessonMeta}>
-                    {lesson.subject} • {lesson.duration} min
-                  </Text>
-                </View>
-                {lesson.completed ? (
-                  <View style={styles.completedBadge}>
-                    <Trophy size={28} color={COLORS.primary.DEFAULT} />
-                    <Text style={styles.completedText}>Fait !</Text>
-                  </View>
-                ) : (
-                  <View
-                    style={[
-                      styles.playButton,
-                      { backgroundColor: lesson.color },
-                    ]}
-                  >
-                    <Play size={32} color="white" fill="white" />
-                  </View>
-                )}
-              </View>
-            </BouncyCard>
-          ))}
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            contentContainerStyle={styles.scheduleContainer}
+          >
+            {PROGRAMME_SEMAINE.map((item, index) => (
+              <Pressable key={index} style={[styles.scheduleCard, { backgroundColor: item.couleur }]}>
+                <Text style={styles.scheduleDay}>{item.jour}</Text>
+                <Text style={styles.scheduleTime}>{item.heure}</Text>
+                <Text style={styles.scheduleCourse}>{item.cours}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
         </View>
 
-        {/* AI Coach - Big, inviting */}
-        <BouncyCard delay={850} style={styles.ctaBanner}>
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={() => router.push("/ai-coach")}
-            style={styles.ctaTouchable}
+        {/* ASSISTANT IA - STYLE PHOTO */}
+        <Pressable style={styles.aiCard}>
+          <View style={styles.aiContent}>
+            <View style={styles.aiIcon}>
+              <Brain size={24} color="#6366F1" />
+            </View>
+            <View style={styles.aiText}>
+              <Text style={styles.aiTitle}>Assistant pédagogique</Text>
+              <Text style={styles.aiSubtitle}>Pose-moi une question sur tes leçons</Text>
+            </View>
+          </View>
+        </Pressable>
+
+        {/* MES LEÇONS - STYLE PHOTO (CARTES COLORÉES) */}
+        <View style={styles.lessonsSection}>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>Mes leçons</Text>
+              <Text style={styles.sectionSubtitle}>Programme personnalisé</Text>
+            </View>
+            <Pressable onPress={() => router.push("/exercises")}>
+              <Text style={styles.viewAll}>Tout voir</Text>
+            </Pressable>
+          </View>
+
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            contentContainerStyle={styles.lessonsContainer}
           >
-            <LinearGradient
-              colors={["#8B5CF6", "#6366F1"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.ctaGradient}
-            >
-              <Sparkles size={40} color="white" />
-              <View style={styles.ctaText}>
-                <Text style={styles.ctaTitle}>Besoin d&apos;aide ?</Text>
-                <Text style={styles.ctaDescription}>Pose tes questions !</Text>
-              </View>
-              <ChevronRight size={28} color="white" />
-            </LinearGradient>
-          </TouchableOpacity>
-        </BouncyCard>
+            {TODAY_LESSONS.map((lesson) => (
+              <Pressable 
+                key={lesson.id}
+                onPress={() => router.push(lesson.route as any)}
+                style={({ pressed }) => [
+                  styles.lessonCard, 
+                  { backgroundColor: lesson.color },
+                  pressed && { transform: [{ scale: 0.96 }] }
+                ]}
+              >
+                <View style={styles.lessonHeader}>
+                  <View style={[styles.lessonTime, { backgroundColor: 'rgba(255,255,255,0.9)' }]}>
+                    <Clock size={12} color={lesson.accent} />
+                    <Text style={[styles.lessonTimeText, { color: lesson.accent }]}>{lesson.duration}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.lessonIconContainer}>
+                  <Image source={{ uri: lesson.image }} style={styles.lessonIcon} />
+                </View>
+
+                <View style={styles.lessonFooter}>
+                  <View>
+                    <Text style={styles.lessonSubject}>{lesson.subject}</Text>
+                    <Text style={styles.lessonTitle} numberOfLines={1}>{lesson.title}</Text>
+                  </View>
+                  <View style={[styles.playButton, { backgroundColor: lesson.accent }]}>
+                    <Play size={14} color="white" fill="white" />
+                  </View>
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* TUTORAT OPTIONNEL - BOUTON STYLE PHOTO */}
+        <Pressable style={styles.tutorButton}>
+          <Users size={20} color="#6366F1" />
+          <Text style={styles.tutorButtonText}>Besoin d'un tuteur ? (Optionnel)</Text>
+        </Pressable>
+
+       
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, backgroundColor: "#FFFFFF" },
+  header: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    alignItems: "flex-start", 
+    paddingHorizontal: 24, 
+    paddingTop: 60, 
+    paddingBottom: 20 
+  },
+  welcomeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
+  headerLabel: { fontFamily: FONTS.secondary, fontSize: 14, color: "#6366F1", letterSpacing: 1.2, fontWeight: "800" },
+  subHeader: { fontSize: 12, color: "#94A3B8", marginBottom: 4 },
+  userName: { fontFamily: FONTS.fredoka, fontSize: 24, color: "#1E293B" },
+  headerActions: { flexDirection: "row", gap: 12 },
+  iconBtn: { 
+    width: 44, 
+    height: 44, 
+    borderRadius: 14, 
+    backgroundColor: "#F8FAFC", 
+    borderWidth: 1, 
+    borderColor: "#F1F5F9", 
+    justifyContent: "center", 
+    alignItems: "center" 
+  },
+  btnPressed: { backgroundColor: '#F1F5F9', transform: [{scale: 0.95}] },
+  notifBadge: { 
+    position: 'absolute', 
+    top: 10, 
+    right: 10, 
+    width: 8, 
+    height: 8, 
+    borderRadius: 4, 
+    backgroundColor: '#EF4444', 
+    zIndex: 1,
+    borderWidth: 2,
+    borderColor: '#F8FAFC'
+  },
+  scrollBody: { paddingBottom: 100 },
+
+  // Today Card
+  todayCard: {
+    backgroundColor: "#6366F1",
+    marginHorizontal: 24,
+    borderRadius: 30,
+    padding: 20,
+    marginBottom: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  todayContent: {
     flex: 1,
-    backgroundColor: "#F0F9FF",
-  },
-  scrollContent: {
-    paddingBottom: 32,
-  },
-  headerContainer: {
-    marginBottom: 28,
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
-    overflow: "hidden",
-    shadowColor: "#3B82F6",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  headerGradient: {
-    paddingTop: 56,
-    paddingBottom: 28,
-    paddingHorizontal: 24,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 24,
-  },
-  greeting: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 32,
-    color: COLORS.neutral.white,
-    marginBottom: 8,
-  },
-  subGreeting: {
-    fontFamily: FONTS.secondary,
-    fontSize: 18,
-    color: "rgba(255,255,255,0.95)",
-  },
-  pointsBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.25)",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 24,
     gap: 8,
   },
-  pointsText: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 22,
-    color: COLORS.neutral.white,
-  },
-  statsContainer: {
-    flexDirection: "row",
-    backgroundColor: "rgba(255,255,255,0.25)",
-    borderRadius: 24,
-    padding: 20,
-    justifyContent: "space-around",
-    alignItems: "center",
-  },
-  statItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statValue: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 28,
-    color: COLORS.neutral.white,
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  statValueBig: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 32,
-    color: COLORS.neutral.white,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontFamily: FONTS.secondary,
+  todayTitle: {
+    color: 'rgba(255,255,255,0.8)',
     fontSize: 14,
-    color: "rgba(255,255,255,0.95)",
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
-  statDivider: {
-    width: 2,
-    height: 40,
-    backgroundColor: "rgba(255,255,255,0.4)",
-    borderRadius: 1,
+  liveContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  section: {
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+  },
+  liveText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  classMain: {
+    color: 'white',
+    fontSize: 18,
+    fontFamily: FONTS.fredoka,
+    marginTop: 4,
+  },
+  batchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  batchText: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 13,
+  },
+  joinButton: {
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  joinButtonText: {
+    color: '#6366F1',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  todayImage: {
+    width: 80,
+    height: 80,
+  },
+
+  // Schedule
+  scheduleSection: {
+    marginBottom: 25,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 24,
-    marginBottom: 28,
+    marginBottom: 12,
   },
   sectionTitle: {
     fontFamily: FONTS.fredoka,
-    fontSize: 26,
-    color: COLORS.secondary[900],
-    marginBottom: 20,
+    fontSize: 18,
+    color: "#1E293B",
   },
-  lessonCard: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 24,
-    marginBottom: 16,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-    overflow: "hidden",
+  sectionSubtitle: {
+    fontSize: 13,
+    color: "#64748B",
+    marginTop: 2,
   },
-  lessonCardContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 20,
+  viewAll: {
+    color: "#6366F1",
+    fontWeight: '600',
+    fontSize: 14,
   },
-  lessonIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 20,
+  scheduleContainer: {
+    paddingLeft: 24,
+    paddingRight: 24,
+    gap: 12,
   },
-  lessonInfo: {
-    flex: 1,
+  scheduleCard: {
+    padding: 14,
+    borderRadius: 18,
+    width: 100,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
-  lessonTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 22,
-    color: COLORS.secondary[900],
-    marginBottom: 6,
-  },
-  lessonMeta: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    color: COLORS.secondary[600],
-  },
-  completedBadge: {
-    alignItems: "center",
-    backgroundColor: COLORS.primary[50],
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 20,
-    gap: 6,
-  },
-  completedText: {
+  scheduleDay: {
     fontFamily: FONTS.fredoka,
     fontSize: 16,
-    color: COLORS.primary.DEFAULT,
-  },
-  playButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  ctaBanner: {
-    marginHorizontal: 24,
-    borderRadius: 28,
-    overflow: "hidden",
-    shadowColor: "#8B5CF6",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 6,
-  },
-  ctaTouchable: {
-    borderRadius: 28,
-    overflow: "hidden",
-  },
-  ctaGradient: {
-    padding: 24,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  ctaText: {},
-  ctaTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 22,
-    color: COLORS.neutral.white,
+    color: "#1E293B",
     marginBottom: 4,
   },
-  ctaDescription: {
-    fontFamily: FONTS.secondary,
-    fontSize: 18,
-    color: "rgba(255,255,255,0.95)",
+  scheduleTime: {
+    fontSize: 13,
+    color: "#64748B",
+    marginBottom: 4,
+  },
+  scheduleCourse: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: "#1E293B",
+  },
+
+  // AI Card
+  aiCard: {
+    marginHorizontal: 24,
+    marginBottom: 25,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  aiContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  aiIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aiText: {
+    flex: 1,
+  },
+  aiTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 16,
+    color: "#1E293B",
+    marginBottom: 2,
+  },
+  aiSubtitle: {
+    fontSize: 13,
+    color: "#64748B",
+  },
+
+  // Lessons Section
+  lessonsSection: {
+    marginBottom: 25,
+  },
+  lessonsContainer: {
+    paddingLeft: 24,
+    paddingRight: 24,
+    gap: 16,
+  },
+  lessonCard: {
+    width: 170,
+    height: 200,
+    borderRadius: 30,
+    padding: 16,
+    justifyContent: 'space-between',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  lessonHeader: {
+    flexDirection: 'row',
+  },
+  lessonTime: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  lessonTimeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  lessonIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lessonIcon: {
+    width: 50,
+    height: 50,
+  },
+  lessonFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  lessonSubject: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 16,
+    color: "#1E293B",
+  },
+  lessonTitle: {
+    fontSize: 12,
+    color: "#64748B",
+    width: 90,
+  },
+  playButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Tutor Button
+  tutorButton: {
+    marginHorizontal: 24,
+    marginBottom: 15,
+    backgroundColor: '#EEF2FF',
+    paddingVertical: 14,
+    borderRadius: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#6366F1',
+    borderStyle: 'dashed',
+  },
+  tutorButtonText: {
+    color: '#6366F1',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  // Source Button
+  sourceButton: {
+    marginHorizontal: 24,
+    marginBottom: 20,
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 14,
+    borderRadius: 25,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  sourceButtonText: {
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
