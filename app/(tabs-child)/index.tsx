@@ -21,7 +21,6 @@ import {
   Flame,
 } from "lucide-react-native";
 import Animated, {
-  FadeInDown,
   FadeInUp,
   useAnimatedStyle,
   useSharedValue,
@@ -32,6 +31,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector } from "@/store/hooks";
+import { AnimatedSection } from "@/components/ui";
 
 const TODAY_LESSONS = [
   {
@@ -121,10 +121,7 @@ export default function ChildDashboardScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Header - Big, friendly, animated */}
-        <Animated.View
-          entering={FadeInDown.delay(100).springify().damping(14)}
-          style={styles.headerContainer}
-        >
+        <AnimatedSection delay={100} style={styles.headerContainer}>
           <LinearGradient
             colors={["#3B82F6", "#2563EB"]}
             start={{ x: 0, y: 0 }}
@@ -148,8 +145,9 @@ export default function ChildDashboardScreen() {
             </View>
 
             {/* Stats - Big numbers, easy to read */}
-            <Animated.View
-              entering={FadeInUp.delay(300).springify().damping(14)}
+            <AnimatedSection
+              delay={300}
+              direction="up"
               style={styles.statsContainer}
             >
               <View style={styles.statItem}>
@@ -167,18 +165,15 @@ export default function ChildDashboardScreen() {
                 <Text style={styles.statValueBig}>3</Text>
                 <Text style={styles.statLabel}>Leçons</Text>
               </View>
-            </Animated.View>
+            </AnimatedSection>
           </LinearGradient>
-        </Animated.View>
+        </AnimatedSection>
 
         {/* Today's Lessons - Big cards, easy to tap */}
         <View style={styles.section}>
-          <Animated.Text
-            entering={FadeInDown.delay(400).springify().damping(14)}
-            style={styles.sectionTitle}
-          >
-            Aujourd'hui
-          </Animated.Text>
+          <AnimatedSection delay={400}>
+            <Text style={styles.sectionTitle}>Aujourd&apos;hui</Text>
+          </AnimatedSection>
 
           {TODAY_LESSONS.map((lesson, index) => (
             <BouncyCard
@@ -227,7 +222,7 @@ export default function ChildDashboardScreen() {
         </View>
 
         {/* AI Coach - Big, inviting */}
-        <BouncyCard delay={950} style={styles.ctaBanner}>
+        <BouncyCard delay={850} style={styles.ctaBanner}>
           <TouchableOpacity
             activeOpacity={1}
             onPress={() => router.push("/ai-coach")}
@@ -241,7 +236,7 @@ export default function ChildDashboardScreen() {
             >
               <Sparkles size={40} color="white" />
               <View style={styles.ctaText}>
-                <Text style={styles.ctaTitle}>Besoin d'aide ?</Text>
+                <Text style={styles.ctaTitle}>Besoin d&apos;aide ?</Text>
                 <Text style={styles.ctaDescription}>Pose tes questions !</Text>
               </View>
               <ChevronRight size={28} color="white" />

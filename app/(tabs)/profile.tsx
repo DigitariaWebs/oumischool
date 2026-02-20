@@ -6,12 +6,10 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  User,
   Mail,
   Phone,
   Bell,
@@ -34,8 +32,7 @@ import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
 import { useTheme } from "@/hooks/use-theme";
 import { ThemeColors } from "@/constants/theme";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+import { BlobBackground, AnimatedSection } from "@/components/ui";
 
 interface MenuItemProps {
   icon: React.ReactNode;
@@ -145,21 +142,14 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Organic blob background */}
-      <View style={styles.blobContainer}>
-        <View style={[styles.blob, styles.blob1]} />
-        <View style={[styles.blob, styles.blob2]} />
-      </View>
+      <BlobBackground />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         {/* Profile Hero Card */}
-        <Animated.View
-          entering={FadeInDown.delay(100).duration(600).springify()}
-          style={styles.heroCard}
-        >
+        <AnimatedSection delay={100} style={styles.heroCard}>
           <LinearGradient
             colors={["#6366F1", "#8B5CF6", "#A855F7"]}
             start={{ x: 0, y: 0 }}
@@ -205,7 +195,7 @@ export default function ProfileScreen() {
             <View style={styles.heroCircle1} />
             <View style={styles.heroCircle2} />
           </LinearGradient>
-        </Animated.View>
+        </AnimatedSection>
 
         {/* Contact Info Pills */}
         <Animated.View
@@ -319,33 +309,6 @@ const createStyles = (colors: ThemeColors, isDark: boolean) =>
     container: {
       flex: 1,
       backgroundColor: colors.background,
-    },
-    blobContainer: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      height: 300,
-      overflow: "hidden",
-    },
-    blob: {
-      position: "absolute",
-      borderRadius: 999,
-      opacity: 0.1,
-    },
-    blob1: {
-      width: 200,
-      height: 200,
-      backgroundColor: "#8B5CF6",
-      top: -50,
-      right: -50,
-    },
-    blob2: {
-      width: 150,
-      height: 150,
-      backgroundColor: "#10B981",
-      top: 50,
-      left: -30,
     },
     scrollContent: {
       paddingBottom: 100,

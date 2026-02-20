@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -6,12 +6,15 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
-import { Clock, Check, Calendar } from "lucide-react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Clock, Check, Calendar, TrendingUp } from "lucide-react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
+import { useTheme } from "@/hooks/use-theme";
+import { ThemeColors } from "@/constants/theme";
+import { BlobBackground, HeroCard, AnimatedSection } from "@/components/ui";
 
 interface TimeSlot {
   id: string;
@@ -49,6 +52,7 @@ const TIME_SLOTS: TimeSlot[] = [
 ];
 
 export default function TutorAvailabilityScreen() {
+  const { colors, isDark } = useTheme();
   const [selectedDay, setSelectedDay] = useState(0);
   const [availability, setAvailability] = useState<DayAvailability[]>(
     DAYS.map((day) => ({
@@ -58,6 +62,7 @@ export default function TutorAvailabilityScreen() {
       slots: [],
     })),
   );
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
   const toggleDay = (index: number) => {
     setAvailability((prev) =>
@@ -86,11 +91,7 @@ export default function TutorAvailabilityScreen() {
     setAvailability((prev) =>
       prev.map((day, i) =>
         i === selectedDay
-          ? {
-              ...day,
-              enabled: true,
-              slots: TIME_SLOTS.map((slot) => slot.id),
-            }
+          ? { ...day, enabled: true, slots: TIME_SLOTS.map((s) => s.id) }
           : day,
       ),
     );
@@ -98,14 +99,7 @@ export default function TutorAvailabilityScreen() {
 
   const clearAllSlots = () => {
     setAvailability((prev) =>
-      prev.map((day, i) =>
-        i === selectedDay
-          ? {
-              ...day,
-              slots: [],
-            }
-          : day,
-      ),
+      prev.map((day, i) => (i === selectedDay ? { ...day, slots: [] } : day)),
     );
   };
 
@@ -114,111 +108,210 @@ export default function TutorAvailabilityScreen() {
     (acc, day) => acc + day.slots.length,
     0,
   );
+  const enabledDays = availability.filter((d) => d.enabled).length;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <BlobBackground />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         {/* Header */}
-        <Animated.View
-          entering={FadeInDown.delay(200).duration(600)}
-          style={styles.header}
-        >
-          <LinearGradient
-            colors={["#8B5CF6", "#6366F1"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.headerGradient}
-          >
+        <AnimatedSection delay={100}>
+          <View style={styles.header}>
+            <View style={styles.headerIconContainer}>
+              <Clock size={20} color="white" />
+            </View>
             <Text style={styles.headerTitle}>Disponibilités</Text>
-            <Text style={styles.headerSubtitle}>
-              {totalSlots} créneau{totalSlots > 1 ? "x" : ""} configuré
-              {totalSlots > 1 ? "s" : ""}
-            </Text>
-          </LinearGradient>
-        </Animated.View>
+          </View>
+        </AnimatedSection>
+
+        {/* Hero */}
+        <AnimatedSection delay={150} style={styles.heroWrapper}>
+          <HeroCard
+            title="Créneaux configurés"
+            value={`${totalSlots}`}
+            subtitle={`créneau${totalSlots > 1 ? "x" : ""} disponible${totalSlots > 1 ? "s" : ""}`}
+            badge={{
+              icon: <TrendingUp size={14} color="#FCD34D" />,
+              text: `${enabledDays} jour${enabledDays > 1 ? "s" : ""} actif${enabledDays > 1 ? "s" : ""}`,
+            }}
+          />
+        </AnimatedSection>
 
         {/* Days Selection */}
-        <Animated.View
-          entering={FadeInDown.delay(300).duration(600)}
-          style={styles.section}
-        >
-          <Text style={styles.sectionTitle}>Jours de la semaine</Text>
-          <View style={styles.daysContainer}>
+        <AnimatedSection delay={250} style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleContainer}>
+              <View
+                style={[styles.sectionIcon, { backgroundColor: "#8B5CF620" }]}
+              >
+                <Calendar size={16} color="#8B5CF6" />
+              </View>
+              <Text style={styles.sectionTitle}>Jours actifs</Text>
+            </View>
+          </View>
+
+          <View style={styles.daysGrid}>
             {DAYS.map((day, index) => {
               const dayData = availability[index];
               const isSelected = selectedDay === index;
+              const isEnabled = dayData.enabled;
+
               return (
                 <Animated.View
                   key={day.short}
-                  entering={FadeInDown.delay(350 + index * 30).duration(600)}
-                  style={styles.dayWrapper}
+                  entering={FadeInDown.delay(300 + index * 35)
+                    .duration(500)
+                    .springify()}
                 >
                   <TouchableOpacity
                     style={[
                       styles.dayCard,
-                      isSelected && styles.dayCardSelected,
-                      dayData.enabled && styles.dayCardEnabled,
+                      {
+                        backgroundColor: isSelected
+                          ? COLORS.primary.DEFAULT
+                          : isEnabled
+                            ? colors.card
+                            : colors.card,
+                        borderColor: isSelected
+                          ? COLORS.primary.DEFAULT
+                          : isEnabled
+                            ? COLORS.primary.DEFAULT + "60"
+                            : isDark
+                              ? "rgba(255,255,255,0.08)"
+                              : "rgba(0,0,0,0.06)",
+                      },
                     ]}
                     onPress={() => setSelectedDay(index)}
-                    activeOpacity={0.7}
+                    activeOpacity={0.8}
                   >
                     <Text
                       style={[
-                        styles.dayText,
-                        isSelected && styles.dayTextSelected,
+                        styles.dayShort,
+                        {
+                          color: isSelected
+                            ? "white"
+                            : isEnabled
+                              ? COLORS.primary.DEFAULT
+                              : colors.textSecondary,
+                        },
                       ]}
                     >
                       {day.short}
                     </Text>
-                    {dayData.enabled && (
-                      <View style={styles.dayBadge}>
-                        <Text style={styles.dayBadgeText}>
+
+                    {isEnabled && (
+                      <View
+                        style={[
+                          styles.daySlotCount,
+                          {
+                            backgroundColor: isSelected
+                              ? "rgba(255,255,255,0.25)"
+                              : COLORS.primary.DEFAULT + "20",
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.daySlotCountText,
+                            {
+                              color: isSelected
+                                ? "white"
+                                : COLORS.primary.DEFAULT,
+                            },
+                          ]}
+                        >
                           {dayData.slots.length}
                         </Text>
                       </View>
                     )}
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.dayToggle,
-                      dayData.enabled && styles.dayToggleEnabled,
-                    ]}
-                    onPress={() => toggleDay(index)}
-                    activeOpacity={0.7}
-                  >
-                    {dayData.enabled && <Check size={12} color="white" />}
+
+                    <TouchableOpacity
+                      style={[
+                        styles.dayToggle,
+                        {
+                          backgroundColor: isEnabled
+                            ? isSelected
+                              ? "rgba(255,255,255,0.3)"
+                              : COLORS.primary.DEFAULT
+                            : isDark
+                              ? "rgba(255,255,255,0.1)"
+                              : "rgba(0,0,0,0.08)",
+                          borderColor: isEnabled
+                            ? "transparent"
+                            : isDark
+                              ? "rgba(255,255,255,0.15)"
+                              : "rgba(0,0,0,0.1)",
+                        },
+                      ]}
+                      onPress={() => toggleDay(index)}
+                      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                      activeOpacity={0.8}
+                    >
+                      {isEnabled && (
+                        <Check size={10} color="white" strokeWidth={3} />
+                      )}
+                    </TouchableOpacity>
                   </TouchableOpacity>
                 </Animated.View>
               );
             })}
           </View>
-        </Animated.View>
+        </AnimatedSection>
 
         {/* Time Slots */}
         {currentDay.enabled ? (
-          <Animated.View
-            entering={FadeInDown.delay(600).duration(600)}
-            style={styles.section}
-          >
+          <AnimatedSection delay={500} style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>{currentDay.dayFull}</Text>
-              <View style={styles.quickActions}>
+              <View style={styles.sectionTitleContainer}>
+                <View
+                  style={[styles.sectionIcon, { backgroundColor: "#10B98120" }]}
+                >
+                  <Clock size={16} color="#10B981" />
+                </View>
+                <Text style={styles.sectionTitle}>{currentDay.dayFull}</Text>
+              </View>
+              <View style={styles.quickActionsRow}>
                 <TouchableOpacity
-                  style={styles.quickButton}
+                  style={[
+                    styles.quickBtn,
+                    { backgroundColor: COLORS.primary.DEFAULT + "15" },
+                  ]}
                   onPress={selectAllSlots}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.quickButtonText}>Tout</Text>
+                  <Text
+                    style={[
+                      styles.quickBtnText,
+                      { color: COLORS.primary.DEFAULT },
+                    ]}
+                  >
+                    Tout
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.quickButton}
+                  style={[
+                    styles.quickBtn,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.08)"
+                        : "rgba(0,0,0,0.05)",
+                    },
+                  ]}
                   onPress={clearAllSlots}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.quickButtonText}>Rien</Text>
+                  <Text
+                    style={[
+                      styles.quickBtnText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Rien
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -229,32 +322,58 @@ export default function TutorAvailabilityScreen() {
                 return (
                   <Animated.View
                     key={slot.id}
-                    entering={FadeInDown.delay(650 + index * 40).duration(600)}
-                    style={styles.slotWrapper}
+                    entering={FadeInDown.delay(550 + index * 40)
+                      .duration(400)
+                      .springify()}
                   >
                     <TouchableOpacity
                       style={[
                         styles.slotCard,
-                        isSelected && styles.slotCardSelected,
+                        {
+                          backgroundColor: isSelected
+                            ? COLORS.primary.DEFAULT
+                            : colors.card,
+                          borderColor: isSelected
+                            ? COLORS.primary.DEFAULT
+                            : isDark
+                              ? "rgba(255,255,255,0.08)"
+                              : "rgba(0,0,0,0.06)",
+                          shadowColor: isSelected
+                            ? COLORS.primary.DEFAULT
+                            : isDark
+                              ? "#000"
+                              : COLORS.secondary.DEFAULT,
+                        },
                       ]}
                       onPress={() => toggleSlot(slot.id)}
-                      activeOpacity={0.7}
+                      activeOpacity={0.8}
                     >
-                      <Clock
-                        size={18}
-                        color={isSelected ? "white" : COLORS.primary.DEFAULT}
-                      />
+                      <View
+                        style={[
+                          styles.slotIconWrapper,
+                          {
+                            backgroundColor: isSelected
+                              ? "rgba(255,255,255,0.2)"
+                              : COLORS.primary.DEFAULT + "15",
+                          },
+                        ]}
+                      >
+                        <Clock
+                          size={16}
+                          color={isSelected ? "white" : COLORS.primary.DEFAULT}
+                        />
+                      </View>
                       <Text
                         style={[
                           styles.slotText,
-                          isSelected && styles.slotTextSelected,
+                          { color: isSelected ? "white" : colors.textPrimary },
                         ]}
                       >
                         {slot.displayTime}
                       </Text>
                       {isSelected && (
                         <View style={styles.slotCheck}>
-                          <Check size={14} color="white" />
+                          <Check size={13} color="white" strokeWidth={3} />
                         </View>
                       )}
                     </TouchableOpacity>
@@ -262,354 +381,395 @@ export default function TutorAvailabilityScreen() {
                 );
               })}
             </View>
-          </Animated.View>
+          </AnimatedSection>
         ) : (
-          <Animated.View
-            entering={FadeInDown.delay(600).duration(600)}
-            style={styles.disabledDayContainer}
-          >
-            <Calendar size={48} color={COLORS.secondary[300]} />
-            <Text style={styles.disabledDayTitle}>
-              {currentDay.dayFull} désactivé
-            </Text>
-            <Text style={styles.disabledDayText}>
-              Activez ce jour pour définir vos créneaux disponibles
-            </Text>
-            <TouchableOpacity
-              style={styles.enableButton}
-              onPress={() => toggleDay(selectedDay)}
-              activeOpacity={0.7}
+          <AnimatedSection delay={500} style={styles.disabledWrapper}>
+            <View
+              style={[
+                styles.disabledCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: isDark
+                    ? "rgba(255,255,255,0.08)"
+                    : "rgba(0,0,0,0.06)",
+                },
+              ]}
             >
-              <Check size={18} color="white" />
-              <Text style={styles.enableButtonText}>
-                Activer {currentDay.dayFull}
+              <View
+                style={[
+                  styles.disabledIconContainer,
+                  { backgroundColor: colors.input },
+                ]}
+              >
+                <Calendar size={36} color={colors.textMuted} />
+              </View>
+              <Text
+                style={[styles.disabledTitle, { color: colors.textPrimary }]}
+              >
+                {currentDay.dayFull} désactivé
               </Text>
-            </TouchableOpacity>
-          </Animated.View>
+              <Text
+                style={[styles.disabledText, { color: colors.textSecondary }]}
+              >
+                Activez ce jour pour définir vos créneaux disponibles
+              </Text>
+              <TouchableOpacity
+                style={[
+                  styles.enableButton,
+                  { backgroundColor: COLORS.primary.DEFAULT },
+                ]}
+                onPress={() => toggleDay(selectedDay)}
+                activeOpacity={0.8}
+              >
+                <Check size={16} color="white" />
+                <Text style={styles.enableButtonText}>
+                  Activer {currentDay.dayFull}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </AnimatedSection>
         )}
 
-        {/* Info Card */}
-        <Animated.View
-          entering={FadeInDown.delay(900).duration(600)}
-          style={styles.infoCard}
-        >
-          <Text style={styles.infoTitle}>💡 Conseil</Text>
-          <Text style={styles.infoText}>
-            Les parents pourront réserver des sessions pendant vos créneaux
-            disponibles. Pensez à mettre à jour régulièrement vos
-            disponibilités.
-          </Text>
-        </Animated.View>
-
-        {/* Summary */}
-        {totalSlots > 0 && (
-          <Animated.View
-            entering={FadeInDown.delay(1000).duration(600)}
-            style={styles.summaryCard}
+        {/* Tip Card */}
+        <AnimatedSection delay={900} style={styles.tipWrapper}>
+          <View
+            style={[
+              styles.tipCard,
+              {
+                backgroundColor: isDark ? "rgba(99,102,241,0.12)" : "#EEF2FF",
+                borderLeftColor: COLORS.primary.DEFAULT,
+              },
+            ]}
           >
-            <Text style={styles.summaryTitle}>Résumé hebdomadaire</Text>
-            <View style={styles.summaryGrid}>
-              {availability.map(
-                (day, index) =>
-                  day.enabled && (
-                    <View key={index} style={styles.summaryItem}>
-                      <Text style={styles.summaryDay}>{day.day}</Text>
-                      <Text style={styles.summaryCount}>
-                        {day.slots.length} créneau
-                        {day.slots.length > 1 ? "x" : ""}
-                      </Text>
-                    </View>
-                  ),
-              )}
+            <Text style={[styles.tipTitle, { color: colors.textPrimary }]}>
+              💡 Conseil
+            </Text>
+            <Text style={[styles.tipText, { color: colors.textSecondary }]}>
+              Les parents pourront réserver des sessions pendant vos créneaux
+              disponibles. Pensez à mettre à jour régulièrement vos
+              disponibilités.
+            </Text>
+          </View>
+        </AnimatedSection>
+
+        {/* Weekly Summary */}
+        {totalSlots > 0 && (
+          <AnimatedSection delay={1000} style={styles.summaryWrapper}>
+            <View
+              style={[styles.summaryCard, { backgroundColor: colors.card }]}
+            >
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionTitleContainer}>
+                  <View
+                    style={[
+                      styles.sectionIcon,
+                      { backgroundColor: "#F59E0B20" },
+                    ]}
+                  >
+                    <TrendingUp size={16} color="#F59E0B" />
+                  </View>
+                  <Text
+                    style={[styles.sectionTitle, { color: colors.textPrimary }]}
+                  >
+                    Résumé hebdomadaire
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.summaryGrid}>
+                {availability.map(
+                  (day, index) =>
+                    day.enabled && (
+                      <View
+                        key={index}
+                        style={[
+                          styles.summaryItem,
+                          { backgroundColor: COLORS.primary.DEFAULT + "15" },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.summaryDay,
+                            { color: COLORS.primary.DEFAULT },
+                          ]}
+                        >
+                          {day.day}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.summaryCount,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          {day.slots.length} créneau
+                          {day.slots.length > 1 ? "x" : ""}
+                        </Text>
+                      </View>
+                    ),
+                )}
+              </View>
             </View>
-          </Animated.View>
+          </AnimatedSection>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.neutral[50],
-  },
-  scrollContent: {
-    paddingBottom: 24,
-  },
-  header: {
-    marginBottom: 24,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    overflow: "hidden",
-  },
-  headerGradient: {
-    paddingTop: 60,
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-  },
-  headerTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 24,
-    color: COLORS.neutral.white,
-    marginBottom: 8,
-  },
-  headerSubtitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: "rgba(255,255,255,0.9)",
-  },
-  section: {
-    paddingHorizontal: 24,
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.secondary[900],
-  },
-  quickActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  quickButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: COLORS.primary[50],
-    borderRadius: 8,
-  },
-  quickButtonText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    fontWeight: "600",
-    color: COLORS.primary.DEFAULT,
-  },
-  daysContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  dayWrapper: {
-    width: "13%",
-    alignItems: "center",
-    gap: 8,
-  },
-  dayCard: {
-    width: "100%",
-    aspectRatio: 1,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: COLORS.neutral[200],
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  dayCardSelected: {
-    borderColor: COLORS.primary.DEFAULT,
-    backgroundColor: COLORS.primary[50],
-  },
-  dayCardEnabled: {
-    backgroundColor: COLORS.neutral.white,
-  },
-  dayText: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 12,
-    fontWeight: "600",
-    color: COLORS.secondary[600],
-  },
-  dayTextSelected: {
-    color: COLORS.primary.DEFAULT,
-  },
-  dayBadge: {
-    position: "absolute",
-    top: -6,
-    right: -6,
-    backgroundColor: COLORS.primary.DEFAULT,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: COLORS.neutral[50],
-  },
-  dayBadgeText: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 10,
-    fontWeight: "600",
-    color: COLORS.neutral.white,
-  },
-  dayToggle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: COLORS.neutral[200],
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: COLORS.neutral[300],
-  },
-  dayToggleEnabled: {
-    backgroundColor: COLORS.primary.DEFAULT,
-    borderColor: COLORS.primary.DEFAULT,
-  },
-  slotsGrid: {
-    gap: 12,
-  },
-  slotWrapper: {
-    width: "100%",
-  },
-  slotCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
-    padding: 14,
-    gap: 12,
-    borderWidth: 2,
-    borderColor: COLORS.neutral[200],
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  slotCardSelected: {
-    backgroundColor: COLORS.primary.DEFAULT,
-    borderColor: COLORS.primary.DEFAULT,
-  },
-  slotText: {
-    flex: 1,
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.secondary[900],
-  },
-  slotTextSelected: {
-    color: COLORS.neutral.white,
-  },
-  slotCheck: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  disabledDayContainer: {
-    marginHorizontal: 24,
-    marginBottom: 24,
-    padding: 32,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: COLORS.neutral[200],
-    borderStyle: "dashed",
-  },
-  disabledDayTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    fontWeight: "600",
-    color: COLORS.secondary[900],
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  disabledDayText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[600],
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  enableButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: COLORS.primary.DEFAULT,
-    borderRadius: 12,
-  },
-  enableButtonText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.neutral.white,
-  },
-  infoCard: {
-    marginHorizontal: 24,
-    marginBottom: 16,
-    backgroundColor: "#EFF6FF",
-    borderRadius: 16,
-    padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.primary.DEFAULT,
-  },
-  infoTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.secondary[900],
-    marginBottom: 8,
-  },
-  infoText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[700],
-    lineHeight: 20,
-  },
-  summaryCard: {
-    marginHorizontal: 24,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  summaryTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.secondary[900],
-    marginBottom: 12,
-  },
-  summaryGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  summaryItem: {
-    backgroundColor: COLORS.primary[50],
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  summaryDay: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 13,
-    fontWeight: "600",
-    color: COLORS.primary.DEFAULT,
-    marginBottom: 2,
-  },
-  summaryCount: {
-    fontFamily: FONTS.secondary,
-    fontSize: 11,
-    color: COLORS.secondary[700],
-  },
-});
+const createStyles = (colors: ThemeColors, isDark: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollContent: {
+      paddingBottom: 100,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      gap: 12,
+    },
+    headerIconContainer: {
+      width: 40,
+      height: 40,
+      borderRadius: 14,
+      backgroundColor: COLORS.primary.DEFAULT,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    headerTitle: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 24,
+      color: colors.textPrimary,
+    },
+    heroWrapper: {
+      marginHorizontal: 20,
+      marginBottom: 24,
+    },
+    section: {
+      paddingHorizontal: 20,
+      marginBottom: 24,
+    },
+    sectionHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 16,
+    },
+    sectionTitleContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+    sectionIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: 11,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    sectionTitle: {
+      fontFamily: FONTS.secondary,
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    quickActionsRow: {
+      flexDirection: "row",
+      gap: 8,
+    },
+    quickBtn: {
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+      borderRadius: 10,
+    },
+    quickBtnText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 12,
+      fontWeight: "600",
+    },
+    daysGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 10,
+    },
+    dayCard: {
+      width: 48,
+      height: 68,
+      borderRadius: 16,
+      justifyContent: "center",
+      alignItems: "center",
+      borderWidth: 1.5,
+      gap: 4,
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.2 : 0.05,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    dayShort: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 13,
+      fontWeight: "600",
+    },
+    daySlotCount: {
+      paddingHorizontal: 5,
+      paddingVertical: 1,
+      borderRadius: 6,
+    },
+    daySlotCountText: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 10,
+      fontWeight: "700",
+    },
+    dayToggle: {
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      justifyContent: "center",
+      alignItems: "center",
+      borderWidth: 1.5,
+    },
+    slotsGrid: {
+      gap: 10,
+    },
+    slotCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderRadius: 14,
+      padding: 14,
+      gap: 12,
+      borderWidth: 1.5,
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.08,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    slotIconWrapper: {
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    slotText: {
+      flex: 1,
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      fontWeight: "600",
+    },
+    slotCheck: {
+      width: 24,
+      height: 24,
+      borderRadius: 8,
+      backgroundColor: "rgba(255,255,255,0.25)",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    disabledWrapper: {
+      paddingHorizontal: 20,
+      marginBottom: 24,
+    },
+    disabledCard: {
+      borderRadius: 22,
+      padding: 32,
+      alignItems: "center",
+      borderWidth: 1.5,
+      borderStyle: "dashed",
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: isDark ? 0.2 : 0.05,
+      shadowRadius: 10,
+      elevation: 2,
+    },
+    disabledIconContainer: {
+      width: 72,
+      height: 72,
+      borderRadius: 20,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: 16,
+    },
+    disabledTitle: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 18,
+      marginBottom: 8,
+      textAlign: "center",
+    },
+    disabledText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      textAlign: "center",
+      lineHeight: 20,
+      marginBottom: 24,
+    },
+    enableButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingHorizontal: 24,
+      paddingVertical: 13,
+      borderRadius: 14,
+    },
+    enableButtonText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 14,
+      fontWeight: "600",
+      color: "white",
+    },
+    tipWrapper: {
+      paddingHorizontal: 20,
+      marginBottom: 16,
+    },
+    tipCard: {
+      borderRadius: 16,
+      padding: 16,
+      borderLeftWidth: 4,
+    },
+    tipTitle: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 15,
+      marginBottom: 6,
+    },
+    tipText: {
+      fontFamily: FONTS.secondary,
+      fontSize: 13,
+      lineHeight: 20,
+    },
+    summaryWrapper: {
+      paddingHorizontal: 20,
+      marginBottom: 8,
+    },
+    summaryCard: {
+      borderRadius: 20,
+      padding: 16,
+      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.08,
+      shadowRadius: 12,
+      elevation: 4,
+    },
+    summaryGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 10,
+    },
+    summaryItem: {
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: 12,
+      alignItems: "center",
+    },
+    summaryDay: {
+      fontFamily: FONTS.fredoka,
+      fontSize: 14,
+      fontWeight: "600",
+      marginBottom: 2,
+    },
+    summaryCount: {
+      fontFamily: FONTS.secondary,
+      fontSize: 11,
+    },
+  });

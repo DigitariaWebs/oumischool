@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,7 +14,6 @@ import {
   Calendar,
   BookOpen,
   Edit,
-  Sparkles,
   Users,
 } from "lucide-react-native";
 import Animated, {
@@ -31,11 +29,14 @@ import { SPACING } from "@/constants/tokens";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { addChild } from "@/store/slices/childrenSlice";
 import AddChildModal from "@/components/AddChildModal";
-import { Card, Badge, Avatar, EmptyState } from "@/components/ui";
+import {
+  EmptyState,
+  BlobBackground,
+  HeroCard,
+  AnimatedSection,
+} from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
 import { ThemeColors } from "@/constants/theme";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 interface Child {
   id: number;
@@ -273,11 +274,7 @@ export default function ChildrenTab() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Organic blob background */}
-      <View style={styles.blobContainer}>
-        <View style={[styles.blob, styles.blob1]} />
-        <View style={[styles.blob, styles.blob2]} />
-      </View>
+      <BlobBackground />
 
       {/* Header */}
       <Animated.View
@@ -303,76 +300,28 @@ export default function ChildrenTab() {
       >
         {/* Summary Card */}
         {children.length > 0 && (
-          <Animated.View
-            entering={FadeInDown.delay(150).duration(600).springify()}
-            style={styles.summaryCard}
-          >
-            <LinearGradient
-              colors={["#6366F1", "#8B5CF6", "#A855F7"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.summaryGradient}
-            >
-              <View style={styles.summaryContent}>
-                <View style={styles.summaryTop}>
-                  <View style={styles.sparkleContainer}>
-                    <Sparkles size={18} color="rgba(255,255,255,0.9)" />
-                  </View>
-                  <Text style={styles.summaryLabel}>Progression moyenne</Text>
-                </View>
-                <Text style={styles.summaryAmount}>
-                  {Math.round(
-                    children.reduce((acc, c) => acc + c.progress, 0) /
-                      children.length,
-                  )}
-                  <Text style={styles.summarySuffix}>%</Text>
-                </Text>
-                <View style={styles.summaryBadge}>
-                  <TrendingUp size={14} color="#FCD34D" />
-                  <Text style={styles.summaryBadgeText}>
-                    {children.length} enfant{children.length > 1 ? "s" : ""}{" "}
-                    inscrits
-                  </Text>
-                </View>
-              </View>
-              {/* Decorative circles */}
-              <View style={styles.summaryCircle1} />
-              <View style={styles.summaryCircle2} />
-            </LinearGradient>
-          </Animated.View>
+          <AnimatedSection delay={150} style={styles.heroCardWrapper}>
+            <HeroCard
+              title="Progression moyenne"
+              value={`${Math.round(children.reduce((acc, c) => acc + c.progress, 0) / children.length)}%`}
+              badge={{
+                icon: <TrendingUp size={14} color="#FCD34D" />,
+                text: `${children.length} enfant${children.length > 1 ? "s" : ""} inscrits`,
+              }}
+            />
+          </AnimatedSection>
         )}
 
         {children.length === 0 ? (
-          <Animated.View
-            entering={FadeInDown.delay(200).duration(600).springify()}
-            style={styles.emptyStateContainer}
-          >
-            <View style={styles.emptyStateIcon}>
-              <Users size={48} color={colors.textMuted} />
-            </View>
-            <Text style={styles.emptyStateTitle}>Aucun enfant ajouté</Text>
-            <Text style={styles.emptyStateText}>
-              Commencez par ajouter un profil pour votre enfant afin de suivre
-              sa progression
-            </Text>
-            <TouchableOpacity
-              style={styles.emptyStateButton}
-              onPress={() => setAddModalVisible(true)}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={[COLORS.primary.DEFAULT, COLORS.primary[600]]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.emptyStateButtonGradient}
-              >
-                <Plus size={20} color={COLORS.neutral.white} />
-                <Text style={styles.emptyStateButtonText}>
-                  Ajouter un enfant
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </Animated.View>
+          <AnimatedSection delay={200} style={styles.emptyStateContainer}>
+            <EmptyState
+              icon={<Users size={48} color={colors.textMuted} />}
+              title="Aucun enfant ajouté"
+              description="Commencez par ajouter un profil pour votre enfant afin de suivre sa progression"
+              actionLabel="Ajouter un enfant"
+              onAction={() => setAddModalVisible(true)}
+            />
+          </AnimatedSection>
         ) : (
           <>
             {/* Section Title */}
@@ -439,34 +388,12 @@ const createStyles = (colors: ThemeColors, isDark: boolean) =>
       backgroundColor: colors.background,
       paddingBottom: 64,
     },
+    heroCardWrapper: {
+      marginHorizontal: 20,
+      marginBottom: 20,
+    },
     // Blob Background
-    blobContainer: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      height: 300,
-      overflow: "hidden",
-    },
-    blob: {
-      position: "absolute",
-      borderRadius: 999,
-      opacity: 0.1,
-    },
-    blob1: {
-      width: 200,
-      height: 200,
-      backgroundColor: "#8B5CF6",
-      top: -50,
-      right: -50,
-    },
-    blob2: {
-      width: 150,
-      height: 150,
-      backgroundColor: "#10B981",
-      top: 80,
-      left: -30,
-    },
+
     // Header
     header: {
       paddingHorizontal: 20,
@@ -512,90 +439,7 @@ const createStyles = (colors: ThemeColors, isDark: boolean) =>
       paddingTop: 8,
     },
     // Summary Card
-    summaryCard: {
-      marginBottom: 24,
-      borderRadius: 28,
-      overflow: "hidden",
-      shadowColor: "#8B5CF6",
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.3,
-      shadowRadius: 20,
-      elevation: 8,
-    },
-    summaryGradient: {
-      padding: 24,
-      position: "relative",
-      overflow: "hidden",
-    },
-    summaryContent: {
-      position: "relative",
-      zIndex: 1,
-    },
-    summaryTop: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-      marginBottom: 8,
-    },
-    sparkleContainer: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: "rgba(255,255,255,0.2)",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    summaryLabel: {
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      color: "rgba(255,255,255,0.9)",
-      fontWeight: "500",
-    },
-    summaryAmount: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 52,
-      color: COLORS.neutral.white,
-      lineHeight: 60,
-    },
-    summarySuffix: {
-      fontSize: 32,
-      opacity: 0.9,
-    },
-    summaryBadge: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      backgroundColor: "rgba(255,255,255,0.15)",
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 20,
-      alignSelf: "flex-start",
-      marginTop: 12,
-    },
-    summaryBadgeText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 12,
-      color: "rgba(255,255,255,0.95)",
-      fontWeight: "500",
-    },
-    summaryCircle1: {
-      position: "absolute",
-      width: 120,
-      height: 120,
-      borderRadius: 60,
-      backgroundColor: "rgba(255,255,255,0.1)",
-      top: -30,
-      right: -30,
-    },
-    summaryCircle2: {
-      position: "absolute",
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      backgroundColor: "rgba(255,255,255,0.08)",
-      bottom: -20,
-      right: 50,
-    },
+
     // Section Header
     sectionHeader: {
       marginBottom: 16,
@@ -815,63 +659,8 @@ const createStyles = (colors: ThemeColors, isDark: boolean) =>
     },
     // Empty State
     emptyStateContainer: {
-      backgroundColor: colors.card,
-      borderRadius: 24,
-      padding: 32,
-      alignItems: "center",
-      marginTop: 24,
-      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: 12,
-      elevation: 4,
-    },
-    emptyStateIcon: {
-      width: 80,
-      height: 80,
-      borderRadius: 24,
-      backgroundColor: colors.input,
-      justifyContent: "center",
-      alignItems: "center",
-      marginBottom: 20,
-    },
-    emptyStateTitle: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 20,
-      color: colors.textPrimary,
-      marginBottom: 8,
-      textAlign: "center",
-    },
-    emptyStateText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      color: colors.textSecondary,
-      textAlign: "center",
-      lineHeight: 20,
-      marginBottom: 24,
-    },
-    emptyStateButton: {
-      borderRadius: 16,
-      overflow: "hidden",
-      shadowColor: COLORS.primary.DEFAULT,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 4,
-    },
-    emptyStateButtonGradient: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: 14,
-      paddingHorizontal: 24,
-      gap: 10,
-    },
-    emptyStateButtonText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 15,
-      fontWeight: "600",
-      color: COLORS.neutral.white,
+      flex: 1,
+      marginTop: 16,
     },
     // Info Card (legacy)
     infoCard: {

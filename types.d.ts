@@ -1,4 +1,69 @@
 import { Child } from "@/store/slices/childrenSlice";
+import { ViewStyle } from "react-native";
+
+// UI Component Types
+export interface BlobBackgroundProps {
+  colors?: string[];
+  opacity?: number;
+  style?: ViewStyle;
+}
+
+export interface HeroCardProps {
+  title: string;
+  value: string | number;
+  subtitle?: string;
+  badge?: {
+    icon: React.ReactNode;
+    text: string;
+  };
+  gradientColors?: string[];
+  children?: React.ReactNode;
+  style?: ViewStyle;
+}
+
+export interface AnimatedSectionProps {
+  children: React.ReactNode;
+  delay?: number;
+  direction?: "up" | "down";
+  style?: ViewStyle;
+}
+
+export interface TabHeaderProps {
+  title: string;
+  icon: React.ReactNode;
+  badge?: string | number;
+  rightElement?: React.ReactNode;
+  style?: ViewStyle;
+}
+
+export interface StatsCardProps {
+  icon: React.ReactNode;
+  title: string;
+  value: string | number;
+  subtitle?: string;
+  color?: string;
+  onPress?: () => void;
+  style?: ViewStyle;
+}
+
+export interface QuickActionCardProps {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  color: string;
+  onPress: () => void;
+  delay?: number;
+  style?: ViewStyle;
+}
+
+export interface FeatureCardProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  color?: string;
+  delay?: number;
+  style?: ViewStyle;
+}
 
 // AI Chatbot Types
 export interface AIChatMessage {

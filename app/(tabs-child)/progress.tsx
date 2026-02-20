@@ -1,7 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
 import {
-  TrendingUp,
   Trophy,
   Star,
   Calculator,
@@ -10,12 +9,13 @@ import {
   BookOpen,
   Flame,
 } from "lucide-react-native";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+
 import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector } from "@/store/hooks";
+import { AnimatedSection } from "@/components/ui";
 
 const { width } = Dimensions.get("window");
 
@@ -36,10 +36,7 @@ export default function ChildProgressScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Animated.View
-          entering={FadeInDown.delay(100).springify().damping(14)}
-          style={styles.header}
-        >
+        <AnimatedSection delay={100} style={styles.header}>
           <LinearGradient
             colors={["#3B82F6", "#2563EB"]}
             start={{ x: 0, y: 0 }}
@@ -50,24 +47,22 @@ export default function ChildProgressScreen() {
             <Text style={styles.headerSubtitle}>
               Tu progresses super bien !
             </Text>
-            <Animated.View
-              entering={FadeInUp.delay(300).springify().damping(14)}
+            <AnimatedSection
+              delay={300}
+              direction="up"
               style={styles.overallProgress}
             >
               <View style={styles.circleProgress}>
                 <Text style={styles.overallPercent}>{overallProgress}%</Text>
               </View>
-            </Animated.View>
+            </AnimatedSection>
           </LinearGradient>
-        </Animated.View>
+        </AnimatedSection>
 
         <View style={styles.badgesSection}>
-          <Animated.Text
-            entering={FadeInDown.delay(400).springify().damping(14)}
-            style={styles.sectionTitle}
-          >
-            Mes badges
-          </Animated.Text>
+          <AnimatedSection delay={400}>
+            <Text style={styles.sectionTitle}>Mes badges</Text>
+          </AnimatedSection>
           <View style={styles.badgesRow}>
             {[
               { Icon: Flame, label: "5 jours", earned: true },
@@ -75,46 +70,44 @@ export default function ChildProgressScreen() {
               { Icon: Trophy, label: "Champion", earned: false },
               { Icon: BookOpen, label: "Lecteur", earned: false },
             ].map((badge, index) => (
-              <Animated.View
+              <AnimatedSection
                 key={index}
-                entering={FadeInUp.delay(450 + index * 80)
-                  .springify()
-                  .damping(14)}
-                style={[styles.badge, !badge.earned && styles.badgeLocked]}
+                delay={450 + index * 80}
+                direction="up"
               >
-                <View style={styles.badgeIcon}>
-                  <badge.Icon
-                    size={36}
-                    color={badge.earned ? "#3B82F6" : COLORS.secondary[400]}
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.badgeLabel,
-                    !badge.earned && styles.badgeLabelLocked,
-                  ]}
-                  numberOfLines={1}
+                <View
+                  style={[styles.badge, !badge.earned && styles.badgeLocked]}
                 >
-                  {badge.label}
-                </Text>
-              </Animated.View>
+                  <View style={styles.badgeIcon}>
+                    <badge.Icon
+                      size={36}
+                      color={badge.earned ? "#3B82F6" : COLORS.secondary[400]}
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.badgeLabel,
+                      !badge.earned && styles.badgeLabelLocked,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {badge.label}
+                  </Text>
+                </View>
+              </AnimatedSection>
             ))}
           </View>
         </View>
 
         <View style={styles.section}>
-          <Animated.Text
-            entering={FadeInDown.delay(600).springify().damping(14)}
-            style={styles.sectionTitle}
-          >
-            Par matière
-          </Animated.Text>
+          <AnimatedSection delay={600}>
+            <Text style={styles.sectionTitle}>Par matière</Text>
+          </AnimatedSection>
           {SUBJECT_PROGRESS.map((item, index) => (
-            <Animated.View
+            <AnimatedSection
               key={item.subject}
-              entering={FadeInUp.delay(700 + index * 100)
-                .springify()
-                .damping(14)}
+              delay={700 + index * 100}
+              direction="up"
               style={styles.subjectCard}
             >
               <View style={styles.subjectHeader}>
@@ -142,7 +135,7 @@ export default function ChildProgressScreen() {
                   ]}
                 />
               </View>
-            </Animated.View>
+            </AnimatedSection>
           ))}
         </View>
       </ScrollView>

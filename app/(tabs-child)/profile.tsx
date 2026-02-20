@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Pressable,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -17,13 +10,14 @@ import {
   HelpCircle,
   Star,
 } from "lucide-react-native";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+
 import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
+import { AnimatedSection } from "@/components/ui";
 
 export default function ChildProfileScreen() {
   const router = useRouter();
@@ -49,10 +43,7 @@ export default function ChildProfileScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Animated.View
-          entering={FadeInDown.delay(100).springify().damping(14)}
-          style={styles.profileHeader}
-        >
+        <AnimatedSection delay={100} style={styles.profileHeader}>
           <LinearGradient
             colors={["#3B82F6", "#2563EB"]}
             start={{ x: 0, y: 0 }}
@@ -71,15 +62,14 @@ export default function ChildProfileScreen() {
               <Text style={styles.pointsText}>420 points</Text>
             </View>
           </LinearGradient>
-        </Animated.View>
+        </AnimatedSection>
 
         <View style={styles.menuSection}>
           {menuItems.map((item, index) => (
-            <Animated.View
+            <AnimatedSection
               key={index}
-              entering={FadeInUp.delay(250 + index * 80)
-                .springify()
-                .damping(14)}
+              delay={250 + index * 80}
+              direction="up"
             >
               <Pressable
                 style={({ pressed }) => [
@@ -92,11 +82,11 @@ export default function ChildProfileScreen() {
                 <Text style={styles.menuItemTitle}>{item.title}</Text>
                 <ChevronRight size={28} color={COLORS.secondary[400]} />
               </Pressable>
-            </Animated.View>
+            </AnimatedSection>
           ))}
         </View>
 
-        <Animated.View entering={FadeInUp.delay(500).springify().damping(14)}>
+        <AnimatedSection delay={500} direction="up">
           <Pressable
             style={({ pressed }) => [
               styles.logoutButton,
@@ -110,9 +100,9 @@ export default function ChildProfileScreen() {
             <LogOut size={24} color={COLORS.error} />
             <Text style={styles.logoutText}>Se déconnecter</Text>
           </Pressable>
-        </Animated.View>
+        </AnimatedSection>
 
-        <Text style={styles.versionText}>Oumi'School</Text>
+        <Text style={styles.versionText}>Oumi&apos;School</Text>
       </ScrollView>
     </SafeAreaView>
   );

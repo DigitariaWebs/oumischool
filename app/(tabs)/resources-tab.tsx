@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
   TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -20,7 +19,6 @@ import {
   Calculator,
   FlaskConical,
   Languages,
-  Sparkles,
   TrendingUp,
 } from "lucide-react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
@@ -28,10 +26,9 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
+import { BlobBackground, HeroCard, AnimatedSection } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
 import { ThemeColors } from "@/constants/theme";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 interface Subject {
   id: string;
@@ -274,11 +271,7 @@ export default function ResourcesTab() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Organic blob background */}
-      <View style={styles.blobContainer}>
-        <View style={[styles.blob, styles.blob1]} />
-        <View style={[styles.blob, styles.blob2]} />
-      </View>
+      <BlobBackground />
 
       {/* Header */}
       <Animated.View
@@ -301,39 +294,16 @@ export default function ResourcesTab() {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Hero Stats Card */}
-        <Animated.View
-          entering={FadeInDown.delay(150).duration(600).springify()}
-          style={styles.heroCard}
-        >
-          <LinearGradient
-            colors={["#6366F1", "#8B5CF6", "#A855F7"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroGradient}
-          >
-            <View style={styles.heroContent}>
-              <View style={styles.heroTop}>
-                <View style={styles.sparkleContainer}>
-                  <Sparkles size={18} color="rgba(255,255,255,0.9)" />
-                </View>
-                <Text style={styles.heroLabel}>Bibliothèque</Text>
-              </View>
-              <Text style={styles.heroAmount}>
-                {resources.length}
-                <Text style={styles.heroSuffix}> ressources</Text>
-              </Text>
-              <View style={styles.heroBadge}>
-                <TrendingUp size={14} color="#FCD34D" />
-                <Text style={styles.heroBadgeText}>
-                  {totalDownloads.toLocaleString()} téléchargements
-                </Text>
-              </View>
-            </View>
-            {/* Decorative circles */}
-            <View style={styles.heroCircle1} />
-            <View style={styles.heroCircle2} />
-          </LinearGradient>
-        </Animated.View>
+        <AnimatedSection delay={150} style={styles.heroCardWrapper}>
+          <HeroCard
+            title="Bibliothèque"
+            value={`${resources.length} ressources`}
+            badge={{
+              icon: <TrendingUp size={14} color="#FCD34D" />,
+              text: `${totalDownloads.toLocaleString()} téléchargements`,
+            }}
+          />
+        </AnimatedSection>
 
         {/* Search Bar */}
         <Animated.View
@@ -415,33 +385,9 @@ const createStyles = (colors: ThemeColors, isDark: boolean) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    // Blob Background
-    blobContainer: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      height: 300,
-      overflow: "hidden",
-    },
-    blob: {
-      position: "absolute",
-      borderRadius: 999,
-      opacity: 0.1,
-    },
-    blob1: {
-      width: 200,
-      height: 200,
-      backgroundColor: "#8B5CF6",
-      top: -50,
-      right: -50,
-    },
-    blob2: {
-      width: 150,
-      height: 150,
-      backgroundColor: "#10B981",
-      top: 80,
-      left: -30,
+    heroCardWrapper: {
+      marginHorizontal: 20,
+      marginBottom: 20,
     },
     // Header
     header: {
@@ -486,91 +432,7 @@ const createStyles = (colors: ThemeColors, isDark: boolean) =>
       paddingBottom: 100,
     },
     // Hero Card
-    heroCard: {
-      marginHorizontal: 20,
-      marginBottom: 20,
-      borderRadius: 28,
-      overflow: "hidden",
-      shadowColor: "#8B5CF6",
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.3,
-      shadowRadius: 20,
-      elevation: 8,
-    },
-    heroGradient: {
-      padding: 24,
-      position: "relative",
-      overflow: "hidden",
-    },
-    heroContent: {
-      position: "relative",
-      zIndex: 1,
-    },
-    heroTop: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-      marginBottom: 8,
-    },
-    sparkleContainer: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: "rgba(255,255,255,0.2)",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    heroLabel: {
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      color: "rgba(255,255,255,0.9)",
-      fontWeight: "500",
-    },
-    heroAmount: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 48,
-      color: COLORS.neutral.white,
-      lineHeight: 56,
-    },
-    heroSuffix: {
-      fontSize: 24,
-      opacity: 0.9,
-    },
-    heroBadge: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      backgroundColor: "rgba(255,255,255,0.15)",
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 20,
-      alignSelf: "flex-start",
-      marginTop: 12,
-    },
-    heroBadgeText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 12,
-      color: "rgba(255,255,255,0.95)",
-      fontWeight: "500",
-    },
-    heroCircle1: {
-      position: "absolute",
-      width: 120,
-      height: 120,
-      borderRadius: 60,
-      backgroundColor: "rgba(255,255,255,0.1)",
-      top: -30,
-      right: -30,
-    },
-    heroCircle2: {
-      position: "absolute",
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      backgroundColor: "rgba(255,255,255,0.08)",
-      bottom: -20,
-      right: 50,
-    },
+
     // Search
     searchContainer: {
       paddingHorizontal: 20,

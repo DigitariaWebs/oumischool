@@ -2,7 +2,6 @@ import React from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import {
-  PenLine,
   ChevronRight,
   Calculator,
   FileText,
@@ -11,7 +10,6 @@ import {
   BookOpen,
 } from "lucide-react-native";
 import Animated, {
-  FadeInDown,
   FadeInUp,
   useSharedValue,
   useAnimatedStyle,
@@ -22,6 +20,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector } from "@/store/hooks";
+import { AnimatedSection } from "@/components/ui";
 
 const GAMES = [
   {
@@ -137,10 +136,7 @@ export default function ChildExercisesScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Animated.View
-          entering={FadeInDown.delay(100).springify().damping(14)}
-          style={styles.header}
-        >
+        <AnimatedSection delay={100} style={styles.header}>
           <LinearGradient
             colors={["#3B82F6", "#2563EB"]}
             start={{ x: 0, y: 0 }}
@@ -150,10 +146,11 @@ export default function ChildExercisesScreen() {
             <Text style={styles.headerTitle}>Mes activités</Text>
             <Text style={styles.headerSubtitle}>Continue, {user?.name} !</Text>
           </LinearGradient>
-        </Animated.View>
+        </AnimatedSection>
 
-        <Animated.View
-          entering={FadeInUp.delay(200).springify().damping(14)}
+        <AnimatedSection
+          delay={200}
+          direction="up"
           style={styles.tabsContainer}
         >
           <Pressable
@@ -201,7 +198,7 @@ export default function ChildExercisesScreen() {
               Leçons
             </Text>
           </Pressable>
-        </Animated.View>
+        </AnimatedSection>
 
         <View style={styles.section}>
           {activeTab === "games" && (

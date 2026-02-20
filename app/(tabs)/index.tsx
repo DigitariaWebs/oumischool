@@ -25,7 +25,6 @@ import {
   CreditCard,
   TrendingUp,
   Play,
-  User,
 } from "lucide-react-native";
 import Animated, {
   FadeInDown,
@@ -37,72 +36,18 @@ import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector } from "@/store/hooks";
-import { Avatar } from "@/components/ui";
+import {
+  Avatar,
+  BlobBackground,
+  HeroCard,
+  QuickActionCard,
+  FeatureCard,
+  AnimatedSection,
+} from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = (SCREEN_WIDTH - 60) / 2; // 2 cards per row with proper spacing
-
-interface QuickActionProps {
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-  color: string;
-  onPress: () => void;
-  delay: number;
-}
-
-const QuickActionCard: React.FC<QuickActionProps & { styles: any }> = ({
-  icon,
-  title,
-  subtitle,
-  color,
-  onPress,
-  delay,
-  styles,
-}) => (
-  <TouchableOpacity
-    style={styles.quickActionCard}
-    onPress={onPress}
-    activeOpacity={0.7}
-  >
-    <View style={[styles.quickActionIcon, { backgroundColor: color }]}>
-      {icon}
-    </View>
-    <View style={styles.quickActionTextContainer}>
-      <Text style={styles.quickActionTitle} numberOfLines={2}>
-        {title}
-      </Text>
-      <Text style={styles.quickActionSubtitle}>{subtitle}</Text>
-    </View>
-  </TouchableOpacity>
-);
-
-interface FeatureCardProps {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  color: string;
-  delay: number;
-}
-
-const FeatureCard: React.FC<FeatureCardProps & { styles: any }> = ({
-  icon,
-  title,
-  description,
-  color,
-  delay,
-  styles,
-}) => (
-  <Animated.View
-    entering={FadeInDown.delay(delay).duration(600)}
-    style={styles.featureCard}
-  >
-    <View style={[styles.featureIcon, { backgroundColor: color }]}>{icon}</View>
-    <Text style={styles.featureTitle}>{title}</Text>
-    <Text style={styles.featureDescription}>{description}</Text>
-  </Animated.View>
-);
 
 interface ChildCardProps {
   id: string;
@@ -271,11 +216,7 @@ export default function HomeScreen() {
         backgroundColor={colors.background}
       />
 
-      {/* Organic blob background */}
-      <View style={styles.blobContainer}>
-        <View style={[styles.blob, styles.blob1]} />
-        <View style={[styles.blob, styles.blob2]} />
-      </View>
+      <BlobBackground />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -314,40 +255,17 @@ export default function HomeScreen() {
         </Animated.View>
 
         {/* Hero Stats Card */}
-        <Animated.View
-          entering={FadeInDown.delay(150).duration(600).springify()}
-          style={styles.heroCard}
-        >
-          <LinearGradient
-            colors={["#6366F1", "#8B5CF6", "#A855F7"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroGradient}
-          >
-            <View style={styles.heroContent}>
-              <View style={styles.heroTop}>
-                <View style={styles.sparkleContainer}>
-                  <Sparkles size={18} color="rgba(255,255,255,0.9)" />
-                </View>
-                <Text style={styles.heroLabel}>Tableau de bord</Text>
-              </View>
-              <Text style={styles.heroAmount}>
-                68<Text style={styles.heroSuffix}>%</Text>
-              </Text>
-              <Text style={styles.heroSubtext}>Progression globale</Text>
-              <View style={styles.heroBadge}>
-                <TrendingUp size={14} color="#FCD34D" />
-                <Text style={styles.heroBadgeText}>
-                  {children.length} enfant{children.length !== 1 ? "s" : ""} •
-                  12 leçons actives
-                </Text>
-              </View>
-            </View>
-            {/* Decorative circles */}
-            <View style={styles.heroCircle1} />
-            <View style={styles.heroCircle2} />
-          </LinearGradient>
-        </Animated.View>
+        <AnimatedSection delay={150} style={styles.heroCardWrapper}>
+          <HeroCard
+            title="Tableau de bord"
+            value="68%"
+            subtitle="Progression globale"
+            badge={{
+              icon: <TrendingUp size={14} color="#FCD34D" />,
+              text: `${children.length} enfant${children.length !== 1 ? "s" : ""} • 12 leçons actives`,
+            }}
+          />
+        </AnimatedSection>
         {/* Children Section */}
         <View style={styles.section}>
           <Animated.View
@@ -441,15 +359,9 @@ export default function HomeScreen() {
           </Animated.View>
           <View style={styles.quickActionsGrid}>
             {quickActions.map((action, index) => (
-              <Animated.View
-                key={index}
-                entering={FadeInDown.delay(400 + index * 60)
-                  .duration(500)
-                  .springify()}
-                style={styles.quickActionWrapper}
-              >
-                <QuickActionCard {...action} delay={0} styles={styles} />
-              </Animated.View>
+              <View key={index} style={styles.quickActionWrapper}>
+                <QuickActionCard {...action} delay={400 + index * 60} />
+              </View>
             ))}
           </View>
         </View>
@@ -470,12 +382,7 @@ export default function HomeScreen() {
             </View>
           </Animated.View>
           {features.map((feature, index) => (
-            <FeatureCard
-              key={index}
-              {...feature}
-              delay={650 + index * 80}
-              styles={styles}
-            />
+            <FeatureCard key={index} {...feature} delay={650 + index * 80} />
           ))}
         </View>
 
@@ -522,33 +429,9 @@ const createStyles = (colors: ThemeColors, isDark: boolean) =>
       flex: 1,
       backgroundColor: colors.background,
     },
-    // Blob Background
-    blobContainer: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      height: 300,
-      overflow: "hidden",
-    },
-    blob: {
-      position: "absolute",
-      borderRadius: 999,
-      opacity: 0.1,
-    },
-    blob1: {
-      width: 200,
-      height: 200,
-      backgroundColor: "#8B5CF6",
-      top: -50,
-      right: -50,
-    },
-    blob2: {
-      width: 150,
-      height: 150,
-      backgroundColor: "#10B981",
-      top: 80,
-      left: -30,
+    heroCardWrapper: {
+      marginHorizontal: 20,
+      marginBottom: 20,
     },
     scrollContent: {
       paddingBottom: 100,
@@ -618,97 +501,7 @@ const createStyles = (colors: ThemeColors, isDark: boolean) =>
       color: COLORS.neutral.white,
     },
     // Hero Card
-    heroCard: {
-      marginHorizontal: 20,
-      marginBottom: 24,
-      borderRadius: 28,
-      overflow: "hidden",
-      shadowColor: "#8B5CF6",
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.3,
-      shadowRadius: 20,
-      elevation: 8,
-    },
-    heroGradient: {
-      padding: 24,
-      position: "relative",
-      overflow: "hidden",
-    },
-    heroContent: {
-      position: "relative",
-      zIndex: 1,
-    },
-    heroTop: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-      marginBottom: 8,
-    },
-    sparkleContainer: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: "rgba(255,255,255,0.2)",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    heroLabel: {
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      color: "rgba(255,255,255,0.9)",
-      fontWeight: "500",
-    },
-    heroAmount: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 56,
-      color: COLORS.neutral.white,
-      lineHeight: 64,
-    },
-    heroSuffix: {
-      fontSize: 32,
-      opacity: 0.9,
-    },
-    heroSubtext: {
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      color: "rgba(255,255,255,0.8)",
-      marginBottom: 8,
-    },
-    heroBadge: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      backgroundColor: "rgba(255,255,255,0.15)",
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 20,
-      alignSelf: "flex-start",
-      marginTop: 8,
-    },
-    heroBadgeText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 12,
-      color: "rgba(255,255,255,0.95)",
-      fontWeight: "500",
-    },
-    heroCircle1: {
-      position: "absolute",
-      width: 120,
-      height: 120,
-      borderRadius: 60,
-      backgroundColor: "rgba(255,255,255,0.1)",
-      top: -30,
-      right: -30,
-    },
-    heroCircle2: {
-      position: "absolute",
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      backgroundColor: "rgba(255,255,255,0.08)",
-      bottom: -20,
-      right: 50,
-    },
+
     // Section
     section: {
       paddingHorizontal: 20,
@@ -901,79 +694,6 @@ const createStyles = (colors: ThemeColors, isDark: boolean) =>
     quickActionWrapper: {
       width: CARD_WIDTH,
     },
-    quickActionCard: {
-      backgroundColor: colors.card,
-      borderRadius: 20,
-      padding: 16,
-      minHeight: 140,
-      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: 12,
-      elevation: 4,
-    },
-    quickActionIcon: {
-      width: 48,
-      height: 48,
-      borderRadius: 14,
-      justifyContent: "center",
-      alignItems: "center",
-      marginBottom: 12,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.15,
-      shadowRadius: 6,
-      elevation: 3,
-    },
-    quickActionTextContainer: {
-      flex: 1,
-      justifyContent: "center",
-    },
-    quickActionTitle: {
-      fontFamily: FONTS.secondary,
-      fontSize: 15,
-      fontWeight: "600",
-      color: colors.textPrimary,
-      marginBottom: 4,
-      lineHeight: 20,
-    },
-    quickActionSubtitle: {
-      fontFamily: FONTS.secondary,
-      fontSize: 12,
-      color: colors.textSecondary,
-    },
-    featureCard: {
-      backgroundColor: colors.card,
-      borderRadius: 20,
-      padding: 18,
-      marginBottom: 14,
-      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: 12,
-      elevation: 4,
-    },
-    featureIcon: {
-      width: 52,
-      height: 52,
-      borderRadius: 16,
-      justifyContent: "center",
-      alignItems: "center",
-      marginBottom: 12,
-    },
-    featureTitle: {
-      fontFamily: FONTS.secondary,
-      fontSize: 16,
-      fontWeight: "600",
-      color: colors.textPrimary,
-      marginBottom: 6,
-    },
-    featureDescription: {
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      color: colors.textSecondary,
-      lineHeight: 20,
-    },
     // CTA Banner
     ctaBanner: {
       marginHorizontal: 20,
@@ -1059,8 +779,8 @@ const createStyles = (colors: ThemeColors, isDark: boolean) =>
     // Empty State
     emptyChildrenState: {
       backgroundColor: colors.card,
-      borderRadius: 24,
-      padding: 32,
+      borderRadius: 20,
+      padding: 24,
       alignItems: "center",
       shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
       shadowOffset: { width: 0, height: 4 },
@@ -1069,16 +789,16 @@ const createStyles = (colors: ThemeColors, isDark: boolean) =>
       elevation: 4,
     },
     emptyStateIcon: {
-      width: 72,
-      height: 72,
-      borderRadius: 20,
+      width: 80,
+      height: 80,
+      borderRadius: 40,
       backgroundColor: colors.input,
       justifyContent: "center",
       alignItems: "center",
       marginBottom: 16,
     },
     emptyStateTitle: {
-      fontFamily: FONTS.fredoka,
+      fontFamily: FONTS.secondary,
       fontSize: 18,
       color: colors.textPrimary,
       marginBottom: 8,
@@ -1098,8 +818,8 @@ const createStyles = (colors: ThemeColors, isDark: boolean) =>
       shadowColor: COLORS.primary.DEFAULT,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
-      shadowRadius: 10,
-      elevation: 5,
+      shadowRadius: 8,
+      elevation: 4,
     },
     emptyStateButtonGradient: {
       flexDirection: "row",
@@ -1107,7 +827,7 @@ const createStyles = (colors: ThemeColors, isDark: boolean) =>
       justifyContent: "center",
       paddingHorizontal: 24,
       paddingVertical: 14,
-      gap: 10,
+      gap: 8,
     },
     emptyStateButtonText: {
       fontFamily: FONTS.secondary,
