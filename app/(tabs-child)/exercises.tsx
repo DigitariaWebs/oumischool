@@ -1,121 +1,37 @@
-import React from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from "react-native";
 import { useRouter } from "expo-router";
-import {
-  ChevronRight,
-  Calculator,
-  FileText,
-  Globe,
-  Gamepad2,
-  BookOpen,
-} from "lucide-react-native";
-import Animated, {
-  FadeInUp,
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
-
+import { Search, Bell, Sparkles, Clock, Play, Calculator, FileText, Globe, Brain } from "lucide-react-native";
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector } from "@/store/hooks";
-import { AnimatedSection } from "@/components/ui";
+import Animated, { FadeInUp, useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 
+// --- DONNÉES AVEC LES BONNES ROUTES ---
 const GAMES = [
-  {
-    id: 1,
-    subject: "Maths",
-    title: "Jeu d'addition",
-    description: "Additionne les nombres !",
-    progress: 80,
-    Icon: Calculator,
-    color: "#3B82F6",
-    route: "/games/math-addition",
-  },
-  {
-    id: 2,
-    subject: "Français",
-    title: "Conjugaison",
-    description: "Conjugue les verbes",
-    progress: 60,
-    Icon: FileText,
-    color: "#EC4899",
-    route: "/games/french-conjugation",
-  },
-  {
-    id: 3,
-    subject: "Sciences",
-    title: "Mémoire des planètes",
-    description: "Trouve les paires !",
-    progress: 45,
-    Icon: Globe,
-    color: "#10B981",
-    route: "/games/planets-memory",
-  },
+  { id: 1, subject: "Maths", title: "Jeu d'addition", description: "Additionne les nombres !", progress: 80, Icon: Calculator, color: "#0EA5E9", route: "/games/math-addition" },
+  { id: 2, subject: "Français", title: "Conjugaison", description: "Conjugue les verbes", progress: 60, Icon: FileText, color: "#EC4899", route: "/games/french-conjugation" },
+  { id: 3, subject: "Sciences", title: "Mémoire des planètes", description: "Trouve les paires !", progress: 45, Icon: Globe, color: "#22C55E", route: "/games/planets-memory" },
 ];
 
 const LESSONS = [
-  {
-    id: 1,
-    subject: "Maths",
-    title: "Les fractions",
-    description: "Apprends les fractions",
-    Icon: Calculator,
-    color: "#3B82F6",
-    route: "/lessons/math-fractions",
-  },
-  {
-    id: 2,
-    subject: "Français",
-    title: "Les temps",
-    description: "Présent, passé, futur",
-    Icon: FileText,
-    color: "#EC4899",
-    route: "/lessons/french-tenses",
-  },
-  {
-    id: 3,
-    subject: "Sciences",
-    title: "Le système solaire",
-    description: "Découvre les planètes",
-    Icon: Globe,
-    color: "#10B981",
-    route: "/lessons/science-solar-system",
-  },
+  { id: 1, subject: "Maths", title: "Les fractions", description: "Apprends les fractions", Icon: Calculator, color: "#0EA5E9", route: "/lessons/math-fractions" },
+  { id: 2, subject: "Français", title: "Les temps", description: "Présent, passé, futur", Icon: FileText, color: "#EC4899", route: "/lessons/french-tenses" },
+  { id: 3, subject: "Sciences", title: "Le système solaire", description: "Découvre les planètes", Icon: Globe, color: "#22C55E", route: "/lessons/science-solar-system" },
 ];
 
 const springConfig = { damping: 12, stiffness: 150 };
 
-function BouncyCard({
-  children,
-  onPress,
-  delay,
-  style,
-}: {
-  children: React.ReactNode;
-  onPress?: () => void;
-  delay: number;
-  style?: object;
-}) {
+// --- TA LOGIQUE DE BOUNCY CARD (CONSERVÉE) ---
+function BouncyCard({ children, onPress, delay, style }: any) {
   const scale = useSharedValue(1);
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
+  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
-    <Animated.View
-      entering={FadeInUp.delay(delay).springify().damping(14)}
-      style={[style, animatedStyle]}
-    >
-      <Pressable
-        onPress={onPress}
-        onPressIn={() => {
-          scale.value = withSpring(0.96, springConfig);
-        }}
-        onPressOut={() => {
-          scale.value = withSpring(1, springConfig);
-        }}
+    <Animated.View entering={FadeInUp.delay(delay).springify().damping(14)} style={[style, animatedStyle]}>
+      <Pressable 
+        onPress={onPress} 
+        onPressIn={() => scale.value = withSpring(0.96, springConfig)} 
+        onPressOut={() => scale.value = withSpring(1, springConfig)}
       >
         {children}
       </Pressable>
@@ -126,164 +42,105 @@ function BouncyCard({
 export default function ChildExercisesScreen() {
   const router = useRouter();
   const user = useAppSelector((state) => state.auth.user);
-  const [activeTab, setActiveTab] = React.useState<"games" | "lessons">(
-    "games",
-  );
+  const [activeTab, setActiveTab] = useState<"games" | "lessons">("games");
+
+  const data = activeTab === "games" ? GAMES : LESSONS;
+
+  // Navigation sécurisée pour éviter l'erreur pathname
+  const handlePress = (route: string) => {
+    if (router && route) {
+      router.push(route as any);
+    } else {
+      Alert.alert("Bientôt disponible", "Cet exercice est en cours de préparation !");
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <AnimatedSection delay={100} style={styles.header}>
-          <LinearGradient
-            colors={["#3B82F6", "#2563EB"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.headerGradient}
-          >
-            <Text style={styles.headerTitle}>Mes activités</Text>
-            <Text style={styles.headerSubtitle}>Continue, {user?.name} !</Text>
-          </LinearGradient>
-        </AnimatedSection>
+      {/* HEADER - STYLE DASHBOARD */}
+      <View style={styles.header}>
+        <View>
+          <View style={styles.welcomeRow}>
+            <Text style={styles.headerLabel}>OUMI'SCHOOL</Text>
+            <Sparkles size={12} color={COLORS.primary.DEFAULT} style={{marginLeft: 4}} />
+          </View>
+          <Text style={styles.userName}>Mes Activités</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <Pressable style={styles.iconBtn}><Search size={22} color="#64748B" /></Pressable>
+          <Pressable style={styles.iconBtn}>
+            <View style={styles.notifBadge} />
+            <Bell size={22} color="#64748B" />
+          </Pressable>
+        </View>
+      </View>
 
-        <AnimatedSection
-          delay={200}
-          direction="up"
-          style={styles.tabsContainer}
+      {/* TABS - STYLE MODERNE */}
+      <View style={styles.tabsContainer}>
+        <Pressable 
+          onPress={() => setActiveTab("games")} 
+          style={[styles.tab, activeTab === "games" && styles.tabActive]}
         >
-          <Pressable
-            onPress={() => setActiveTab("games")}
-            style={({ pressed }) => [
-              styles.tab,
-              activeTab === "games" && styles.tabActive,
-              pressed && styles.tabPressed,
-            ]}
-          >
-            <Gamepad2
-              size={24}
-              color={activeTab === "games" ? "#3B82F6" : COLORS.secondary[500]}
-            />
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "games" && styles.tabTextActive,
-              ]}
-            >
-              Mini-jeux
-            </Text>
-          </Pressable>
+          <Text style={[styles.tabText, activeTab === "games" && styles.tabTextActive]}>Mini-jeux</Text>
+        </Pressable>
+        <Pressable 
+          onPress={() => setActiveTab("lessons")} 
+          style={[styles.tab, activeTab === "lessons" && styles.tabActive]}
+        >
+          <Text style={[styles.tabText, activeTab === "lessons" && styles.tabTextActive]}>Leçons</Text>
+        </Pressable>
+      </View>
 
-          <Pressable
-            onPress={() => setActiveTab("lessons")}
-            style={({ pressed }) => [
-              styles.tab,
-              activeTab === "lessons" && styles.tabActive,
-              pressed && styles.tabPressed,
-            ]}
-          >
-            <BookOpen
-              size={24}
-              color={
-                activeTab === "lessons" ? "#3B82F6" : COLORS.secondary[500]
-              }
-            />
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "lessons" && styles.tabTextActive,
-              ]}
-            >
-              Leçons
-            </Text>
-          </Pressable>
-        </AnimatedSection>
-
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.section}>
-          {activeTab === "games" && (
-            <>
-              {GAMES.map((game, index) => (
-                <BouncyCard
-                  key={game.id}
-                  delay={300 + index * 120}
-                  style={styles.exerciseCard}
-                  onPress={() => {
-                    if (game.route) {
-                      router.push(game.route as any);
-                    }
-                  }}
-                >
-                  <View style={styles.exerciseContent}>
-                    <View
-                      style={[
-                        styles.exerciseIcon,
-                        { backgroundColor: game.color + "25" },
-                      ]}
-                    >
-                      <game.Icon size={36} color={game.color} />
+          {data.map((item, index) => (
+            <BouncyCard 
+              key={item.id} 
+              delay={100 + index * 100} 
+              style={styles.exerciseCard} 
+              onPress={() => handlePress(item.route)}
+            >
+              <View style={styles.exerciseContent}>
+                {/* Icône avec cercle de couleur doux */}
+                <View style={[styles.exerciseIcon, { backgroundColor: item.color + "15" }]}>
+                  <item.Icon size={26} color={item.color} />
+                </View>
+                
+                <View style={styles.exerciseInfo}>
+                  <View style={styles.exerciseHeader}>
+                    <Text style={[styles.exerciseSubject, { color: item.color }]}>{item.subject.toUpperCase()}</Text>
+                    <View style={styles.exerciseTime}>
+                      <Clock size={12} color="#94A3B8" />
+                      <Text style={styles.exerciseTimeText}>15 min</Text>
                     </View>
-                    <View style={styles.exerciseInfo}>
-                      <Text style={styles.exerciseTitle}>{game.title}</Text>
-                      <Text style={styles.exerciseDescription}>
-                        {game.description}
-                      </Text>
-                      <View style={styles.progressBar}>
-                        <View
-                          style={[
-                            styles.progressFill,
-                            {
-                              width: `${game.progress}%`,
-                              backgroundColor: game.color,
-                            },
-                          ]}
-                        />
+                  </View>
+                  
+                  <Text style={styles.exerciseTitle}>{item.title}</Text>
+                  <Text style={styles.exerciseDescription} numberOfLines={1}>{item.description}</Text>
+                  
+                  {/* Barre de progression */}
+                  {item.progress !== undefined && (
+                    <View style={styles.progressRow}>
+                      <View style={styles.progressBg}>
+                        <View style={[styles.progressFill, { width: `${item.progress}%`, backgroundColor: item.color }]} />
                       </View>
-                      <Text style={styles.progressText}>
-                        {game.progress}% fait
-                      </Text>
+                      <Text style={styles.progressText}>{item.progress}%</Text>
                     </View>
-                    <ChevronRight size={28} color={COLORS.secondary[400]} />
-                  </View>
-                </BouncyCard>
-              ))}
-            </>
-          )}
+                  )}
+                </View>
+                
+                <View style={[styles.playCircle, { backgroundColor: item.color }]}>
+                  <Play size={12} color="white" fill="white" />
+                </View>
+              </View>
+            </BouncyCard>
+          ))}
+        </View>
 
-          {activeTab === "lessons" && (
-            <>
-              {LESSONS.map((lesson, index) => (
-                <BouncyCard
-                  key={lesson.id}
-                  delay={300 + index * 120}
-                  style={styles.exerciseCard}
-                  onPress={() => {
-                    if (lesson.route) {
-                      router.push(lesson.route as any);
-                    }
-                  }}
-                >
-                  <View style={styles.exerciseContent}>
-                    <View
-                      style={[
-                        styles.exerciseIcon,
-                        { backgroundColor: lesson.color + "25" },
-                      ]}
-                    >
-                      <lesson.Icon size={36} color={lesson.color} />
-                    </View>
-                    <View style={styles.exerciseInfo}>
-                      <Text style={styles.exerciseTitle}>{lesson.title}</Text>
-                      <Text style={styles.exerciseDescription}>
-                        {lesson.description}
-                      </Text>
-                    </View>
-                    <ChevronRight size={28} color={COLORS.secondary[400]} />
-                  </View>
-                </BouncyCard>
-              ))}
-            </>
-          )}
+        {/* PETIT RAPPEL IA EN BAS */}
+        <View style={styles.aiHint}>
+            <Brain size={18} color="#6366F1" />
+            <Text style={styles.aiHintText}>Besoin d'aide pour un exercice ? Demande à Oumi !</Text>
         </View>
       </ScrollView>
     </View>
@@ -291,131 +148,64 @@ export default function ChildExercisesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F0F9FF",
+  container: { flex: 1, backgroundColor: "#F8FAFC" }, // Fond gris très clair pour faire ressortir les cartes
+  
+  header: { 
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center", 
+    paddingHorizontal: 24, paddingTop: 60, paddingBottom: 20 
   },
-  scrollContent: {
-    paddingBottom: 32,
+  welcomeRow: { flexDirection: 'row', alignItems: 'center' },
+  headerLabel: { fontFamily: FONTS.secondary, fontSize: 11, color: "#6366F1", letterSpacing: 1.5, fontWeight: "800" },
+  userName: { fontFamily: FONTS.fredoka, fontSize: 24, color: "#1E293B", marginTop: 4 },
+  headerActions: { flexDirection: "row", gap: 10 },
+  iconBtn: { 
+    width: 42, height: 42, borderRadius: 12, backgroundColor: "white", 
+    justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: "#E2E8F0"
   },
-  header: {
-    marginBottom: 28,
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
-    overflow: "hidden",
+  notifBadge: { 
+    position: 'absolute', top: 10, right: 10, width: 7, height: 7, 
+    borderRadius: 4, backgroundColor: '#EF4444', zIndex: 1, borderWidth: 1.5, borderColor: '#FFF'
   },
-  headerGradient: {
-    paddingTop: 56,
-    paddingBottom: 28,
-    paddingHorizontal: 24,
+
+  // Tabs
+  tabsContainer: { 
+    flexDirection: "row", backgroundColor: "#E2E8F0", 
+    marginHorizontal: 24, borderRadius: 16, padding: 4, marginBottom: 24 
   },
-  headerTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 32,
-    color: COLORS.neutral.white,
-    marginBottom: 8,
+  tab: { flex: 1, paddingVertical: 10, alignItems: "center", borderRadius: 12 },
+  tabActive: { backgroundColor: "white", elevation: 2, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+  tabText: { fontFamily: FONTS.fredoka, fontSize: 14, color: "#64748B" },
+  tabTextActive: { color: "#1E293B", fontWeight: '700' },
+
+  scrollContent: { paddingBottom: 100 },
+  section: { paddingHorizontal: 24 },
+  
+  // Cartes
+  exerciseCard: { 
+    backgroundColor: "white", borderRadius: 24, marginBottom: 16, 
+    borderWidth: 1, borderColor: "#E2E8F0", elevation: 2,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8,
   },
-  headerSubtitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 18,
-    color: "rgba(255,255,255,0.95)",
+  exerciseContent: { flexDirection: "row", alignItems: "center", padding: 16, gap: 14 },
+  exerciseIcon: { width: 56, height: 56, borderRadius: 18, justifyContent: "center", alignItems: "center" },
+  exerciseInfo: { flex: 1 },
+  exerciseHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  exerciseSubject: { fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
+  exerciseTime: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  exerciseTimeText: { fontSize: 11, color: "#94A3B8", fontWeight: '600' },
+  exerciseTitle: { fontFamily: FONTS.fredoka, fontSize: 17, color: "#1E293B" },
+  exerciseDescription: { fontSize: 13, color: "#64748B", marginTop: 2 },
+  
+  playCircle: { width: 32, height: 32, borderRadius: 16, justifyContent: "center", alignItems: "center" },
+
+  progressRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 10 },
+  progressBg: { flex: 1, height: 6, backgroundColor: "#F1F5F9", borderRadius: 3, overflow: "hidden" },
+  progressFill: { height: "100%", borderRadius: 3 },
+  progressText: { fontSize: 11, fontWeight: "700", color: "#64748B" },
+
+  aiHint: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      gap: 8, marginTop: 10, paddingHorizontal: 40
   },
-  section: {
-    paddingHorizontal: 24,
-  },
-  exerciseCard: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 24,
-    marginBottom: 16,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-    overflow: "hidden",
-  },
-  exerciseContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 20,
-  },
-  exerciseIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 20,
-  },
-  exerciseInfo: {
-    flex: 1,
-  },
-  exerciseTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 22,
-    color: COLORS.secondary[900],
-    marginBottom: 4,
-  },
-  exerciseDescription: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[600],
-    marginBottom: 12,
-  },
-  tabsContainer: {
-    flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: 24,
-    marginBottom: 20,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: COLORS.neutral.white,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  tabActive: {
-    backgroundColor: "#DBEAFE",
-    shadowColor: "#3B82F6",
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  tabPressed: {
-    transform: [{ scale: 0.97 }],
-  },
-  tabText: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 16,
-    color: COLORS.secondary[600],
-  },
-  tabTextActive: {
-    color: "#3B82F6",
-  },
-  progressBar: {
-    height: 12,
-    backgroundColor: COLORS.neutral[200],
-    borderRadius: 6,
-    overflow: "hidden",
-    marginBottom: 8,
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 6,
-  },
-  progressText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    color: COLORS.secondary[600],
-  },
+  aiHintText: { fontSize: 12, color: "#64748B", textAlign: 'center', fontStyle: 'italic' }
 });

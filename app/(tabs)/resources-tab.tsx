@@ -6,11 +6,15 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  Pressable,
+  Modal,
+  Image,
+  Alert,
+  Share,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Search,
-  Filter,
   FileText,
   Download,
   Eye,
@@ -19,24 +23,24 @@ import {
   Calculator,
   FlaskConical,
   Languages,
-  TrendingUp,
+  Filter,
+  ArrowLeft,
+  Share2,
+  CheckCircle2,
 } from "lucide-react-native";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
 
-import { COLORS } from "@/config/colors";
-import { FONTS } from "@/config/fonts";
-import { BlobBackground, HeroCard, AnimatedSection } from "@/components/ui";
-import { useTheme } from "@/hooks/use-theme";
-import { ThemeColors } from "@/constants/theme";
+// --- Configuration & Design ---
+const COLORS = {
+  primary: "#6366F1",
+  secondary: "#F8FAFC",
+  text: "#1E293B",
+  subtext: "#64748B",
+  accent: "#F59E0B",
+  white: "#FFFFFF",
+  success: "#10B981"
+};
 
-interface Subject {
-  id: string;
-  name: string;
-  Icon: React.ComponentType<{ size?: number; color?: string }>;
-  color: string;
-}
-
+// --- Données Réelles ---
 interface Resource {
   id: number;
   title: string;
@@ -44,21 +48,15 @@ interface Resource {
   type: "PDF" | "Quiz" | "Exercice";
   level: string;
   pages: number;
-  downloads: number;
+  downloads: string;
   rating: number;
   color: string;
+  image: string;
+  content: string;
+  summary: string[];
 }
 
-const subjects: Subject[] = [
-  { id: "all", name: "Tout", Icon: BookOpen, color: COLORS.secondary[600] },
-  { id: "math", name: "Maths", Icon: Calculator, color: "#3B82F6" },
-  { id: "french", name: "Français", Icon: FileText, color: "#EF4444" },
-  { id: "science", name: "Sciences", Icon: FlaskConical, color: "#10B981" },
-  { id: "english", name: "Anglais", Icon: Languages, color: "#6366F1" },
-  { id: "history", name: "Histoire", Icon: BookOpen, color: "#F59E0B" },
-];
-
-const resources: Resource[] = [
+const RESOURCES: Resource[] = [
   {
     id: 1,
     title: "Les fractions - Niveau CE2",
@@ -66,613 +64,209 @@ const resources: Resource[] = [
     type: "PDF",
     level: "CE2",
     pages: 8,
-    downloads: 1250,
+    downloads: "1.2k",
     rating: 4.8,
     color: "#3B82F6",
+    image: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?q=80&w=500",
+    summary: ["Comprendre le numérateur", "Partager une unité", "Comparaison de fractions"],
+    content: "Une fraction représente une partie d'une unité entière. Le chiffre du haut (numérateur) indique combien de parts on prend, et celui du bas (dénominateur) indique en combien de parts l'unité est coupée."
   },
   {
     id: 2,
-    title: "Conjugaison du passé composé",
-    subject: "Français",
-    type: "Exercice",
-    level: "CE2",
-    pages: 5,
-    downloads: 980,
-    rating: 4.6,
-    color: "#EF4444",
-  },
-  {
-    id: 3,
-    title: "Le cycle de l'eau",
+    title: "Le cycle de l'eau complet",
     subject: "Sciences",
     type: "PDF",
     level: "CM1",
     pages: 12,
-    downloads: 1520,
+    downloads: "2.5k",
     rating: 4.9,
     color: "#10B981",
+    image:"https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&q=80&w=800",
+    summary: ["L'évaporation", "La condensation", "Le ruissellement"],
+    content: "L'eau sur Terre suit un cycle éternel. Sous l'effet du soleil, l'eau des océans s'évapore pour former des nuages. Elle retombe ensuite sous forme de pluie (précipitations) pour rejoindre les rivières."
   },
   {
-    id: 4,
-    title: "Vocabulaire: Les couleurs",
-    subject: "Anglais",
-    type: "Quiz",
-    level: "CP",
-    pages: 3,
-    downloads: 750,
-    rating: 4.5,
-    color: "#6366F1",
-  },
-  {
-    id: 5,
-    title: "La Révolution française",
-    subject: "Histoire",
-    type: "PDF",
-    level: "CM2",
-    pages: 15,
-    downloads: 890,
+    id: 3,
+    title: "Conjugaison : Passé Composé",
+    subject: "Français",
+    type: "Exercice",
+    level: "CE2",
+    pages: 4,
+    downloads: "850",
     rating: 4.7,
-    color: "#F59E0B",
-  },
+    color: "#EF4444",
+    image: "https://images.unsplash.com/photo-1455390582262-044cdead277a?q=80&w=500",
+    summary: ["Auxiliaire être et avoir", "Les participes passés", "Les accords"],
+    content: "Le passé composé s'utilise pour une action terminée. Il se forme avec l'auxiliaire (être ou avoir) au présent + le participe passé du verbe. Exemple : J'ai mangé, Je suis allé."
+  }
 ];
 
-interface SubjectChipProps {
-  subject: Subject;
-  isSelected: boolean;
-  onPress: () => void;
-}
-
-const SubjectChip: React.FC<SubjectChipProps> = ({
-  subject,
-  isSelected,
-  onPress,
-}) => {
-  const { colors, isDark } = useTheme();
-  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
-
-  return (
-    <TouchableOpacity
-      style={[
-        styles.subjectChip,
-        isSelected && {
-          backgroundColor: subject.color + "20",
-          borderColor: subject.color,
-        },
-      ]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View
-        style={[
-          styles.subjectChipIcon,
-          { backgroundColor: isSelected ? subject.color : colors.input },
-        ]}
-      >
-        <subject.Icon size={16} color={isSelected ? "#FFF" : colors.icon} />
-      </View>
-      <Text
-        style={[
-          styles.subjectChipText,
-          isSelected && { color: subject.color, fontWeight: "700" },
-        ]}
-      >
-        {subject.name}
-      </Text>
-    </TouchableOpacity>
-  );
-};
-
-interface ResourceCardProps {
-  resource: Resource;
-  delay: number;
-}
-
-const ResourceCard: React.FC<ResourceCardProps> = ({ resource, delay }) => {
-  const { colors, isDark } = useTheme();
-  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
-
-  return (
-    <Animated.View entering={FadeInDown.delay(delay).duration(400).springify()}>
-      <TouchableOpacity style={styles.resourceCard} activeOpacity={0.7}>
-        {/* Decorative gradient accent */}
-        <View
-          style={[styles.resourceAccent, { backgroundColor: resource.color }]}
-        />
-
-        <View style={styles.resourceInner}>
-          <View style={styles.resourceHeader}>
-            <View
-              style={[
-                styles.resourceIconContainer,
-                { backgroundColor: resource.color + "15" },
-              ]}
-            >
-              <FileText size={22} color={resource.color} />
-            </View>
-            <View style={styles.resourceBadges}>
-              <View
-                style={[
-                  styles.typeBadge,
-                  { backgroundColor: resource.color + "15" },
-                ]}
-              >
-                <Text style={[styles.typeBadgeText, { color: resource.color }]}>
-                  {resource.type}
-                </Text>
-              </View>
-              <View style={styles.levelBadge}>
-                <Text style={styles.levelBadgeText}>{resource.level}</Text>
-              </View>
-            </View>
-          </View>
-
-          <Text style={styles.resourceTitle} numberOfLines={2}>
-            {resource.title}
-          </Text>
-          <Text style={styles.resourceSubject}>{resource.subject}</Text>
-
-          <View style={styles.resourceFooter}>
-            <View style={styles.resourceStats}>
-              <View style={styles.statItem}>
-                <Star size={14} color="#F59E0B" fill="#F59E0B" />
-                <Text style={styles.statText}>{resource.rating}</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Download size={14} color={colors.icon} />
-                <Text style={styles.statText}>{resource.downloads}</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <Text style={styles.pagesText}>{resource.pages} pages</Text>
-            </View>
-
-            <View style={styles.resourceActions}>
-              <TouchableOpacity style={styles.actionButton}>
-                <Eye size={18} color={COLORS.primary.DEFAULT} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.downloadButton]}
-              >
-                <LinearGradient
-                  colors={[resource.color, resource.color + "CC"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.downloadButtonGradient}
-                >
-                  <Download size={16} color="white" />
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-};
-
-export default function ResourcesTab() {
-  const { colors, isDark } = useTheme();
+export default function LibraryScreen() {
   const [selectedSubject, setSelectedSubject] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
+  const [isViewerVisible, setIsViewerVisible] = useState(false);
 
-  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
+  // Simulation Téléchargement
+  const handleDownload = (title: string) => {
+    Alert.alert(
+      "Téléchargement",
+      `Le fichier "${title}" a été ajouté à vos documents hors-ligne.`,
+      [{ text: "Super !" }]
+    );
+  };
 
-  const filteredResources = resources.filter((resource) => {
-    const matchesSubject =
-      selectedSubject === "all" ||
-      resource.subject.toLowerCase().includes(selectedSubject);
-    const matchesSearch =
-      searchQuery === "" ||
-      resource.title.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSubject && matchesSearch;
-  });
-
-  const totalDownloads = resources.reduce((acc, r) => acc + r.downloads, 0);
+  const filteredResources = useMemo(() => {
+    return RESOURCES.filter(res => 
+      (selectedSubject === "all" || res.subject.includes(selectedSubject)) &&
+      res.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [selectedSubject, searchQuery]);
 
   return (
     <SafeAreaView style={styles.container}>
-      <BlobBackground />
-
-      {/* Header */}
-      <Animated.View
-        entering={FadeInDown.delay(100).duration(600).springify()}
-        style={styles.header}
-      >
-        <View style={styles.headerLeft}>
-          <View style={styles.headerIconContainer}>
-            <BookOpen size={20} color={COLORS.neutral.white} />
-          </View>
-          <Text style={styles.headerTitle}>Ressources</Text>
+      {/* HEADER */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.headerLabel}>DOCUMENTS</Text>
+          <Text style={styles.headerTitle}>Bibliothèque</Text>
         </View>
-        <TouchableOpacity style={styles.filterButton}>
-          <Filter size={20} color={colors.textPrimary} />
-        </TouchableOpacity>
-      </Animated.View>
+        <TouchableOpacity style={styles.filterBtn}><Filter size={20} color={COLORS.text} /></TouchableOpacity>
+      </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Hero Stats Card */}
-        <AnimatedSection delay={150} style={styles.heroCardWrapper}>
-          <HeroCard
-            title="Bibliothèque"
-            value={`${resources.length} ressources`}
-            badge={{
-              icon: <TrendingUp size={14} color="#FCD34D" />,
-              text: `${totalDownloads.toLocaleString()} téléchargements`,
-            }}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* RECHERCHE */}
+        <View style={styles.searchBox}>
+          <Search size={20} color={COLORS.subtext} />
+          <TextInput 
+            placeholder="Chercher une leçon, un quiz..." 
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
           />
-        </AnimatedSection>
+        </View>
 
-        {/* Search Bar */}
-        <Animated.View
-          entering={FadeInDown.delay(200).duration(600).springify()}
-          style={styles.searchContainer}
-        >
-          <View style={styles.searchBar}>
-            <Search size={20} color={colors.inputPlaceholder} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Rechercher une ressource..."
-              placeholderTextColor={colors.inputPlaceholder}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-        </Animated.View>
-
-        {/* Subject Filters */}
-        <Animated.View
-          entering={FadeInDown.delay(250).duration(600).springify()}
-        >
-          <Text style={styles.sectionTitle}>Matières</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.subjectsContainer}
-          >
-            {subjects.map((subject) => (
-              <SubjectChip
-                key={subject.id}
-                subject={subject}
-                isSelected={selectedSubject === subject.id}
-                onPress={() => setSelectedSubject(subject.id)}
-              />
-            ))}
-          </ScrollView>
-        </Animated.View>
-
-        {/* Resources Grid */}
-        <View style={styles.resourcesSection}>
-          <View style={styles.resourcesHeader}>
-            <Text style={styles.sectionTitle}>
-              {filteredResources.length} ressources disponibles
-            </Text>
-          </View>
-          {filteredResources.map((resource, index) => (
-            <ResourceCard
-              key={resource.id}
-              resource={resource}
-              delay={300 + index * 80}
-            />
+        {/* LISTE DES CARTES */}
+        <View style={styles.listContainer}>
+          {filteredResources.map((item) => (
+            <Pressable 
+              key={item.id} 
+              onPress={() => { setSelectedResource(item); setIsViewerVisible(true); }}
+              style={({ pressed }) => [styles.card, pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }]}
+            >
+              <Image source={{ uri: item.image }} style={styles.cardImage} />
+              <View style={styles.cardContent}>
+                <View style={styles.cardBadge}>
+                  <Text style={[styles.badgeText, { color: item.color }]}>{item.type}</Text>
+                  <Text style={styles.levelText}>{item.level}</Text>
+                </View>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <View style={styles.cardFooter}>
+                  <View style={styles.row}>
+                    <Star size={14} color={COLORS.accent} fill={COLORS.accent} />
+                    <Text style={styles.ratingText}>{item.rating}</Text>
+                    <Text style={styles.downloadCount}>• {item.downloads} téléchargements</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => handleDownload(item.title)}>
+                    <Download size={20} color={COLORS.primary} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Pressable>
           ))}
         </View>
-
-        {/* Empty State */}
-        {filteredResources.length === 0 && (
-          <Animated.View
-            entering={FadeInUp.delay(400).duration(600).springify()}
-            style={styles.emptyState}
-          >
-            <View style={styles.emptyStateIcon}>
-              <BookOpen size={48} color={colors.textMuted} />
-            </View>
-            <Text style={styles.emptyStateTitle}>Aucune ressource trouvée</Text>
-            <Text style={styles.emptyStateText}>
-              Essayez de modifier vos filtres ou votre recherche
-            </Text>
-          </Animated.View>
-        )}
       </ScrollView>
+
+      {/* MODAL LECTEUR INTERACTIF */}
+      <Modal visible={isViewerVisible} animationType="slide">
+        <SafeAreaView style={styles.viewer}>
+          <View style={styles.viewerHeader}>
+            <TouchableOpacity onPress={() => setIsViewerVisible(false)}><ArrowLeft size={24} color={COLORS.text} /></TouchableOpacity>
+            <Text style={styles.viewerHeaderTitle} numberOfLines={1}>{selectedResource?.title}</Text>
+            <TouchableOpacity onPress={() => Share.share({ message: `Regarde ce cours : ${selectedResource?.title}` })}>
+              <Share2 size={22} color={COLORS.text} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.viewerScroll}>
+            <View style={styles.paperPage}>
+              <Image source={{ uri: selectedResource?.image }} style={styles.viewerImage} />
+              
+              <Text style={styles.pageSubject}>{selectedResource?.subject}</Text>
+              <Text style={styles.pageTitle}>{selectedResource?.title}</Text>
+              
+              <View style={styles.separator} />
+              
+              <Text style={styles.realWriting}>{selectedResource?.content}</Text>
+              
+              <Text style={styles.subHeading}>Points clés à retenir :</Text>
+              {selectedResource?.summary.map((point, index) => (
+                <View key={index} style={styles.pointRow}>
+                  <CheckCircle2 size={16} color={COLORS.success} />
+                  <Text style={styles.pointText}>{point}</Text>
+                </View>
+              ))}
+              
+              <View style={styles.footerNote}>
+                <Text style={styles.noteText}>Page 1 sur {selectedResource?.pages} • Support pédagogique certifié</Text>
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.viewerActions}>
+            <TouchableOpacity 
+              style={styles.mainDownloadBtn}
+              onPress={() => handleDownload(selectedResource?.title || "")}
+            >
+              <Download size={20} color={COLORS.white} />
+              <Text style={styles.mainDownloadText}>Télécharger le PDF ({selectedResource?.pages} pages)</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const createStyles = (colors: ThemeColors, isDark: boolean) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    heroCardWrapper: {
-      marginHorizontal: 20,
-      marginBottom: 20,
-    },
-    // Header
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-    },
-    headerLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-    },
-    headerIconContainer: {
-      width: 40,
-      height: 40,
-      borderRadius: 14,
-      backgroundColor: COLORS.primary.DEFAULT,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    headerTitle: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 24,
-      color: colors.textPrimary,
-    },
-    filterButton: {
-      width: 44,
-      height: 44,
-      borderRadius: 14,
-      backgroundColor: colors.card,
-      justifyContent: "center",
-      alignItems: "center",
-      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: 8,
-      elevation: 3,
-    },
-    scrollContent: {
-      paddingBottom: 100,
-    },
-    // Hero Card
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.white },
+  header: { padding: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerLabel: { fontSize: 12, fontWeight: '800', color: COLORS.primary, letterSpacing: 1.5 },
+  headerTitle: { fontSize: 28, fontWeight: 'bold', color: COLORS.text },
+  filterBtn: { padding: 10, backgroundColor: COLORS.secondary, borderRadius: 12 },
+  searchBox: { marginHorizontal: 24, marginBottom: 20, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.secondary, padding: 12, borderRadius: 16 },
+  searchInput: { flex: 1, marginLeft: 10, fontSize: 16 },
+  
+  listContainer: { paddingHorizontal: 24, paddingBottom: 40 },
+  card: { backgroundColor: COLORS.white, borderRadius: 20, marginBottom: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#F1F5F9', elevation: 2 },
+  cardImage: { width: '100%', height: 140 },
+  cardContent: { padding: 16 },
+  cardBadge: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  badgeText: { fontWeight: 'bold', fontSize: 11, letterSpacing: 0.5 },
+  levelText: { fontSize: 11, color: COLORS.subtext, fontWeight: '600' },
+  cardTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.text, marginBottom: 12 },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center' },
+  ratingText: { marginLeft: 4, fontWeight: 'bold', color: COLORS.text, fontSize: 13 },
+  downloadCount: { marginLeft: 8, color: COLORS.subtext, fontSize: 12 },
 
-    // Search
-    searchContainer: {
-      paddingHorizontal: 20,
-      marginBottom: 20,
-    },
-    searchBar: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      gap: 12,
-      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: 12,
-      elevation: 4,
-    },
-    searchInput: {
-      flex: 1,
-      fontFamily: FONTS.secondary,
-      fontSize: 15,
-      color: colors.textPrimary,
-    },
-    sectionTitle: {
-      fontFamily: FONTS.secondary,
-      fontSize: 16,
-      fontWeight: "600",
-      color: colors.textPrimary,
-      marginBottom: 12,
-      paddingHorizontal: 20,
-    },
-    // Subjects
-    subjectsContainer: {
-      paddingHorizontal: 20,
-      gap: 10,
-      marginBottom: 24,
-    },
-    subjectChip: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingVertical: 10,
-      paddingHorizontal: 14,
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      borderWidth: 2,
-      borderColor: colors.border,
-      gap: 8,
-      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.2 : 0.05,
-      shadowRadius: 6,
-      elevation: 2,
-    },
-    subjectChipIcon: {
-      width: 28,
-      height: 28,
-      borderRadius: 8,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    subjectChipText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      color: colors.textSecondary,
-      fontWeight: "500",
-    },
-    // Resources
-    resourcesSection: {
-      paddingHorizontal: 20,
-    },
-    resourcesHeader: {
-      marginBottom: 4,
-    },
-    resourceCard: {
-      backgroundColor: colors.card,
-      borderRadius: 20,
-      marginBottom: 16,
-      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: 12,
-      elevation: 4,
-      overflow: "hidden",
-    },
-    resourceAccent: {
-      position: "absolute",
-      left: 0,
-      top: 0,
-      bottom: 0,
-      width: 4,
-      borderTopLeftRadius: 20,
-      borderBottomLeftRadius: 20,
-    },
-    resourceInner: {
-      padding: 16,
-      paddingLeft: 20,
-    },
-    resourceIconContainer: {
-      width: 48,
-      height: 48,
-      borderRadius: 14,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    resourceHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 12,
-    },
-    resourceBadges: {
-      flexDirection: "row",
-      gap: 8,
-    },
-    typeBadge: {
-      paddingHorizontal: 10,
-      paddingVertical: 5,
-      borderRadius: 10,
-    },
-    typeBadgeText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 11,
-      fontWeight: "700",
-    },
-    levelBadge: {
-      paddingHorizontal: 10,
-      paddingVertical: 5,
-      borderRadius: 10,
-      backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
-    },
-    levelBadgeText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 11,
-      fontWeight: "600",
-      color: colors.textSecondary,
-    },
-    resourceTitle: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 17,
-      color: colors.textPrimary,
-      marginBottom: 4,
-    },
-    resourceSubject: {
-      fontFamily: FONTS.secondary,
-      fontSize: 13,
-      color: colors.textSecondary,
-      marginBottom: 14,
-    },
-    resourceFooter: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
-    resourceStats: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 10,
-    },
-    statItem: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-    },
-    statDivider: {
-      width: 1,
-      height: 12,
-      backgroundColor: isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.1)",
-    },
-    statText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 12,
-      color: colors.textSecondary,
-      fontWeight: "600",
-    },
-    pagesText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 12,
-      color: colors.textSecondary,
-    },
-    resourceActions: {
-      flexDirection: "row",
-      gap: 10,
-    },
-    actionButton: {
-      width: 38,
-      height: 38,
-      borderRadius: 12,
-      backgroundColor: colors.input,
-      justifyContent: "center",
-      alignItems: "center",
-      overflow: "hidden",
-    },
-    downloadButton: {
-      backgroundColor: "transparent",
-      padding: 0,
-    },
-    downloadButtonGradient: {
-      width: 38,
-      height: 38,
-      borderRadius: 12,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    // Empty State
-    emptyState: {
-      alignItems: "center",
-      paddingVertical: 48,
-      paddingHorizontal: 32,
-      backgroundColor: colors.card,
-      marginHorizontal: 20,
-      borderRadius: 24,
-      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: 12,
-      elevation: 4,
-    },
-    emptyStateIcon: {
-      width: 80,
-      height: 80,
-      borderRadius: 24,
-      backgroundColor: colors.input,
-      justifyContent: "center",
-      alignItems: "center",
-      marginBottom: 20,
-    },
-    emptyStateTitle: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 20,
-      color: colors.textPrimary,
-      marginBottom: 8,
-      textAlign: "center",
-    },
-    emptyStateText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      color: colors.textSecondary,
-      textAlign: "center",
-      lineHeight: 20,
-    },
-  });
+  // Viewer
+  viewer: { flex: 1, backgroundColor: '#F1F5F9' },
+  viewerHeader: { padding: 20, backgroundColor: COLORS.white, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  viewerHeaderTitle: { flex: 1, textAlign: 'center', fontWeight: 'bold', marginHorizontal: 15 },
+  viewerScroll: { padding: 16 },
+  paperPage: { backgroundColor: COLORS.white, borderRadius: 8, padding: 24, minHeight: 600, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
+  viewerImage: { width: '100%', height: 180, borderRadius: 8, marginBottom: 20 },
+  pageSubject: { color: COLORS.primary, fontWeight: 'bold', fontSize: 12, marginBottom: 4 },
+  pageTitle: { fontSize: 24, fontWeight: 'bold', color: COLORS.text, marginBottom: 15 },
+  separator: { height: 3, width: 40, backgroundColor: COLORS.primary, marginBottom: 20 },
+  realWriting: { fontSize: 16, lineHeight: 26, color: COLORS.text, marginBottom: 25 },
+  subHeading: { fontSize: 18, fontWeight: 'bold', color: COLORS.text, marginBottom: 15 },
+  pointRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 },
+  pointText: { fontSize: 15, color: COLORS.subtext },
+  footerNote: { marginTop: 40, paddingTop: 20, borderTopWidth: 1, borderTopColor: '#F1F5F9', alignItems: 'center' },
+  noteText: { fontSize: 11, color: '#CBD5E1' },
+  viewerActions: { padding: 20, backgroundColor: COLORS.white },
+  mainDownloadBtn: { backgroundColor: COLORS.primary, padding: 18, borderRadius: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
+  mainDownloadText: { color: COLORS.white, fontWeight: 'bold', fontSize: 16 }
+});

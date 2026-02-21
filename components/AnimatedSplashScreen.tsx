@@ -1,297 +1,245 @@
-import React, { useEffect, useState } from "react";
-import { View, StyleSheet, Dimensions, Image } from "react-native";
+import React, { useEffect } from "react";
+import { View, StyleSheet, Dimensions, Text } from "react-native";
 import Animated, {
-  FadeIn,
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  withRepeat,
+  withSequence,
+  withDelay,
+  withSpring,
+  Easing,
 } from "react-native-reanimated";
-import {
-  Book,
-  GraduationCap,
-  School,
-  Pencil,
-  Ruler,
-  Laptop,
-  Brain,
-  Calculator,
-  Backpack,
-  Library,
-  Notebook,
-  Palette,
-  Microscope,
-  Globe,
-  Music,
-  Trophy,
-  Star,
-  Clock,
-  Map,
-  User,
-  Atom,
-  Beaker,
-  Briefcase,
-  Compass,
-  FileText,
-  Folder,
-  Gamepad,
-  Heart,
-  Lightbulb,
-  MessageCircle,
-} from "lucide-react-native";
-import { COLORS } from "@/config/colors";
+import { Image } from "expo-image"; 
 import { ASSETS } from "@/config/assets";
 
 const { width, height } = Dimensions.get("window");
 
-// Configuration
-const CONFIG = {
-  INITIAL_ICONS_COUNT: 5,
-  INITIAL_INTERVAL_MS: 300,
-  TOTAL_ICONS_TO_FILL: 80, // Increased count
-  BURST_INTERVAL_MS: 20, // Faster filling
-  ICON_SIZE: 32,
-};
+// Chemins vers tes SVG
+const PHOTO_1 = require("@/assets/images/1.svg");
+const PHOTO_2 = require("@/assets/images/2.svg");
+const PHOTO_3 = require("@/assets/images/3.svg");
 
-// Icon pool
-const ICONS = [
-  Book,
-  GraduationCap,
-  School,
-  Pencil,
-  Ruler,
-  Laptop,
-  Brain,
-  Calculator,
-  Backpack,
-  Library,
-  Notebook,
-  Palette,
-  Microscope,
-  Globe,
-  Music,
-  Trophy,
-  Star,
-  Clock,
-  Map,
-  User,
-  Atom,
-  Beaker,
-  Briefcase,
-  Compass,
-  FileText,
-  Folder,
-  Gamepad,
-  Heart,
-  Lightbulb,
-  MessageCircle,
-];
-
-// Color pool (flattened values from COLORS)
-const COLOR_POOL = [
-  COLORS.primary.DEFAULT,
-  COLORS.primary[400],
-  COLORS.primary[700],
-  COLORS.secondary.DEFAULT,
-  COLORS.secondary[400],
-  COLORS.secondary[700],
-  COLORS.success,
-  COLORS.warning,
-  COLORS.error,
-  COLORS.info,
-  "#FF6B6B",
-  "#4ECDC4",
-  "#FFD166",
-  "#06D6A0",
-  "#118AB2", // Extra vibrant colors
-];
-
-type IconItem = {
-  id: string;
-  Icon: React.ElementType;
-  x: number;
-  y: number;
-  color: string;
-  delay: number;
-};
-
-interface AnimatedSplashScreenProps {
+export const AnimatedSplashScreen: React.FC<{
   onFinish?: () => void;
-}
-
-export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({
-  onFinish,
-}) => {
-  const [icons, setIcons] = useState<IconItem[]>([]);
+}> = ({ onFinish }) => {
+  // Animation du Logo
+  const logoScale = useSharedValue(0);
   const logoOpacity = useSharedValue(0);
-  const iconCounter = React.useRef(0);
+  
+  // Animation des Textes
+  const contentOpacity = useSharedValue(0);
 
-  // Check if new position overlaps with existing icons or center logo
-  const isOverlapping = React.useCallback(
-    (x: number, y: number, existingIcons: IconItem[]) => {
-      const size = CONFIG.ICON_SIZE;
-      const padding = 5; // Minimal padding between icons
-
-      // Check collision with center logo area (approx 160x160 box in center)
-      const centerX = width / 2;
-      const centerY = height / 2;
-      const logoRadius = 80;
-
-      // Check if point is inside center logo circle
-      const distToCenter = Math.sqrt(
-        Math.pow(x - centerX + size / 2, 2) +
-          Math.pow(y - centerY + size / 2, 2),
-      );
-      if (distToCenter < logoRadius) {
-        return true;
-      }
-
-      // Check collision with other icons
-      for (const icon of existingIcons) {
-        const dx = Math.abs(x - icon.x);
-        const dy = Math.abs(y - icon.y);
-        if (dx < size + padding && dy < size + padding) {
-          return true;
-        }
-      }
-      return false;
-    },
-    [],
-  );
-
-  // Helper to generate a random icon props
-  const generateRandomIcon = React.useCallback(
-    (id: string, currentIcons: IconItem[]): IconItem => {
-      const Icon = ICONS[Math.floor(Math.random() * ICONS.length)];
-      const color = COLOR_POOL[Math.floor(Math.random() * COLOR_POOL.length)];
-
-      // Try to find a non-overlapping spot
-      let x = 0;
-      let y = 0;
-      let attempts = 0;
-      const maxAttempts = 10; // Try 10 times to find a free spot
-
-      do {
-        const padding = 20;
-        x =
-          Math.floor(Math.random() * (width - CONFIG.ICON_SIZE - padding * 2)) +
-          padding;
-        y =
-          Math.floor(
-            Math.random() * (height - CONFIG.ICON_SIZE - padding * 2),
-          ) + padding;
-        attempts++;
-      } while (isOverlapping(x, y, currentIcons) && attempts < maxAttempts);
-
-      return { id, Icon, x, y, color, delay: 0 };
-    },
-    [isOverlapping],
-  );
+  // Valeurs animées pour les 3 photos
+  const p1 = { s: useSharedValue(0), y: useSharedValue(40), r: useSharedValue(0) };
+  const p2 = { s: useSharedValue(0), y: useSharedValue(40), r: useSharedValue(0) };
+  const p3 = { s: useSharedValue(0), y: useSharedValue(40), r: useSharedValue(0) };
 
   useEffect(() => {
-    // 1. Fade in Logo
+    // 1. Apparition du logo
     logoOpacity.value = withTiming(1, { duration: 800 });
+    logoScale.value = withSpring(1, { damping: 12 });
 
-    let timeoutIds: NodeJS.Timeout[] = [];
-
-    // 2. Schedule first 5 icons (0.4s interval)
-    const initialPhaseDelay = 1000; // Wait a bit after logo starts fading
-
-    for (let i = 0; i < CONFIG.INITIAL_ICONS_COUNT; i++) {
-      const ms = initialPhaseDelay + i * CONFIG.INITIAL_INTERVAL_MS;
-      const timeout = setTimeout(() => {
-        // Using template literal for ID
-        const id = `icon-${iconCounter.current++}`;
-        setIcons((prev) => [...prev, generateRandomIcon(id, prev)]);
-      }, ms);
-      timeoutIds.push(timeout);
-    }
-
-    // 3. Schedule Burst (fill screen)
-    // Start after the initial phase finishes
-    const burstStartTime =
-      initialPhaseDelay +
-      CONFIG.INITIAL_ICONS_COUNT * CONFIG.INITIAL_INTERVAL_MS;
-
-    const startBurst = setTimeout(() => {
-      // We want to add remaining icons quickly
-      const remaining = CONFIG.TOTAL_ICONS_TO_FILL - CONFIG.INITIAL_ICONS_COUNT;
-
-      let burstCount = 0;
-      const burstInterval = setInterval(() => {
-        if (burstCount >= remaining) {
-          clearInterval(burstInterval);
-          // 4. Finish
-          setTimeout(() => {
-            if (onFinish) onFinish();
-          }, 1000); // Hold for a second after full
-          return;
-        }
-
-        const id = `icon-${iconCounter.current++}`;
-        setIcons((prev) => [...prev, generateRandomIcon(id, prev)]);
-        burstCount++;
-      }, CONFIG.BURST_INTERVAL_MS);
-    }, burstStartTime);
-
-    timeoutIds.push(startBurst);
-
-    return () => {
-      timeoutIds.forEach(clearTimeout);
+    // 2. Fonction d'animation pour les photos
+    const animatePhoto = (photo: any, delay: number) => {
+      photo.s.value = withDelay(delay, withSpring(1));
+      photo.y.value = withDelay(delay, withRepeat(
+        withSequence(
+          withTiming(-12, { duration: 1800, easing: Easing.inOut(Easing.sin) }),
+          withTiming(12, { duration: 1800, easing: Easing.inOut(Easing.sin) })
+        ), -1, true
+      ));
+      photo.r.value = withDelay(delay, withRepeat(
+        withSequence(
+          withTiming(-4, { duration: 1400, easing: Easing.inOut(Easing.sin) }), 
+          withTiming(4, { duration: 1400, easing: Easing.inOut(Easing.sin) })
+        ), -1, true
+      ));
     };
-  }, [logoOpacity, onFinish, generateRandomIcon]);
 
+    // Lancement des photos en cascade
+    animatePhoto(p1, 500);
+    animatePhoto(p2, 700);
+    animatePhoto(p3, 900);
+
+    // 3. Apparition des textes
+    contentOpacity.value = withDelay(1200, withTiming(1, { duration: 600 }));
+
+    // Fin du splash
+    const timer = setTimeout(() => onFinish?.(), 4500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Styles Animés
   const logoStyle = useAnimatedStyle(() => ({
     opacity: logoOpacity.value,
-    transform: [{ scale: logoOpacity.value }],
+    transform: [{ scale: logoScale.value }],
+  }));
+
+  const getPhotoStyle = (photo: any) => useAnimatedStyle(() => ({
+    transform: [
+      { scale: photo.s.value }, 
+      { translateY: photo.y.value }, 
+      { rotate: `${photo.r.value}deg` }
+    ],
+  }));
+
+  const contentStyle = useAnimatedStyle(() => ({
+    opacity: contentOpacity.value,
   }));
 
   return (
-    <View style={[StyleSheet.absoluteFill, styles.container]}>
-      {/* Render Icons */}
-      {icons.map((item) => (
-        <Animated.View
-          key={item.id}
-          entering={FadeIn.duration(300)}
-          style={{
-            position: "absolute",
-            left: item.x,
-            top: item.y,
-            zIndex: 1,
-          }}
-        >
-          <item.Icon
-            size={CONFIG.ICON_SIZE}
-            color={item.color}
-            strokeWidth={2}
-          />
-        </Animated.View>
-      ))}
+    <View style={styles.container}>
+      {/* Arrière-plan (Nuages simplifiés) */}
+      <View style={styles.cloudsContainer}>
+        <View style={[styles.cloud, { top: "10%", left: "5%", width: 100, height: 50 }]} />
+        <View style={[styles.cloud, { top: "20%", right: "10%", width: 120, height: 60 }]} />
+        <View style={[styles.cloud, { bottom: "15%", left: "15%", width: 80, height: 40 }]} />
+      </View>
 
-      {/* Center Logo */}
-      <Animated.View style={[styles.logoContainer, logoStyle]}>
-        <Image source={ASSETS.logo} style={styles.logo} resizeMode="contain" />
+      {/* --- LOGO --- */}
+      <Animated.View style={[styles.logoWrapper, logoStyle]}>
+        <View style={styles.logoCard}>
+          <Image source={ASSETS.logo} style={styles.logoImage} contentFit="contain" />
+        </View>
       </Animated.View>
+
+      {/* --- PHOTOS SVG --- */}
+      <View style={styles.photosWrapper}>
+        <Animated.View style={[styles.photoBox, styles.sidePhoto, getPhotoStyle(p1)]}>
+          <Image source={PHOTO_1} style={styles.svgImage} />
+        </Animated.View>
+        
+        <Animated.View style={[styles.photoBox, styles.centerPhoto, getPhotoStyle(p2)]}>
+          <Image source={PHOTO_2} style={styles.svgImage} />
+        </Animated.View>
+        
+        <Animated.View style={[styles.photoBox, styles.sidePhoto, getPhotoStyle(p3)]}>
+          <Image source={PHOTO_3} style={styles.svgImage} />
+        </Animated.View>
+      </View>
+
+      {/* --- TEXTES DE BIENVENUE --- */}
+      <Animated.View style={[styles.textContainer, contentStyle]}>
+        <Text style={styles.welcomeText}>Bienvenue sur</Text>
+        <Text style={styles.brandText}>Oumi'School</Text>
+        
+        {/* Barre de chargement stylisée */}
+        <View style={styles.loadingBarContainer}>
+           <Animated.View style={styles.loadingBarFill} />
+        </View>
+      </Animated.View>
+
+      <Text style={styles.versionText}>v1.0.0</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: COLORS.neutral.white,
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#F0F7FF", 
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 9999,
   },
-  logoContainer: {
+  cloudsContainer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: -1,
+  },
+  cloud: {
+    position: "absolute",
+    backgroundColor: "white",
+    borderRadius: 100,
+    opacity: 0.5,
+  },
+  // Style du Logo
+  logoWrapper: {
+    position: "absolute",
+    top: height * 0.1,
+    alignItems: "center",
+  },
+  logoCard: {
+    backgroundColor: "white",
+    padding: 15,
+    borderRadius: 30,
+    shadowColor: "#6366F1",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  logoImage: {
+    width: 90,
+    height: 90,
+  },
+  // Style des Photos
+  photosWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    marginTop: 40,
+  },
+  photoBox: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    borderWidth: 5,
+    borderColor: "white",
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 15,
+    elevation: 6,
+    overflow: "hidden",
+  },
+  centerPhoto: {
+    width: 120,
+    height: 150,
     zIndex: 10,
-    width: 200,
-    height: 200,
-    justifyContent: "center",
-    alignItems: "center",
-    // Transparent background
   },
-  logo: {
-    width: 140,
-    height: 140,
+  sidePhoto: {
+    width: 90,
+    height: 115,
+    marginTop: 40,
+  },
+  svgImage: {
+    width: "100%",
+    height: "100%",
+  },
+  // Style des Textes
+  textContainer: {
+    marginTop: 50,
+    alignItems: "center",
+  },
+  welcomeText: {
+    fontSize: 18,
+    color: "#94A3B8",
+    fontWeight: "500",
+  },
+  brandText: {
+    fontSize: 38,
+    color: "#6366F1",
+    fontWeight: "800",
+    letterSpacing: -0.5,
+  },
+  loadingBarContainer: {
+    width: 120,
+    height: 4,
+    backgroundColor: "#E2E8F0",
+    borderRadius: 2,
+    marginTop: 20,
+    overflow: "hidden",
+  },
+  loadingBarFill: {
+    width: "60%", // On peut animer ça aussi si tu veux !
+    height: "100%",
+    backgroundColor: "#6366F1",
+    borderRadius: 2,
+  },
+  versionText: {
+    position: "absolute",
+    bottom: 40,
+    fontSize: 12,
+    color: "#CBD5E1",
+    fontWeight: "600",
   },
 });

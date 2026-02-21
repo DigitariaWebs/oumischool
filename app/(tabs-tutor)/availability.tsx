@@ -1,20 +1,17 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Clock, Check, Calendar, TrendingUp } from "lucide-react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import { Clock, Check, Calendar, TrendingUp, Sparkles } from "lucide-react-native";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
-import { useTheme } from "@/hooks/use-theme";
-import { ThemeColors } from "@/constants/theme";
-import { BlobBackground, HeroCard, AnimatedSection } from "@/components/ui";
 
 interface TimeSlot {
   id: string;
@@ -52,7 +49,6 @@ const TIME_SLOTS: TimeSlot[] = [
 ];
 
 export default function TutorAvailabilityScreen() {
-  const { colors, isDark } = useTheme();
   const [selectedDay, setSelectedDay] = useState(0);
   const [availability, setAvailability] = useState<DayAvailability[]>(
     DAYS.map((day) => ({
@@ -62,7 +58,6 @@ export default function TutorAvailabilityScreen() {
       slots: [],
     })),
   );
-  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
   const toggleDay = (index: number) => {
     setAvailability((prev) =>
@@ -112,48 +107,40 @@ export default function TutorAvailabilityScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <BlobBackground />
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Header */}
-        <AnimatedSection delay={100}>
-          <View style={styles.header}>
-            <View style={styles.headerIconContainer}>
-              <Clock size={20} color="white" />
-            </View>
-            <Text style={styles.headerTitle}>Disponibilités</Text>
+        {/* Header simple */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerLabel}>DISPONIBILITÉS</Text>
+            <Text style={styles.headerTitle}>Mes créneaux</Text>
           </View>
-        </AnimatedSection>
+          <View style={styles.headerBadge}>
+            <Clock size={16} color="#6366F1" />
+            <Text style={styles.headerBadgeText}>{totalSlots}</Text>
+          </View>
+        </View>
 
-        {/* Hero */}
-        <AnimatedSection delay={150} style={styles.heroWrapper}>
-          <HeroCard
-            title="Créneaux configurés"
-            value={`${totalSlots}`}
-            subtitle={`créneau${totalSlots > 1 ? "x" : ""} disponible${totalSlots > 1 ? "s" : ""}`}
-            badge={{
-              icon: <TrendingUp size={14} color="#FCD34D" />,
-              text: `${enabledDays} jour${enabledDays > 1 ? "s" : ""} actif${enabledDays > 1 ? "s" : ""}`,
-            }}
-          />
-        </AnimatedSection>
-
-        {/* Days Selection */}
-        <AnimatedSection delay={250} style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleContainer}>
-              <View
-                style={[styles.sectionIcon, { backgroundColor: "#8B5CF620" }]}
-              >
-                <Calendar size={16} color="#8B5CF6" />
-              </View>
-              <Text style={styles.sectionTitle}>Jours actifs</Text>
+        {/* Carte statistiques */}
+        <View style={styles.statsCard}>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{totalSlots}</Text>
+              <Text style={styles.statLabel}>Créneaux</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{enabledDays}</Text>
+              <Text style={styles.statLabel}>Jours actifs</Text>
             </View>
           </View>
+        </View>
 
+        {/* Section Jours */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Jours disponibles</Text>
           <View style={styles.daysGrid}>
             {DAYS.map((day, index) => {
               const dayData = availability[index];
@@ -161,615 +148,433 @@ export default function TutorAvailabilityScreen() {
               const isEnabled = dayData.enabled;
 
               return (
-                <Animated.View
+                <Pressable
                   key={day.short}
-                  entering={FadeInDown.delay(300 + index * 35)
-                    .duration(500)
-                    .springify()}
+                  style={({ pressed }) => [
+                    styles.dayCard,
+                    isSelected && styles.dayCardSelected,
+                    pressed && { opacity: 0.8 },
+                  ]}
+                  onPress={() => setSelectedDay(index)}
                 >
-                  <TouchableOpacity
-                    style={[
-                      styles.dayCard,
-                      {
-                        backgroundColor: isSelected
-                          ? COLORS.primary.DEFAULT
-                          : isEnabled
-                            ? colors.card
-                            : colors.card,
-                        borderColor: isSelected
-                          ? COLORS.primary.DEFAULT
-                          : isEnabled
-                            ? COLORS.primary.DEFAULT + "60"
-                            : isDark
-                              ? "rgba(255,255,255,0.08)"
-                              : "rgba(0,0,0,0.06)",
-                      },
-                    ]}
-                    onPress={() => setSelectedDay(index)}
-                    activeOpacity={0.8}
-                  >
-                    <Text
-                      style={[
-                        styles.dayShort,
-                        {
-                          color: isSelected
-                            ? "white"
-                            : isEnabled
-                              ? COLORS.primary.DEFAULT
-                              : colors.textSecondary,
-                        },
-                      ]}
-                    >
+                  <View style={styles.dayHeader}>
+                    <Text style={[
+                      styles.dayShort,
+                      isSelected && styles.dayTextSelected
+                    ]}>
                       {day.short}
                     </Text>
-
-                    {isEnabled && (
-                      <View
-                        style={[
-                          styles.daySlotCount,
-                          {
-                            backgroundColor: isSelected
-                              ? "rgba(255,255,255,0.25)"
-                              : COLORS.primary.DEFAULT + "20",
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.daySlotCountText,
-                            {
-                              color: isSelected
-                                ? "white"
-                                : COLORS.primary.DEFAULT,
-                            },
-                          ]}
-                        >
-                          {dayData.slots.length}
-                        </Text>
-                      </View>
-                    )}
-
                     <TouchableOpacity
                       style={[
                         styles.dayToggle,
-                        {
-                          backgroundColor: isEnabled
-                            ? isSelected
-                              ? "rgba(255,255,255,0.3)"
-                              : COLORS.primary.DEFAULT
-                            : isDark
-                              ? "rgba(255,255,255,0.1)"
-                              : "rgba(0,0,0,0.08)",
-                          borderColor: isEnabled
-                            ? "transparent"
-                            : isDark
-                              ? "rgba(255,255,255,0.15)"
-                              : "rgba(0,0,0,0.1)",
-                        },
+                        isEnabled && styles.dayToggleActive,
                       ]}
                       onPress={() => toggleDay(index)}
-                      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                      activeOpacity={0.8}
                     >
-                      {isEnabled && (
-                        <Check size={10} color="white" strokeWidth={3} />
-                      )}
+                      {isEnabled && <Check size={10} color="white" />}
                     </TouchableOpacity>
-                  </TouchableOpacity>
-                </Animated.View>
+                  </View>
+                  {isEnabled && (
+                    <View style={[
+                      styles.daySlotBadge,
+                      isSelected && styles.daySlotBadgeSelected
+                    ]}>
+                      <Text style={[
+                        styles.daySlotCount,
+                        isSelected && styles.dayTextSelected
+                      ]}>
+                        {dayData.slots.length}
+                      </Text>
+                    </View>
+                  )}
+                </Pressable>
               );
             })}
           </View>
-        </AnimatedSection>
+        </View>
 
-        {/* Time Slots */}
+        {/* Créneaux horaires */}
         {currentDay.enabled ? (
-          <AnimatedSection delay={500} style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleContainer}>
-                <View
-                  style={[styles.sectionIcon, { backgroundColor: "#10B98120" }]}
-                >
-                  <Clock size={16} color="#10B981" />
-                </View>
-                <Text style={styles.sectionTitle}>{currentDay.dayFull}</Text>
-              </View>
-              <View style={styles.quickActionsRow}>
+          <View style={styles.section}>
+            <View style={styles.slotHeader}>
+              <Text style={styles.sectionTitle}>{currentDay.dayFull}</Text>
+              <View style={styles.slotActions}>
                 <TouchableOpacity
-                  style={[
-                    styles.quickBtn,
-                    { backgroundColor: COLORS.primary.DEFAULT + "15" },
-                  ]}
+                  style={styles.slotActionButton}
                   onPress={selectAllSlots}
-                  activeOpacity={0.7}
                 >
-                  <Text
-                    style={[
-                      styles.quickBtnText,
-                      { color: COLORS.primary.DEFAULT },
-                    ]}
-                  >
-                    Tout
-                  </Text>
+                  <Text style={styles.slotActionText}>Tout</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[
-                    styles.quickBtn,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(255,255,255,0.08)"
-                        : "rgba(0,0,0,0.05)",
-                    },
-                  ]}
+                  style={styles.slotActionButton}
                   onPress={clearAllSlots}
-                  activeOpacity={0.7}
                 >
-                  <Text
-                    style={[
-                      styles.quickBtnText,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Rien
-                  </Text>
+                  <Text style={styles.slotActionText}>Rien</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             <View style={styles.slotsGrid}>
-              {TIME_SLOTS.map((slot, index) => {
+              {TIME_SLOTS.map((slot) => {
                 const isSelected = currentDay.slots.includes(slot.id);
                 return (
-                  <Animated.View
+                  <Pressable
                     key={slot.id}
-                    entering={FadeInDown.delay(550 + index * 40)
-                      .duration(400)
-                      .springify()}
+                    style={({ pressed }) => [
+                      styles.slotCard,
+                      isSelected && styles.slotCardSelected,
+                      pressed && { opacity: 0.8 },
+                    ]}
+                    onPress={() => toggleSlot(slot.id)}
                   >
-                    <TouchableOpacity
-                      style={[
-                        styles.slotCard,
-                        {
-                          backgroundColor: isSelected
-                            ? COLORS.primary.DEFAULT
-                            : colors.card,
-                          borderColor: isSelected
-                            ? COLORS.primary.DEFAULT
-                            : isDark
-                              ? "rgba(255,255,255,0.08)"
-                              : "rgba(0,0,0,0.06)",
-                          shadowColor: isSelected
-                            ? COLORS.primary.DEFAULT
-                            : isDark
-                              ? "#000"
-                              : COLORS.secondary.DEFAULT,
-                        },
-                      ]}
-                      onPress={() => toggleSlot(slot.id)}
-                      activeOpacity={0.8}
-                    >
-                      <View
-                        style={[
-                          styles.slotIconWrapper,
-                          {
-                            backgroundColor: isSelected
-                              ? "rgba(255,255,255,0.2)"
-                              : COLORS.primary.DEFAULT + "15",
-                          },
-                        ]}
-                      >
-                        <Clock
-                          size={16}
-                          color={isSelected ? "white" : COLORS.primary.DEFAULT}
-                        />
-                      </View>
-                      <Text
-                        style={[
-                          styles.slotText,
-                          { color: isSelected ? "white" : colors.textPrimary },
-                        ]}
-                      >
-                        {slot.displayTime}
-                      </Text>
-                      {isSelected && (
-                        <View style={styles.slotCheck}>
-                          <Check size={13} color="white" strokeWidth={3} />
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  </Animated.View>
+                    <View style={[
+                      styles.slotIcon,
+                      isSelected && styles.slotIconSelected
+                    ]}>
+                      <Clock
+                        size={14}
+                        color={isSelected ? "white" : "#6366F1"}
+                      />
+                    </View>
+                    <Text style={[
+                      styles.slotText,
+                      isSelected && styles.slotTextSelected
+                    ]}>
+                      {slot.displayTime}
+                    </Text>
+                    {isSelected && (
+                      <Check size={14} color="white" />
+                    )}
+                  </Pressable>
                 );
               })}
             </View>
-          </AnimatedSection>
+          </View>
         ) : (
-          <AnimatedSection delay={500} style={styles.disabledWrapper}>
-            <View
-              style={[
-                styles.disabledCard,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: isDark
-                    ? "rgba(255,255,255,0.08)"
-                    : "rgba(0,0,0,0.06)",
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.disabledIconContainer,
-                  { backgroundColor: colors.input },
-                ]}
-              >
-                <Calendar size={36} color={colors.textMuted} />
-              </View>
-              <Text
-                style={[styles.disabledTitle, { color: colors.textPrimary }]}
-              >
+          <View style={styles.disabledSection}>
+            <View style={styles.disabledCard}>
+              <Calendar size={40} color="#CBD5E1" />
+              <Text style={styles.disabledTitle}>
                 {currentDay.dayFull} désactivé
               </Text>
-              <Text
-                style={[styles.disabledText, { color: colors.textSecondary }]}
-              >
-                Activez ce jour pour définir vos créneaux disponibles
+              <Text style={styles.disabledText}>
+                Activez ce jour pour définir vos créneaux
               </Text>
               <TouchableOpacity
-                style={[
-                  styles.enableButton,
-                  { backgroundColor: COLORS.primary.DEFAULT },
-                ]}
+                style={styles.enableButton}
                 onPress={() => toggleDay(selectedDay)}
-                activeOpacity={0.8}
               >
-                <Check size={16} color="white" />
                 <Text style={styles.enableButtonText}>
                   Activer {currentDay.dayFull}
                 </Text>
               </TouchableOpacity>
             </View>
-          </AnimatedSection>
-        )}
-
-        {/* Tip Card */}
-        <AnimatedSection delay={900} style={styles.tipWrapper}>
-          <View
-            style={[
-              styles.tipCard,
-              {
-                backgroundColor: isDark ? "rgba(99,102,241,0.12)" : "#EEF2FF",
-                borderLeftColor: COLORS.primary.DEFAULT,
-              },
-            ]}
-          >
-            <Text style={[styles.tipTitle, { color: colors.textPrimary }]}>
-              💡 Conseil
-            </Text>
-            <Text style={[styles.tipText, { color: colors.textSecondary }]}>
-              Les parents pourront réserver des sessions pendant vos créneaux
-              disponibles. Pensez à mettre à jour régulièrement vos
-              disponibilités.
-            </Text>
           </View>
-        </AnimatedSection>
-
-        {/* Weekly Summary */}
-        {totalSlots > 0 && (
-          <AnimatedSection delay={1000} style={styles.summaryWrapper}>
-            <View
-              style={[styles.summaryCard, { backgroundColor: colors.card }]}
-            >
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionTitleContainer}>
-                  <View
-                    style={[
-                      styles.sectionIcon,
-                      { backgroundColor: "#F59E0B20" },
-                    ]}
-                  >
-                    <TrendingUp size={16} color="#F59E0B" />
-                  </View>
-                  <Text
-                    style={[styles.sectionTitle, { color: colors.textPrimary }]}
-                  >
-                    Résumé hebdomadaire
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.summaryGrid}>
-                {availability.map(
-                  (day, index) =>
-                    day.enabled && (
-                      <View
-                        key={index}
-                        style={[
-                          styles.summaryItem,
-                          { backgroundColor: COLORS.primary.DEFAULT + "15" },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.summaryDay,
-                            { color: COLORS.primary.DEFAULT },
-                          ]}
-                        >
-                          {day.day}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.summaryCount,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          {day.slots.length} créneau
-                          {day.slots.length > 1 ? "x" : ""}
-                        </Text>
-                      </View>
-                    ),
-                )}
-              </View>
-            </View>
-          </AnimatedSection>
         )}
+
+        {/* Conseil */}
+        <View style={styles.tipCard}>
+          <Sparkles size={16} color="#6366F1" />
+          <Text style={styles.tipText}>
+            Les parents pourront réserver des sessions pendant vos créneaux disponibles.
+          </Text>
+        </View>
+
+        {/* Bouton Add source */}
+        <TouchableOpacity style={styles.sourceButton}>
+          <Text style={styles.sourceButtonText}>+ Ajouter des disponibilités</Text>
+        </TouchableOpacity>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const createStyles = (colors: ThemeColors, isDark: boolean) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    scrollContent: {
-      paddingBottom: 100,
-    },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      gap: 12,
-    },
-    headerIconContainer: {
-      width: 40,
-      height: 40,
-      borderRadius: 14,
-      backgroundColor: COLORS.primary.DEFAULT,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    headerTitle: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 24,
-      color: colors.textPrimary,
-    },
-    heroWrapper: {
-      marginHorizontal: 20,
-      marginBottom: 24,
-    },
-    section: {
-      paddingHorizontal: 20,
-      marginBottom: 24,
-    },
-    sectionHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 16,
-    },
-    sectionTitleContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 10,
-    },
-    sectionIcon: {
-      width: 34,
-      height: 34,
-      borderRadius: 11,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    sectionTitle: {
-      fontFamily: FONTS.secondary,
-      fontSize: 16,
-      fontWeight: "600",
-      color: colors.textPrimary,
-    },
-    quickActionsRow: {
-      flexDirection: "row",
-      gap: 8,
-    },
-    quickBtn: {
-      paddingHorizontal: 14,
-      paddingVertical: 7,
-      borderRadius: 10,
-    },
-    quickBtnText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 12,
-      fontWeight: "600",
-    },
-    daysGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 10,
-    },
-    dayCard: {
-      width: 48,
-      height: 68,
-      borderRadius: 16,
-      justifyContent: "center",
-      alignItems: "center",
-      borderWidth: 1.5,
-      gap: 4,
-      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.2 : 0.05,
-      shadowRadius: 6,
-      elevation: 2,
-    },
-    dayShort: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 13,
-      fontWeight: "600",
-    },
-    daySlotCount: {
-      paddingHorizontal: 5,
-      paddingVertical: 1,
-      borderRadius: 6,
-    },
-    daySlotCountText: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 10,
-      fontWeight: "700",
-    },
-    dayToggle: {
-      width: 18,
-      height: 18,
-      borderRadius: 9,
-      justifyContent: "center",
-      alignItems: "center",
-      borderWidth: 1.5,
-    },
-    slotsGrid: {
-      gap: 10,
-    },
-    slotCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      borderRadius: 14,
-      padding: 14,
-      gap: 12,
-      borderWidth: 1.5,
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.08,
-      shadowRadius: 8,
-      elevation: 2,
-    },
-    slotIconWrapper: {
-      width: 34,
-      height: 34,
-      borderRadius: 10,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    slotText: {
-      flex: 1,
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      fontWeight: "600",
-    },
-    slotCheck: {
-      width: 24,
-      height: 24,
-      borderRadius: 8,
-      backgroundColor: "rgba(255,255,255,0.25)",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    disabledWrapper: {
-      paddingHorizontal: 20,
-      marginBottom: 24,
-    },
-    disabledCard: {
-      borderRadius: 22,
-      padding: 32,
-      alignItems: "center",
-      borderWidth: 1.5,
-      borderStyle: "dashed",
-      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: isDark ? 0.2 : 0.05,
-      shadowRadius: 10,
-      elevation: 2,
-    },
-    disabledIconContainer: {
-      width: 72,
-      height: 72,
-      borderRadius: 20,
-      justifyContent: "center",
-      alignItems: "center",
-      marginBottom: 16,
-    },
-    disabledTitle: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 18,
-      marginBottom: 8,
-      textAlign: "center",
-    },
-    disabledText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      textAlign: "center",
-      lineHeight: 20,
-      marginBottom: 24,
-    },
-    enableButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-      paddingHorizontal: 24,
-      paddingVertical: 13,
-      borderRadius: 14,
-    },
-    enableButtonText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      fontWeight: "600",
-      color: "white",
-    },
-    tipWrapper: {
-      paddingHorizontal: 20,
-      marginBottom: 16,
-    },
-    tipCard: {
-      borderRadius: 16,
-      padding: 16,
-      borderLeftWidth: 4,
-    },
-    tipTitle: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 15,
-      marginBottom: 6,
-    },
-    tipText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 13,
-      lineHeight: 20,
-    },
-    summaryWrapper: {
-      paddingHorizontal: 20,
-      marginBottom: 8,
-    },
-    summaryCard: {
-      borderRadius: 20,
-      padding: 16,
-      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: 12,
-      elevation: 4,
-    },
-    summaryGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 10,
-    },
-    summaryItem: {
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      borderRadius: 12,
-      alignItems: "center",
-    },
-    summaryDay: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 14,
-      fontWeight: "600",
-      marginBottom: 2,
-    },
-    summaryCount: {
-      fontFamily: FONTS.secondary,
-      fontSize: 11,
-    },
-  });
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
+
+  // Header
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 16,
+  },
+  headerLabel: {
+    fontFamily: FONTS.secondary,
+    fontSize: 12,
+    color: "#6366F1",
+    letterSpacing: 1.2,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  headerTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 24,
+    color: "#1E293B",
+  },
+  headerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  headerBadgeText: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 16,
+    color: "#6366F1",
+  },
+
+  // Stats Card
+  statsCard: {
+    backgroundColor: "#F8FAFC",
+    marginHorizontal: 24,
+    marginBottom: 24,
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+  },
+  statItem: {
+    alignItems: "center",
+  },
+  statValue: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 28,
+    color: "#1E293B",
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 13,
+    color: "#64748B",
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: "#F1F5F9",
+  },
+
+  // Section
+  section: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 16,
+    color: "#1E293B",
+    marginBottom: 12,
+  },
+
+  // Days Grid
+  daysGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  dayCard: {
+    width: 70,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  dayCardSelected: {
+    borderColor: "#6366F1",
+    backgroundColor: "#EEF2FF",
+  },
+  dayHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  dayShort: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1E293B",
+  },
+  dayTextSelected: {
+    color: "#6366F1",
+  },
+  dayToggle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: "#CBD5E1",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  dayToggleActive: {
+    backgroundColor: "#6366F1",
+    borderColor: "#6366F1",
+  },
+  daySlotBadge: {
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+  },
+  daySlotBadgeSelected: {
+    backgroundColor: "#FFFFFF",
+  },
+  daySlotCount: {
+    fontSize: 11,
+    color: "#64748B",
+  },
+
+  // Slots
+  slotHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  slotActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  slotActionButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#F1F5F9",
+    borderRadius: 20,
+  },
+  slotActionText: {
+    fontSize: 12,
+    color: "#64748B",
+    fontWeight: "600",
+  },
+  slotsGrid: {
+    gap: 8,
+  },
+  slotCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    gap: 10,
+  },
+  slotCardSelected: {
+    backgroundColor: "#6366F1",
+    borderColor: "#6366F1",
+  },
+  slotIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "#EEF2FF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  slotIconSelected: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  slotText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#1E293B",
+    fontWeight: "500",
+  },
+  slotTextSelected: {
+    color: "white",
+  },
+
+  // Disabled Section
+  disabledSection: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  disabledCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 20,
+    padding: 32,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    borderStyle: "dashed",
+  },
+  disabledTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 18,
+    color: "#1E293B",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  disabledText: {
+    fontSize: 14,
+    color: "#64748B",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  enableButton: {
+    backgroundColor: "#6366F1",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 30,
+  },
+  enableButtonText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  // Tip Card
+  tipCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#EEF2FF",
+    marginHorizontal: 24,
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: "#6366F1",
+  },
+  tipText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#1E293B",
+    lineHeight: 18,
+  },
+
+  // Source Button
+  sourceButton: {
+    backgroundColor: "#F1F5F9",
+    marginHorizontal: 24,
+    marginTop: 8,
+    paddingVertical: 14,
+    borderRadius: 30,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  sourceButtonText: {
+    fontSize: 15,
+    color: "#64748B",
+    fontWeight: "600",
+  },
+});

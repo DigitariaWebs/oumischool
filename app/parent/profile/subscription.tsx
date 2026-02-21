@@ -18,9 +18,9 @@ import {
   Calendar,
   Zap,
   Download,
+  Sparkles,
 } from "lucide-react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
@@ -51,7 +51,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
     <View style={[styles.planCard, isCurrent && styles.planCardCurrent]}>
       {isPopular && (
         <View style={styles.popularBadge}>
-          <Crown size={14} color={COLORS.neutral.white} />
+          <Crown size={12} color="white" />
           <Text style={styles.popularText}>Populaire</Text>
         </View>
       )}
@@ -64,7 +64,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
         {features.map((feature, index) => (
           <View key={index} style={styles.featureRow}>
             <View style={styles.checkIcon}>
-              <Check size={16} color={COLORS.primary.DEFAULT} />
+              <Check size={14} color="#6366F1" />
             </View>
             <Text style={styles.featureText}>{feature}</Text>
           </View>
@@ -72,24 +72,11 @@ const PlanCard: React.FC<PlanCardProps> = ({
       </View>
       {isCurrent ? (
         <View style={styles.currentButton}>
-          <Text style={styles.currentButtonText}>Abonnement actuel</Text>
+          <Text style={styles.currentButtonText}>Actuel</Text>
         </View>
       ) : (
-        <TouchableOpacity
-          style={[
-            styles.selectButton,
-            isPopular && styles.selectButtonPrimary,
-          ]}
-          onPress={onSelect}
-        >
-          <Text
-            style={[
-              styles.selectButtonText,
-              isPopular && styles.selectButtonTextPrimary,
-            ]}
-          >
-            Choisir ce plan
-          </Text>
+        <TouchableOpacity style={styles.selectButton} onPress={onSelect}>
+          <Text style={styles.selectButtonText}>Choisir</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -107,25 +94,14 @@ export default function ParentSubscriptionScreen() {
       name: "Basic",
       price: "9€",
       period: "mois",
-      features: [
-        "1 enfant",
-        "5 sessions par mois",
-        "Accès aux tuteurs vérifiés",
-        "Support par email",
-      ],
+      features: ["1 enfant", "5 sessions/mois", "Support email"],
       planId: "basic",
     },
     {
       name: "Family",
       price: "19€",
       period: "mois",
-      features: [
-        "Jusqu'à 3 enfants",
-        "15 sessions par mois",
-        "Accès prioritaire",
-        "Support 24/7",
-        "Rapports de progression",
-      ],
+      features: ["3 enfants", "15 sessions/mois", "Support 24/7", "Rapports progression"],
       isPopular: true,
       planId: "family",
     },
@@ -133,144 +109,102 @@ export default function ParentSubscriptionScreen() {
       name: "Premium",
       price: "29€",
       period: "mois",
-      features: [
-        "Enfants illimités",
-        "Sessions illimitées",
-        "Tuteurs premium exclusifs",
-        "Support prioritaire 24/7",
-        "Rapports détaillés",
-        "Remises sur les sessions",
-      ],
+      features: ["Enfants illimités", "Sessions illimitées", "Tuteurs premium", "Support prioritaire"],
       planId: "premium",
     },
   ];
 
   const handleSelectPlan = (planId: string) => {
     if (planId === currentPlan) return;
-    Alert.alert(
-      "Changer d'abonnement",
-      `Voulez-vous vraiment changer pour le plan ${planId} ?`,
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Confirmer",
-          onPress: () => {
-            // TODO: Implement plan change logic
-            Alert.alert("Succès", "Abonnement modifié avec succès");
-          },
-        },
-      ]
-    );
+    Alert.alert("Changer d'abonnement", `Voulez-vous passer au plan ${planId} ?`, [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Confirmer",
+        onPress: () => Alert.alert("Succès", "Abonnement modifié"),
+      },
+    ]);
   };
 
   const handleCancelSubscription = () => {
-    Alert.alert(
-      "Annuler l'abonnement",
-      "Êtes-vous sûr de vouloir annuler votre abonnement ? Vous perdrez l'accès aux fonctionnalités premium.",
-      [
-        { text: "Non", style: "cancel" },
-        {
-          text: "Oui, annuler",
-          style: "destructive",
-          onPress: () => {
-            // TODO: Implement cancellation logic
-            Alert.alert("Abonnement annulé", "Votre abonnement a été annulé");
-          },
-        },
-      ]
-    );
-  };
-
-  const handleDownloadInvoice = () => {
-    // TODO: Implement invoice download
-    Alert.alert("Téléchargement", "Téléchargement de la facture...");
+    Alert.alert("Annuler l'abonnement", "Êtes-vous sûr de vouloir annuler ?", [
+      { text: "Non", style: "cancel" },
+      {
+        text: "Oui",
+        style: "destructive",
+        onPress: () => Alert.alert("Abonnement annulé"),
+      },
+    ]);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      {/* Boule violette décorative */}
+      <View style={styles.purpleBlob} />
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
-            <ArrowLeft size={24} color={COLORS.secondary[900]} />
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <ArrowLeft size={22} color="#1E293B" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Abonnement</Text>
-          <View style={styles.placeholder} />
+          <View style={styles.headerRight}>
+            <Crown size={16} color="#6366F1" />
+          </View>
         </View>
 
-        {/* Current Plan Banner */}
-        <Animated.View
-          entering={FadeInDown.delay(100).duration(400)}
-          style={styles.bannerContainer}
-        >
-          <LinearGradient
-            colors={[COLORS.primary.DEFAULT, COLORS.primary[700]]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.banner}
-          >
-            <View style={styles.bannerIcon}>
-              <Crown size={32} color={COLORS.neutral.white} />
+        {/* Plan actuel */}
+        <View style={styles.currentPlanCard}>
+          <View style={styles.currentPlanHeader}>
+            <View style={styles.currentPlanIcon}>
+              <Crown size={20} color="#6366F1" />
             </View>
-            <Text style={styles.bannerTitle}>Plan Family</Text>
-            <Text style={styles.bannerSubtitle}>19€ / mois</Text>
-            <View style={styles.bannerStats}>
-              <View style={styles.bannerStat}>
-                <Users size={16} color="rgba(255,255,255,0.9)" />
-                <Text style={styles.bannerStatText}>3 enfants</Text>
-              </View>
-              <View style={styles.bannerStat}>
-                <Calendar size={16} color="rgba(255,255,255,0.9)" />
-                <Text style={styles.bannerStatText}>15 sessions/mois</Text>
-              </View>
+            <Text style={styles.currentPlanName}>Plan Family</Text>
+          </View>
+          <Text style={styles.currentPlanPrice}>19€ / mois</Text>
+          <View style={styles.currentPlanStats}>
+            <View style={styles.currentPlanStat}>
+              <Users size={14} color="#64748B" />
+              <Text style={styles.currentPlanStatText}>3 enfants</Text>
             </View>
-            <Text style={styles.renewalText}>
-              Renouvellement le 15 janvier 2025
-            </Text>
-          </LinearGradient>
-        </Animated.View>
+            <View style={styles.statDivider} />
+            <View style={styles.currentPlanStat}>
+              <Calendar size={14} color="#64748B" />
+              <Text style={styles.currentPlanStatText}>15 sessions/mois</Text>
+            </View>
+          </View>
+          <Text style={styles.renewalText}>Prochain paiement: 15 janv. 2025</Text>
+        </View>
 
-        {/* Plans */}
+        {/* Plans disponibles */}
         <View style={styles.section}>
-          <Animated.View
-            entering={FadeInDown.delay(200).duration(400)}
-            style={styles.sectionHeader}
-          >
-            <Zap size={20} color={COLORS.secondary[700]} />
+          <View style={styles.sectionHeader}>
+            <Zap size={16} color="#6366F1" />
             <Text style={styles.sectionTitle}>Choisir un plan</Text>
-          </Animated.View>
+          </View>
           {plans.map((plan, index) => (
             <PlanCard
               key={index}
               {...plan}
               isCurrent={plan.planId === currentPlan}
               onSelect={() => handleSelectPlan(plan.planId)}
-              delay={300 + index * 100}
+              delay={200 + index * 100}
             />
           ))}
         </View>
 
-        {/* Payment Method */}
-        <Animated.View
-          entering={FadeInDown.delay(600).duration(400)}
-          style={styles.section}
-        >
+        {/* Moyen de paiement */}
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <CreditCard size={20} color={COLORS.secondary[700]} />
-            <Text style={styles.sectionTitle}>Moyen de paiement</Text>
+            <CreditCard size={16} color="#6366F1" />
+            <Text style={styles.sectionTitle}>Paiement</Text>
           </View>
-          <View style={styles.card}>
+          <View style={styles.paymentCard}>
             <View style={styles.paymentRow}>
-              <View style={styles.cardIcon}>
-                <CreditCard size={20} color={COLORS.secondary[700]} />
+              <View style={styles.paymentIcon}>
+                <CreditCard size={16} color="#6366F1" />
               </View>
-              <View style={styles.cardInfo}>
+              <View style={styles.paymentInfo}>
                 <Text style={styles.cardNumber}>•••• •••• •••• 4242</Text>
                 <Text style={styles.cardExpiry}>Expire 12/25</Text>
               </View>
@@ -279,18 +213,15 @@ export default function ParentSubscriptionScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </Animated.View>
+        </View>
 
-        {/* Billing History */}
-        <Animated.View
-          entering={FadeInDown.delay(700).duration(400)}
-          style={styles.section}
-        >
+        {/* Historique */}
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Download size={20} color={COLORS.secondary[700]} />
-            <Text style={styles.sectionTitle}>Historique de facturation</Text>
+            <Download size={16} color="#6366F1" />
+            <Text style={styles.sectionTitle}>Factures</Text>
           </View>
-          <View style={styles.card}>
+          <View style={styles.invoicesCard}>
             {[
               { date: "1 déc. 2024", amount: "19€", status: "Payé" },
               { date: "1 nov. 2024", amount: "19€", status: "Payé" },
@@ -298,7 +229,7 @@ export default function ParentSubscriptionScreen() {
             ].map((invoice, index) => (
               <View key={index}>
                 <View style={styles.invoiceRow}>
-                  <View style={styles.invoiceInfo}>
+                  <View>
                     <Text style={styles.invoiceDate}>{invoice.date}</Text>
                     <Text style={styles.invoiceAmount}>{invoice.amount}</Text>
                   </View>
@@ -306,11 +237,8 @@ export default function ParentSubscriptionScreen() {
                     <View style={styles.statusBadge}>
                       <Text style={styles.statusText}>{invoice.status}</Text>
                     </View>
-                    <TouchableOpacity
-                      style={styles.downloadButton}
-                      onPress={handleDownloadInvoice}
-                    >
-                      <Download size={16} color={COLORS.primary.DEFAULT} />
+                    <TouchableOpacity style={styles.downloadButton}>
+                      <Download size={14} color="#6366F1" />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -318,24 +246,20 @@ export default function ParentSubscriptionScreen() {
               </View>
             ))}
           </View>
-        </Animated.View>
+        </View>
 
-        {/* Cancel Subscription */}
-        <Animated.View
-          entering={FadeInDown.delay(800).duration(400)}
-          style={styles.cancelSection}
-        >
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={handleCancelSubscription}
-          >
+        {/* Annulation */}
+        <View style={styles.cancelSection}>
+          <TouchableOpacity style={styles.cancelButton} onPress={handleCancelSubscription}>
             <Text style={styles.cancelButtonText}>Annuler l'abonnement</Text>
           </TouchableOpacity>
-          <Text style={styles.cancelNote}>
-            Vous garderez l'accès jusqu'à la fin de votre période de
-            facturation
-          </Text>
-        </Animated.View>
+          <Text style={styles.cancelNote}>Vous gardez l'accès jusqu'à la fin de la période</Text>
+        </View>
+
+        {/* Bouton Add source */}
+        <TouchableOpacity style={styles.sourceButton}>
+          <Text style={styles.sourceButtonText}>+ Voir toutes les factures</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -344,102 +268,116 @@ export default function ParentSubscriptionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral[50],
+    backgroundColor: "#FFFFFF",
+    position: "relative",
   },
-  scrollContent: {
-    paddingBottom: 24,
+  purpleBlob: {
+    position: "absolute",
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: "#6366F1",
+    top: -100,
+    right: -100,
+    opacity: 0.1,
+    zIndex: 0,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    zIndex: 1,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   headerTitle: {
     fontFamily: FONTS.fredoka,
     fontSize: 20,
-    color: COLORS.secondary[900],
+    color: "#1E293B",
   },
-  placeholder: {
+  headerRight: {
     width: 40,
-  },
-  bannerContainer: {
-    marginHorizontal: 24,
-    marginBottom: 24,
-    borderRadius: 20,
-    overflow: "hidden",
-    shadowColor: COLORS.primary.DEFAULT,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  banner: {
-    padding: 24,
-    alignItems: "center",
-  },
-  bannerIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#EEF2FF",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
   },
-  bannerTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 24,
-    color: COLORS.neutral.white,
-    marginBottom: 4,
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    zIndex: 1,
   },
-  bannerSubtitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    color: "rgba(255,255,255,0.9)",
-    marginBottom: 16,
+  currentPlanCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
-  bannerStats: {
+  currentPlanHeader: {
     flexDirection: "row",
-    gap: 16,
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  currentPlanIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#EEF2FF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  currentPlanName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1E293B",
+  },
+  currentPlanPrice: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 28,
+    color: "#1E293B",
     marginBottom: 12,
   },
-  bannerStat: {
+  currentPlanStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    gap: 12,
+  },
+  currentPlanStat: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
   },
-  bannerStatText: {
-    fontFamily: FONTS.secondary,
+  currentPlanStatText: {
     fontSize: 13,
-    color: COLORS.neutral.white,
+    color: "#64748B",
+  },
+  statDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: "#F1F5F9",
   },
   renewalText: {
-    fontFamily: FONTS.secondary,
     fontSize: 12,
-    color: "rgba(255,255,255,0.8)",
+    color: "#94A3B8",
   },
   section: {
     marginBottom: 24,
-    paddingHorizontal: 24,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -448,26 +386,22 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.secondary[900],
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1E293B",
   },
   planCard: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: "transparent",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    position: "relative",
   },
   planCardCurrent: {
-    borderColor: COLORS.primary.DEFAULT,
-    backgroundColor: COLORS.primary[50],
+    borderColor: "#6366F1",
+    backgroundColor: "#EEF2FF",
   },
   popularBadge: {
     position: "absolute",
@@ -476,212 +410,212 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: COLORS.primary.DEFAULT,
-    paddingHorizontal: 10,
+    backgroundColor: "#6366F1",
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   popularText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "600",
-    color: COLORS.neutral.white,
+    color: "white",
   },
   planName: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 20,
-    color: COLORS.secondary[900],
-    marginBottom: 8,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1E293B",
+    marginBottom: 6,
   },
   priceRow: {
     flexDirection: "row",
     alignItems: "baseline",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   price: {
     fontFamily: FONTS.fredoka,
-    fontSize: 32,
-    color: COLORS.secondary[900],
+    fontSize: 24,
+    color: "#1E293B",
   },
   period: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    color: COLORS.secondary[600],
+    fontSize: 14,
+    color: "#64748B",
   },
   featuresList: {
-    gap: 10,
-    marginBottom: 20,
+    gap: 8,
+    marginBottom: 16,
   },
   featureRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
   },
   checkIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary[50],
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    backgroundColor: "#EEF2FF",
     justifyContent: "center",
     alignItems: "center",
   },
   featureText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[700],
+    fontSize: 13,
+    color: "#64748B",
     flex: 1,
   },
   selectButton: {
-    backgroundColor: COLORS.neutral[100],
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: "#6366F1",
+    borderRadius: 30,
+    padding: 12,
     alignItems: "center",
-  },
-  selectButtonPrimary: {
-    backgroundColor: COLORS.primary.DEFAULT,
   },
   selectButtonText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
-    color: COLORS.secondary[700],
-  },
-  selectButtonTextPrimary: {
-    color: COLORS.neutral.white,
+    color: "white",
   },
   currentButton: {
-    backgroundColor: COLORS.primary[100],
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 30,
+    padding: 12,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#6366F1",
   },
   currentButtonText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
-    color: COLORS.primary[700],
+    color: "#6366F1",
   },
-  card: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+  paymentCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   paymentRow: {
     flexDirection: "row",
     alignItems: "center",
   },
-  cardIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.neutral[50],
+  paymentIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "#EEF2FF",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
-  cardInfo: {
+  paymentInfo: {
     flex: 1,
   },
   cardNumber: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
-    color: COLORS.secondary[900],
+    color: "#1E293B",
     marginBottom: 2,
   },
   cardExpiry: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[500],
+    fontSize: 12,
+    color: "#64748B",
   },
   changeButton: {
-    backgroundColor: COLORS.neutral[50],
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   changeButtonText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
+    fontSize: 12,
+    color: "#6366F1",
     fontWeight: "600",
-    color: COLORS.primary.DEFAULT,
+  },
+  invoicesCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   invoiceRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
-  },
-  invoiceInfo: {
-    flex: 1,
+    paddingVertical: 10,
   },
   invoiceDate: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
-    color: COLORS.secondary[900],
+    color: "#1E293B",
     marginBottom: 2,
   },
   invoiceAmount: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[500],
+    fontSize: 12,
+    color: "#64748B",
   },
   invoiceRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
   statusBadge: {
-    backgroundColor: COLORS.success[50],
-    paddingHorizontal: 10,
+    backgroundColor: "#D1FAE5",
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   statusText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
+    fontSize: 11,
+    color: "#065F46",
     fontWeight: "600",
-    color: COLORS.success[700],
   },
   downloadButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.primary[50],
+    borderRadius: 8,
+    backgroundColor: "#EEF2FF",
     justifyContent: "center",
     alignItems: "center",
   },
   divider: {
     height: 1,
-    backgroundColor: COLORS.neutral[100],
+    backgroundColor: "#F1F5F9",
+    marginVertical: 4,
   },
   cancelSection: {
-    paddingHorizontal: 24,
+    marginBottom: 20,
     alignItems: "center",
   },
   cancelButton: {
-    backgroundColor: "#FEE2E2",
-    borderRadius: 12,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 30,
     padding: 14,
     paddingHorizontal: 24,
     marginBottom: 8,
   },
   cancelButtonText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
-    color: COLORS.error,
+    color: "#EF4444",
   },
   cancelNote: {
-    fontFamily: FONTS.secondary,
     fontSize: 12,
-    color: COLORS.secondary[500],
+    color: "#94A3B8",
     textAlign: "center",
+  },
+  sourceButton: {
+    backgroundColor: "#F1F5F9",
+    paddingVertical: 14,
+    borderRadius: 30,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  sourceButtonText: {
+    fontSize: 15,
+    color: "#64748B",
+    fontWeight: "600",
   },
 });
