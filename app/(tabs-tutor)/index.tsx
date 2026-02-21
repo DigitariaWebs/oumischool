@@ -12,6 +12,8 @@ import {
   TextInput,
   Alert,
   Linking,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -29,7 +31,11 @@ import {
   Users,
   Sparkles,
   Download,
+  Upload,
+  Lock,
+  Unlock,
 } from "lucide-react-native";
+import * as DocumentPicker from "expo-document-picker";
 
 import { useAppSelector } from "@/store/hooks";
 
@@ -39,7 +45,6 @@ const MY_STUDENTS = [
   { id: 2, name: "Sofia M.", grade: "CP", subject: "Français", subjectColor: "#EF4444", image: "https://cdn-icons-png.flaticon.com/512/4140/4140049.png" },
 ];
 
-// Ressources avec vrais PDFs éducatifs
 const MOCK_RESOURCES = [
   { 
     id: 1, 
@@ -47,8 +52,9 @@ const MOCK_RESOURCES = [
     type: "PDF", 
     date: "Il y a 2 jours", 
     downloads: 12,
-    url: "https://www.lelivrescolaire.fr/media/file/5c4d3f6f3b3d3c1f4c8b4567/5c4d3f6f3b3d3c1f4c8b4567.pdf",
-    size: "2.4 MB"
+    url: "https://www.africamuseum.be/sites/default/files/media/docs/research/publications/rmca-technical-reports/2012/RMCA_TR_2012_003.pdf",
+    size: "2.4 MB",
+    isPaid: false,
   },
   { 
     id: 2, 
@@ -56,8 +62,9 @@ const MOCK_RESOURCES = [
     type: "Quiz", 
     date: "Il y a 3 jours", 
     downloads: 8,
-    url: "https://www.pass-education.fr/wp-content/uploads/2020/04/conjugaison-passe-compose.pdf",
-    size: "1.8 MB"
+    url: "https://www.w3.org/WAI/WCAG21/wcag-2.1.pdf",
+    size: "1.8 MB",
+    isPaid: true,
   },
   { 
     id: 3, 
@@ -65,12 +72,12 @@ const MOCK_RESOURCES = [
     type: "PDF", 
     date: "Il y a 5 jours", 
     downloads: 15,
-    url: "https://www.gommeetgribouillages.fr/CM1/systemesolaire.pdf",
-    size: "3.2 MB"
+    url: "https://www.itu.int/dms_pub/itu-s/opb/gen/S-GEN-SG-2019-PDF-E.pdf",
+    size: "3.2 MB",
+    isPaid: false,
   },
 ];
 
-// Mock sessions planning
 const MOCK_SESSIONS = [
   { id: 1, student: "Adam B.", time: "14:00", duration: "60min", subject: "Maths", color: "#3B82F6" },
   { id: 2, student: "Sofia M.", time: "16:00", duration: "45min", subject: "Français", color: "#EF4444" },
@@ -87,12 +94,64 @@ export default function TutorDashboardScreen() {
   const [showLibraryModal, setShowLibraryModal] = useState(false);
   const [showPlanningModal, setShowPlanningModal] = useState(false);
   
+  const [resources, setResources] = useState(MOCK_RESOURCES);
+
   const [newResource, setNewResource] = useState({ 
     title: "", 
     type: "PDF", 
     targetStudentId: 1,
-    fileUrl: ""
+    isPaid: false,
+    price: "",
+    uploadedFileName: "",
+    uploadedFileUri: "",   // URI locale réelle du fichier uploadé
+    uploadedFileSize: "",
   });
+
+  // Ouvre le modal ressource pré-rempli depuis une session du planning
+  const handleAddResourceFromSession = (session: typeof MOCK_SESSIONS[0]) => {
+    const student = MY_STUDENTS.find(s => s.name === session.student);
+    setNewResource({
+      title: `Ressource - ${session.subject} (${session.student})`,
+      type: "PDF",
+      targetStudentId: student?.id ?? 1,
+      isPaid: false,
+      price: "",
+      uploadedFileName: "",
+      uploadedFileUri: "",
+      uploadedFileSize: "",
+    });
+    setShowPlanningModal(false);
+    setShowResourceModal(true);
+  };
+
+  // Simule un document picker (remplacer par expo-document-picker si dispo)
+  const handlePickFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "image/*", "video/*"],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const sizeInKB = asset.size ? Math.round(asset.size / 1024) : null;
+        const sizeLabel = sizeInKB
+          ? sizeInKB >= 1024
+            ? `${(sizeInKB / 1024).toFixed(1)} MB`
+            : `${sizeInKB} KB`
+          : "—";
+
+        setNewResource(prev => ({
+          ...prev,
+          uploadedFileName: asset.name,
+          uploadedFileUri: asset.uri,
+          uploadedFileSize: sizeLabel,
+        }));
+      }
+    } catch (e) {
+      Alert.alert("Erreur", "Impossible d'ouvrir le sélecteur de fichiers.");
+    }
+  };
 
   const handleOpenPDF = (url: string, title: string) => {
     Linking.openURL(url).catch(() => {
@@ -109,7 +168,6 @@ export default function TutorDashboardScreen() {
         {
           text: "Télécharger",
           onPress: () => {
-            // Simulation de téléchargement
             Alert.alert("Succès", "Le fichier a été ajouté à vos téléchargements");
           }
         }
@@ -122,16 +180,38 @@ export default function TutorDashboardScreen() {
       Alert.alert("Erreur", "Veuillez donner un titre à la ressource.");
       return;
     }
+    if (!newResource.uploadedFileUri) {
+      Alert.alert("Erreur", "Veuillez uploader un fichier.");
+      return;
+    }
+    if (newResource.isPaid && !newResource.price) {
+      Alert.alert("Erreur", "Veuillez indiquer le prix de la ressource.");
+      return;
+    }
 
     const studentName = MY_STUDENTS.find(s => s.id === newResource.targetStudentId)?.name;
+    const paidInfo = newResource.isPaid ? ` (Payant : ${newResource.price}€)` : " (Gratuit)";
+
+    // Ajouter dans la bibliothèque avec l'URI locale réelle
+    const newEntry = {
+      id: Date.now(),
+      title: newResource.title,
+      type: newResource.type,
+      date: "À l'instant",
+      downloads: 0,
+      url: newResource.uploadedFileUri,   // ← vraie URI locale
+      size: newResource.uploadedFileSize,
+      isPaid: newResource.isPaid,
+    };
+    setResources(prev => [newEntry, ...prev]);
 
     Alert.alert(
       "🚀 Ressource Partagée",
-      `Le document "${newResource.title}" a été ajouté à votre bibliothèque et envoyé sur l'application des parents de ${studentName}.`,
+      `"${newResource.title}"${paidInfo} a été ajouté à votre bibliothèque et envoyé sur l'application des parents de ${studentName}.`,
       [{ text: "Super !", onPress: () => setShowResourceModal(false) }]
     );
 
-    setNewResource({ title: "", type: "PDF", targetStudentId: 1, fileUrl: "" });
+    setNewResource({ title: "", type: "PDF", targetStudentId: 1, isPaid: false, price: "", uploadedFileName: "", uploadedFileUri: "", uploadedFileSize: "" });
   };
 
   return (
@@ -140,19 +220,27 @@ export default function TutorDashboardScreen() {
         
         {/* HEADER */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.headerLabel}>TUTEUR</Text>
-            <Text style={styles.headerTitle}>Bonjour, {userName}</Text>
+          <View style={styles.headerLeft}>
+            <Text style={styles.headerLabel}>MON ESPACE</Text>
+            <View style={styles.headerNameRow}>
+              <Text style={styles.headerGreeting}>Bonjour, </Text>
+              <Text style={styles.headerName}>{userName}</Text>
+            </View>
+            <Text style={styles.headerSub}>Prêt pour les cours d'aujourd'hui ?</Text>
           </View>
-          <View style={styles.availabilityToggle}>
-            <Text style={[styles.availabilityText, { color: isAvailable ? "#10B981" : "#94A3B8" }]}>
-              {isAvailable ? "Disponible" : "Occupé"}
-            </Text>
+          <View style={styles.headerRight}>
+            <View style={[styles.availabilityPill, { backgroundColor: isAvailable ? "#ECFDF5" : "#F8FAFC", borderColor: isAvailable ? "#6EE7B7" : "#E2E8F0" }]}>
+              <View style={[styles.availabilityDot, { backgroundColor: isAvailable ? "#10B981" : "#94A3B8" }]} />
+              <Text style={[styles.availabilityText, { color: isAvailable ? "#10B981" : "#94A3B8" }]}>
+                {isAvailable ? "Dispo" : "Occupé"}
+              </Text>
+            </View>
             <Switch
               value={isAvailable}
               onValueChange={setIsAvailable}
               trackColor={{ false: "#CBD5E1", true: "#10B981" }}
               thumbColor="#FFFFFF"
+              style={{ transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }] }}
             />
           </View>
         </View>
@@ -172,7 +260,7 @@ export default function TutorDashboardScreen() {
           </View>
         </View>
 
-        {/* BOUTON AJOUTER (ACTION PRINCIPALE) */}
+        {/* BOUTON AJOUTER */}
         <View style={styles.section}>
           <TouchableOpacity 
             style={styles.mainAddButton}
@@ -189,29 +277,51 @@ export default function TutorDashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ÉLÈVES */}
+        {/* ÉLÈVES — preview cliquable */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+          <TouchableOpacity 
+            style={styles.sectionHeader}
+            onPress={() => router.push("/(tabs-tutor)/availability")}
+          >
             <Text style={styles.sectionTitle}>Mes élèves</Text>
-            <ChevronRight size={18} color="#64748B" />
-          </View>
+            <View style={styles.seeAllBtn}>
+              <Text style={styles.seeAllText}>Voir tous</Text>
+              <ChevronRight size={14} color="#6366F1" />
+            </View>
+          </TouchableOpacity>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {MY_STUDENTS.map((student) => (
-              <View key={student.id} style={styles.studentSmallCard}>
+              <TouchableOpacity 
+                key={student.id} 
+                style={styles.studentSmallCard}
+                onPress={() => router.push("/(tabs-tutor)/availability")}
+              >
                 <Image source={{ uri: student.image }} style={styles.studentSmallAvatar} />
                 <Text style={styles.studentSmallName}>{student.name}</Text>
                 <View style={[styles.miniBadge, { backgroundColor: student.subjectColor }]}>
                   <Text style={styles.miniBadgeText}>{student.subject}</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             ))}
+            {/* Bouton + ajouter élève */}
+            <TouchableOpacity 
+              style={styles.addStudentCard}
+              onPress={() => router.push("/(tabs-tutor)/availability")}
+            >
+              <View style={styles.addStudentIcon}>
+                <Plus size={20} color="#6366F1" />
+              </View>
+              <Text style={styles.addStudentText}>Ajouter</Text>
+            </TouchableOpacity>
           </ScrollView>
         </View>
 
-        {/* ACCÈS RAPIDE - INTERACTIF */}
+        {/* ESPACE DE TRAVAIL — 3 boutons */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Espace de travail</Text>
           <View style={styles.quickActions}>
+
+            {/* Bibliothèque */}
             <TouchableOpacity 
               style={styles.quickAction} 
               onPress={() => setShowLibraryModal(true)}
@@ -219,15 +329,16 @@ export default function TutorDashboardScreen() {
               <View style={[styles.iconCircle, { backgroundColor: "#8B5CF6" }]}>
                 <BookOpen color="white" size={20}/>
               </View>
-              <Text style={styles.quickActionLabel}>Ma Bibliothèque</Text>
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationText}>3</Text>
+              <Text style={styles.quickActionLabel}>Bibliothèque</Text>
+              <View style={[styles.notificationBadge, { backgroundColor: "#8B5CF6" }]}>
+                <Text style={styles.notificationText}>{resources.length}</Text>
               </View>
             </TouchableOpacity>
 
+            {/* Planning → onglet sessions */}
             <TouchableOpacity 
               style={styles.quickAction} 
-              onPress={() => setShowPlanningModal(true)}
+              onPress={() => router.push("/(tabs-tutor)/sessions")}
             >
               <View style={[styles.iconCircle, { backgroundColor: "#10B981" }]}>
                 <Calendar color="white" size={20}/>
@@ -237,78 +348,160 @@ export default function TutorDashboardScreen() {
                 <Text style={styles.notificationText}>2</Text>
               </View>
             </TouchableOpacity>
+
+            {/* Élèves → onglet availability */}
+            <TouchableOpacity 
+              style={styles.quickAction} 
+              onPress={() => router.push("/(tabs-tutor)/availability")}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: "#F59E0B" }]}>
+                <Users color="white" size={20}/>
+              </View>
+              <Text style={styles.quickActionLabel}>Élèves</Text>
+              <View style={[styles.notificationBadge, { backgroundColor: "#F59E0B" }]}>
+                <Text style={styles.notificationText}>{MY_STUDENTS.length}</Text>
+              </View>
+            </TouchableOpacity>
+
           </View>
         </View>
       </ScrollView>
 
-      {/* MODAL AJOUT & PARTAGE */}
       <Modal visible={showResourceModal} animationType="slide" transparent={true}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Partager une ressource</Text>
-              <TouchableOpacity onPress={() => setShowResourceModal(false)}>
-                <X size={24} color="#1E293B"/>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContentTall}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Partager une ressource</Text>
+                <TouchableOpacity onPress={() => setShowResourceModal(false)}>
+                  <X size={24} color="#1E293B"/>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView 
+                style={{ flex: 1 }}
+                showsVerticalScrollIndicator={false} 
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ paddingBottom: 30 }}
+              >
+              
+              {/* Titre */}
+              <Text style={styles.inputLabel}>Titre de la leçon ou exercice</Text>
+              <TextInput 
+                style={styles.input} 
+                placeholder="Ex: Le cycle de l'eau (Support PDF)"
+                value={newResource.title}
+                onChangeText={(t) => setNewResource(prev => ({...prev, title: t}))}
+              />
+
+              {/* ── UPLOAD FICHIER ── */}
+              <Text style={styles.inputLabel}>Fichier à partager</Text>
+              <TouchableOpacity style={styles.uploadZone} onPress={handlePickFile}>
+                {newResource.uploadedFileName ? (
+                  <View style={styles.uploadedFile}>
+                    <FileText size={18} color="#6366F1" />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.uploadedFileName} numberOfLines={1}>{newResource.uploadedFileName}</Text>
+                      {newResource.uploadedFileSize ? (
+                        <Text style={styles.uploadedFileSize}>{newResource.uploadedFileSize}</Text>
+                      ) : null}
+                    </View>
+                    <TouchableOpacity onPress={() => setNewResource(prev => ({...prev, uploadedFileName: "", uploadedFileUri: "", uploadedFileSize: ""}))}>
+                      <X size={16} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <>
+                    <Upload size={22} color="#6366F1" />
+                    <Text style={styles.uploadLabel}>Appuyez pour uploader</Text>
+                    <Text style={styles.uploadSub}>PDF, image, vidéo…</Text>
+                  </>
+                )}
               </TouchableOpacity>
-            </View>
-            
-            <Text style={styles.inputLabel}>Titre de la leçon ou exercice</Text>
-            <TextInput 
-              style={styles.input} 
-              placeholder="Ex: Le cycle de l'eau (Support PDF)"
-              value={newResource.title}
-              onChangeText={(t) => setNewResource({...newResource, title: t})}
-            />
 
-            <Text style={styles.inputLabel}>Lien vers le fichier (PDF/URL)</Text>
-            <TextInput 
-              style={styles.input} 
-              placeholder="https://..."
-              value={newResource.fileUrl}
-              onChangeText={(t) => setNewResource({...newResource, fileUrl: t})}
-            />
+              {/* Élève cible */}
+              <Text style={styles.inputLabel}>Pour quel élève ?</Text>
+              <View style={styles.studentPicker}>
+                {MY_STUDENTS.map((s) => (
+                  <TouchableOpacity 
+                    key={s.id}
+                    style={[
+                      styles.studentOption, 
+                      newResource.targetStudentId === s.id && styles.studentOptionActive
+                    ]}
+                    onPress={() => setNewResource(prev => ({...prev, targetStudentId: s.id}))}
+                  >
+                    <Image source={{ uri: s.image }} style={styles.miniAvatar} />
+                    <Text style={[styles.studentOptionText, newResource.targetStudentId === s.id && styles.studentOptionTextActive]}>
+                      {s.name}
+                    </Text>
+                    {newResource.targetStudentId === s.id && <Check size={14} color="white" />}
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-            <Text style={styles.inputLabel}>Pour quel élève ?</Text>
-            <View style={styles.studentPicker}>
-              {MY_STUDENTS.map((s) => (
-                <TouchableOpacity 
-                  key={s.id}
-                  style={[
-                    styles.studentOption, 
-                    newResource.targetStudentId === s.id && styles.studentOptionActive
-                  ]}
-                  onPress={() => setNewResource({...newResource, targetStudentId: s.id})}
+              {/* Format */}
+              <Text style={styles.inputLabel}>Format</Text>
+              <View style={styles.typeRow}>
+                {["PDF", "Quiz", "Vidéo"].map((t) => (
+                  <TouchableOpacity 
+                    key={t}
+                    style={[styles.typeChip, newResource.type === t && styles.typeChipActive]}
+                    onPress={() => setNewResource(prev => ({...prev, type: t}))}
+                  >
+                    <Text style={[styles.typeChipText, newResource.type === t && styles.typeChipTextActive]}>{t}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* ── PAYANT / GRATUIT ── */}
+              <Text style={styles.inputLabel}>Accès</Text>
+              <View style={styles.paidRow}>
+                <TouchableOpacity
+                  style={[styles.paidChip, !newResource.isPaid && styles.paidChipActiveGreen]}
+                  onPress={() => setNewResource(prev => ({...prev, isPaid: false, price: ""}))}
                 >
-                  <Image source={{ uri: s.image }} style={styles.miniAvatar} />
-                  <Text style={[styles.studentOptionText, newResource.targetStudentId === s.id && styles.studentOptionTextActive]}>
-                    {s.name}
-                  </Text>
-                  {newResource.targetStudentId === s.id && <Check size={14} color="white" />}
+                  <Unlock size={14} color={!newResource.isPaid ? "white" : "#64748B"} />
+                  <Text style={[styles.paidChipText, !newResource.isPaid && styles.paidChipTextActive]}>Gratuit</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={styles.inputLabel}>Format</Text>
-            <View style={styles.typeRow}>
-              {["PDF", "Quiz", "Vidéo"].map((t) => (
-                <TouchableOpacity 
-                  key={t}
-                  style={[styles.typeChip, newResource.type === t && styles.typeChipActive]}
-                  onPress={() => setNewResource({...newResource, type: t})}
+                <TouchableOpacity
+                  style={[styles.paidChip, newResource.isPaid && styles.paidChipActivePurple]}
+                  onPress={() => setNewResource(prev => ({...prev, isPaid: true}))}
                 >
-                  <Text style={[styles.typeChipText, newResource.type === t && styles.typeChipTextActive]}>{t}</Text>
+                  <Lock size={14} color={newResource.isPaid ? "white" : "#64748B"} />
+                  <Text style={[styles.paidChipText, newResource.isPaid && styles.paidChipTextActive]}>Payant</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
+              </View>
 
-            <TouchableOpacity style={styles.submitBtn} onPress={handleAddResource}>
-              <Text style={styles.submitBtnText}>Publier sur l'espace Parent</Text>
-            </TouchableOpacity>
+              {newResource.isPaid && (
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceSymbol}>€</Text>
+                  <TextInput
+                    style={styles.priceInput}
+                    placeholder="Prix (ex: 4.99)"
+                    keyboardType="decimal-pad"
+                    value={newResource.price}
+                    onChangeText={(t) => setNewResource(prev => ({...prev, price: t}))}
+                  />
+                </View>
+              )}
+
+              <TouchableOpacity style={styles.submitBtn} onPress={handleAddResource}>
+                <Text style={styles.submitBtnText}>Publier sur l'espace Parent</Text>
+              </TouchableOpacity>
+
+              </ScrollView>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
-      {/* MODAL BIBLIOTHÈQUE AVEC VRAIS PDF */}
+      {/* ─────────────────────────────────────────────
+          MODAL BIBLIOTHÈQUE
+      ───────────────────────────────────────────── */}
       <Modal visible={showLibraryModal} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -325,13 +518,20 @@ export default function TutorDashboardScreen() {
             <Text style={styles.modalSubtitle}>Vos dernières ressources partagées</Text>
 
             <ScrollView style={styles.modalList}>
-              {MOCK_RESOURCES.map((resource) => (
+              {resources.map((resource) => (
                 <View key={resource.id} style={styles.resourceItem}>
                   <View style={styles.resourceIcon}>
                     <FileText size={16} color="#6366F1" />
                   </View>
                   <View style={styles.resourceInfo}>
-                    <Text style={styles.resourceTitle}>{resource.title}</Text>
+                    <View style={styles.resourceTitleRow}>
+                      <Text style={styles.resourceTitle}>{resource.title}</Text>
+                      <View style={[styles.paidBadge, { backgroundColor: resource.isPaid ? "#EEF2FF" : "#F0FDF4" }]}>
+                        <Text style={[styles.paidBadgeText, { color: resource.isPaid ? "#6366F1" : "#10B981" }]}>
+                          {resource.isPaid ? "Payant" : "Gratuit"}
+                        </Text>
+                      </View>
+                    </View>
                     <View style={styles.resourceMeta}>
                       <Text style={styles.resourceType}>{resource.type}</Text>
                       <Text style={styles.resourceDot}>•</Text>
@@ -372,7 +572,9 @@ export default function TutorDashboardScreen() {
         </View>
       </Modal>
 
-      {/* MODAL PLANNING */}
+      {/* ─────────────────────────────────────────────
+          MODAL PLANNING — avec bouton "Ajouter ressource" par session
+      ───────────────────────────────────────────── */}
       <Modal visible={showPlanningModal} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -390,25 +592,36 @@ export default function TutorDashboardScreen() {
 
             <ScrollView style={styles.modalList}>
               {MOCK_SESSIONS.map((session) => (
-                <TouchableOpacity 
-                  key={session.id} 
-                  style={[styles.sessionItem, { borderLeftColor: session.color }]}
-                  onPress={() => Alert.alert("Session", `Cours de ${session.subject} avec ${session.student}`)}
-                >
-                  <View style={styles.sessionTime}>
-                    <Text style={styles.sessionTimeText}>{session.time}</Text>
-                    <Text style={styles.sessionDuration}>{session.duration}</Text>
-                  </View>
-                  <View style={styles.sessionInfo}>
-                    <Text style={styles.sessionStudent}>{session.student}</Text>
-                    <View style={[styles.sessionSubjectBadge, { backgroundColor: session.color + "15" }]}>
-                      <Text style={[styles.sessionSubjectText, { color: session.color }]}>
-                        {session.subject}
-                      </Text>
+                <View key={session.id} style={[styles.sessionItem, { borderLeftColor: session.color }]}>
+                  {/* Infos session */}
+                  <TouchableOpacity
+                    style={styles.sessionLeft}
+                    onPress={() => Alert.alert("Session", `Cours de ${session.subject} avec ${session.student}`)}
+                  >
+                    <View style={styles.sessionTime}>
+                      <Text style={styles.sessionTimeText}>{session.time}</Text>
+                      <Text style={styles.sessionDuration}>{session.duration}</Text>
                     </View>
-                  </View>
-                  <Clock size={14} color="#94A3B8" />
-                </TouchableOpacity>
+                    <View style={styles.sessionInfo}>
+                      <Text style={styles.sessionStudent}>{session.student}</Text>
+                      <View style={[styles.sessionSubjectBadge, { backgroundColor: session.color + "15" }]}>
+                        <Text style={[styles.sessionSubjectText, { color: session.color }]}>
+                          {session.subject}
+                        </Text>
+                      </View>
+                    </View>
+                    <Clock size={14} color="#94A3B8" />
+                  </TouchableOpacity>
+
+                  {/* ── Bouton ajouter ressource depuis cette session ── */}
+                  <TouchableOpacity
+                    style={styles.sessionAddBtn}
+                    onPress={() => handleAddResourceFromSession(session)}
+                  >
+                    <Plus size={12} color="#6366F1" />
+                    <Text style={styles.sessionAddBtnText}>Ressource</Text>
+                  </TouchableOpacity>
+                </View>
               ))}
             </ScrollView>
 
@@ -416,11 +629,11 @@ export default function TutorDashboardScreen() {
               style={styles.modalButton}
               onPress={() => {
                 setShowPlanningModal(false);
-                router.push("/tutor/availability");
+                router.push("/(tabs-tutor)/sessions");
               }}
             >
               <Calendar size={16} color="white" />
-              <Text style={styles.modalButtonText}>Gérer mes disponibilités</Text>
+              <Text style={styles.modalButtonText}>Voir le planning</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -431,12 +644,25 @@ export default function TutorDashboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFFFFF" },
-  scrollContent: { paddingBottom: 40 },
-  header: { padding: 24, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  headerLabel: { fontSize: 12, fontWeight: "700", color: "#6366F1", letterSpacing: 1.2 },
-  headerTitle: { fontSize: 24, fontWeight: "bold", color: "#1E293B" },
-  availabilityToggle: { alignItems: "center" },
-  availabilityText: { fontSize: 10, fontWeight: "bold", marginBottom: 2 },
+  scrollContent: { paddingBottom: 140 },
+  header: { 
+    paddingHorizontal: 24, paddingTop: 20, paddingBottom: 24,
+    flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start",
+  },
+  headerLeft: { flex: 1 },
+  headerLabel: { fontSize: 10, fontWeight: "800", color: "#6366F1", letterSpacing: 2, marginBottom: 4 },
+  headerNameRow: { flexDirection: "row", alignItems: "baseline", flexWrap: "wrap" },
+  headerGreeting: { fontSize: 26, fontWeight: "300", color: "#64748B" },
+  headerName: { fontSize: 26, fontWeight: "800", color: "#1E293B" },
+  headerSub: { fontSize: 13, color: "#94A3B8", marginTop: 4, fontWeight: "400" },
+  headerRight: { alignItems: "center", gap: 6, paddingTop: 4 },
+  availabilityPill: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 20, borderWidth: 1,
+  },
+  availabilityDot: { width: 6, height: 6, borderRadius: 3 },
+  availabilityText: { fontSize: 11, fontWeight: "700" },
 
   statsCard: { marginHorizontal: 24, backgroundColor: "#F8FAFC", padding: 18, borderRadius: 20, borderWidth: 1, borderColor: "#F1F5F9" },
   statsRow: { flexDirection: "row", justifyContent: "space-around" },
@@ -447,7 +673,20 @@ const styles = StyleSheet.create({
 
   section: { paddingHorizontal: 24, marginTop: 24 },
   sectionTitle: { fontSize: 18, fontWeight: "bold", color: "#1E293B", marginBottom: 15 },
-  sectionHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 15 },
+  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 15 },
+  seeAllBtn: { flexDirection: "row", alignItems: "center", gap: 2 },
+  seeAllText: { fontSize: 13, color: "#6366F1", fontWeight: "600" },
+
+  addStudentCard: { 
+    width: 80, padding: 12, backgroundColor: "#F5F7FF", borderRadius: 18, 
+    alignItems: "center", marginRight: 12, borderWidth: 1.5, 
+    borderColor: "#E0E7FF", borderStyle: "dashed", justifyContent: "center", minHeight: 100,
+  },
+  addStudentIcon: { 
+    width: 40, height: 40, borderRadius: 20, backgroundColor: "#EEF2FF",
+    justifyContent: "center", alignItems: "center", marginBottom: 6,
+  },
+  addStudentText: { fontSize: 11, color: "#6366F1", fontWeight: "600" },
 
   mainAddButton: { 
     flexDirection: 'row', 
@@ -469,68 +708,80 @@ const styles = StyleSheet.create({
   miniBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, marginTop: 4 },
   miniBadgeText: { color: "white", fontSize: 8, fontWeight: "bold" },
 
-  quickActions: { flexDirection: "row", gap: 15, position: "relative" },
-  quickAction: { flex: 1, alignItems: "center", backgroundColor: '#F8FAFC', padding: 15, borderRadius: 20, position: "relative" },
+  quickActions: { flexDirection: "row", gap: 10 },
+  quickAction: { flex: 1, alignItems: "center", backgroundColor: '#F8FAFC', padding: 12, borderRadius: 18, position: "relative" },
   iconCircle: { width: 44, height: 44, borderRadius: 12, justifyContent: "center", alignItems: "center", marginBottom: 8 },
   quickActionLabel: { fontSize: 12, color: "#475569", fontWeight: "600" },
   notificationBadge: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    backgroundColor: "#8B5CF6",
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    justifyContent: "center",
-    alignItems: "center",
+    position: "absolute", top: 10, right: 10,
+    backgroundColor: "#8B5CF6", borderRadius: 10,
+    minWidth: 18, height: 18, justifyContent: "center", alignItems: "center",
   },
-  notificationText: {
-    color: "white",
-    fontSize: 10,
-    fontWeight: "bold",
-  },
+  notificationText: { color: "white", fontSize: 10, fontWeight: "bold" },
 
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
-  modalContent: { backgroundColor: "white", borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, maxHeight: "80%" },
+  modalContent: { backgroundColor: "white", borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, maxHeight: "90%" },
+  modalContentTall: { 
+    backgroundColor: "white", borderTopLeftRadius: 30, borderTopRightRadius: 30, 
+    padding: 24, flex: 1, marginTop: 60,
+  },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 15 },
   modalTitleContainer: { flexDirection: "row", alignItems: "center", gap: 8 },
   modalTitle: { fontSize: 20, fontWeight: "bold" },
   modalSubtitle: { fontSize: 14, color: "#64748B", marginBottom: 20 },
   modalList: { maxHeight: 400 },
   modalButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: "#6366F1",
-    padding: 16,
-    borderRadius: 16,
-    marginTop: 20,
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    backgroundColor: "#6366F1", padding: 16, borderRadius: 16, marginTop: 20,
   },
   modalButtonText: { color: "white", fontSize: 16, fontWeight: "600" },
 
+  // ── Upload zone ──
+  uploadZone: {
+    borderWidth: 2, borderColor: "#E0E7FF", borderStyle: "dashed",
+    borderRadius: 14, padding: 20, alignItems: "center",
+    backgroundColor: "#F5F7FF", marginBottom: 4,
+  },
+  uploadLabel: { fontSize: 14, fontWeight: "600", color: "#6366F1", marginTop: 6 },
+  uploadSub: { fontSize: 11, color: "#94A3B8", marginTop: 2 },
+  uploadedFile: { flexDirection: "row", alignItems: "center", gap: 10, width: "100%" },
+  uploadedFileName: { fontSize: 13, color: "#1E293B", fontWeight: "600" },
+  uploadedFileSize: { fontSize: 11, color: "#94A3B8", marginTop: 2 },
+
+  // ── Payant/Gratuit ──
+  paidRow: { flexDirection: "row", gap: 10, marginBottom: 12 },
+  paidChip: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, paddingVertical: 11, borderRadius: 12, borderWidth: 1, borderColor: "#E2E8F0",
+  },
+  paidChipActiveGreen: { backgroundColor: "#10B981", borderColor: "#10B981" },
+  paidChipActivePurple: { backgroundColor: "#6366F1", borderColor: "#6366F1" },
+  paidChipText: { fontSize: 14, fontWeight: "600", color: "#64748B" },
+  paidChipTextActive: { color: "white" },
+  priceRow: {
+    flexDirection: "row", alignItems: "center",
+    borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 12,
+    backgroundColor: "#F8FAFC", paddingHorizontal: 14, marginBottom: 16,
+  },
+  priceSymbol: { fontSize: 18, color: "#64748B", marginRight: 8 },
+  priceInput: { flex: 1, fontSize: 16, paddingVertical: 14, color: "#1E293B" },
+
+  // ── Badge payant dans bibliothèque ──
+  resourceTitleRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 },
+  paidBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  paidBadgeText: { fontSize: 9, fontWeight: "700" },
+
   // Resource item styles
   resourceItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F8FAFC",
-    padding: 12,
-    borderRadius: 16,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
+    flexDirection: "row", alignItems: "center", backgroundColor: "#F8FAFC",
+    padding: 12, borderRadius: 16, marginBottom: 8, borderWidth: 1, borderColor: "#F1F5F9",
   },
   resourceIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: "#EEF2FF",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
+    width: 36, height: 36, borderRadius: 8, backgroundColor: "#EEF2FF",
+    justifyContent: "center", alignItems: "center", marginRight: 12,
   },
   resourceInfo: { flex: 1 },
-  resourceTitle: { fontSize: 14, fontWeight: "600", color: "#1E293B", marginBottom: 2 },
+  resourceTitle: { fontSize: 13, fontWeight: "600", color: "#1E293B" },
   resourceMeta: { flexDirection: "row", alignItems: "center", gap: 4 },
   resourceType: { fontSize: 11, color: "#6366F1", fontWeight: "600" },
   resourceDot: { fontSize: 11, color: "#CBD5E1" },
@@ -539,17 +790,13 @@ const styles = StyleSheet.create({
   resourceActions: { flexDirection: "row", gap: 8 },
   resourceAction: { padding: 8 },
 
-  // Session item styles
+  // Session item styles — layout modifié pour inclure le bouton ressource
   sessionItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F8FAFC",
-    padding: 14,
-    borderRadius: 16,
-    marginBottom: 8,
-    borderLeftWidth: 4,
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
+    backgroundColor: "#F8FAFC", borderRadius: 16, marginBottom: 8,
+    borderLeftWidth: 4, borderWidth: 1, borderColor: "#F1F5F9", overflow: "hidden",
+  },
+  sessionLeft: {
+    flexDirection: "row", alignItems: "center", padding: 14,
   },
   sessionTime: { marginRight: 14 },
   sessionTimeText: { fontSize: 15, fontWeight: "600", color: "#1E293B" },
@@ -558,20 +805,28 @@ const styles = StyleSheet.create({
   sessionStudent: { fontSize: 14, fontWeight: "600", color: "#1E293B", marginBottom: 2 },
   sessionSubjectBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, alignSelf: "flex-start" },
   sessionSubjectText: { fontSize: 10, fontWeight: "600" },
+  sessionAddBtn: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    borderTopWidth: 1, borderTopColor: "#F1F5F9",
+    paddingVertical: 8, paddingHorizontal: 14,
+    backgroundColor: "#F0F4FF",
+  },
+  sessionAddBtnText: { fontSize: 12, color: "#6366F1", fontWeight: "600" },
 
   inputLabel: { fontSize: 14, fontWeight: "600", color: "#64748B", marginBottom: 10, marginTop: 10 },
-  input: { backgroundColor: "#F8FAFC", padding: 16, borderRadius: 12, borderWidth: 1, borderColor: "#E2E8F0", marginBottom: 15 },
+  inputLabelSmall: { fontSize: 11, color: "#94A3B8", textAlign: "center", marginVertical: 6 },
+  input: { backgroundColor: "#F8FAFC", padding: 16, borderRadius: 12, borderWidth: 1, borderColor: "#E2E8F0", marginBottom: 4 },
   studentPicker: { flexDirection: 'row', gap: 10, marginBottom: 15 },
   studentOption: { flexDirection: 'row', alignItems: 'center', padding: 8, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', flex: 1, gap: 8 },
   studentOptionActive: { backgroundColor: '#6366F1', borderColor: '#6366F1' },
   miniAvatar: { width: 24, height: 24, borderRadius: 12 },
   studentOptionText: { fontSize: 12, fontWeight: '600', color: '#1E293B' },
   studentOptionTextActive: { color: 'white' },
-  typeRow: { flexDirection: "row", gap: 10, marginBottom: 25 },
+  typeRow: { flexDirection: "row", gap: 10, marginBottom: 20 },
   typeChip: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: "#E2E8F0", alignItems: "center" },
   typeChipActive: { backgroundColor: "#1E293B", borderColor: "#1E293B" },
   typeChipText: { color: "#64748B", fontWeight: "600" },
   typeChipTextActive: { color: "white" },
-  submitBtn: { backgroundColor: "#6366F1", padding: 18, borderRadius: 15, alignItems: "center", elevation: 4 },
+  submitBtn: { backgroundColor: "#6366F1", padding: 18, borderRadius: 15, alignItems: "center", elevation: 4, marginTop: 8 },
   submitBtnText: { color: "white", fontSize: 16, fontWeight: "bold" },
 });

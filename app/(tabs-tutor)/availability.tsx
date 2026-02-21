@@ -5,576 +5,368 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Pressable,
+  Image,
+  Alert,
+  TextInput,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Clock, Check, Calendar, TrendingUp, Sparkles } from "lucide-react-native";
+import {
+  ChevronLeft,
+  Search,
+  Plus,
+  BookOpen,
+  Calendar,
+  MessageSquare,
+  ChevronRight,
+  Star,
+  Clock,
+  TrendingUp,
+} from "lucide-react-native";
 
-import { COLORS } from "@/config/colors";
-import { FONTS } from "@/config/fonts";
-
-interface TimeSlot {
-  id: string;
-  time: string;
-  displayTime: string;
-}
-
-interface DayAvailability {
-  day: string;
-  dayFull: string;
-  enabled: boolean;
-  slots: string[];
-}
-
-const DAYS = [
-  { short: "Lun", full: "Lundi" },
-  { short: "Mar", full: "Mardi" },
-  { short: "Mer", full: "Mercredi" },
-  { short: "Jeu", full: "Jeudi" },
-  { short: "Ven", full: "Vendredi" },
-  { short: "Sam", full: "Samedi" },
-  { short: "Dim", full: "Dimanche" },
+const MY_STUDENTS = [
+  {
+    id: 1,
+    name: "Adam B.",
+    fullName: "Adam Benali",
+    grade: "CE2",
+    age: 8,
+    subject: "Maths",
+    subjectColor: "#3B82F6",
+    image: "https://cdn-icons-png.flaticon.com/512/4140/4140048.png",
+    sessionsTotal: 12,
+    nextSession: "Lun 14:00",
+    progress: 78,
+    parentName: "M. Benali",
+    notes: "Très motivé, progresse bien en fractions.",
+  },
+  {
+    id: 2,
+    name: "Sofia M.",
+    fullName: "Sofia Martinez",
+    grade: "CP",
+    age: 6,
+    subject: "Français",
+    subjectColor: "#EF4444",
+    image: "https://cdn-icons-png.flaticon.com/512/4140/4140049.png",
+    sessionsTotal: 8,
+    nextSession: "Mer 16:00",
+    progress: 65,
+    parentName: "Mme Martinez",
+    notes: "Besoin de renforcement en lecture.",
+  },
 ];
 
-const TIME_SLOTS: TimeSlot[] = [
-  { id: "08:00", time: "08:00", displayTime: "08:00 - 09:00" },
-  { id: "09:00", time: "09:00", displayTime: "09:00 - 10:00" },
-  { id: "10:00", time: "10:00", displayTime: "10:00 - 11:00" },
-  { id: "11:00", time: "11:00", displayTime: "11:00 - 12:00" },
-  { id: "14:00", time: "14:00", displayTime: "14:00 - 15:00" },
-  { id: "15:00", time: "15:00", displayTime: "15:00 - 16:00" },
-  { id: "16:00", time: "16:00", displayTime: "16:00 - 17:00" },
-  { id: "17:00", time: "17:00", displayTime: "17:00 - 18:00" },
-  { id: "18:00", time: "18:00", displayTime: "18:00 - 19:00" },
-];
+export default function TutorStudentsScreen() {
+  const router = useRouter();
+  const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
-export default function TutorAvailabilityScreen() {
-  const [selectedDay, setSelectedDay] = useState(0);
-  const [availability, setAvailability] = useState<DayAvailability[]>(
-    DAYS.map((day) => ({
-      day: day.short,
-      dayFull: day.full,
-      enabled: false,
-      slots: [],
-    })),
+  const filtered = MY_STUDENTS.filter((s) =>
+    s.fullName.toLowerCase().includes(search.toLowerCase()) ||
+    s.subject.toLowerCase().includes(search.toLowerCase())
   );
 
-  const toggleDay = (index: number) => {
-    setAvailability((prev) =>
-      prev.map((day, i) =>
-        i === index ? { ...day, enabled: !day.enabled, slots: [] } : day,
-      ),
-    );
-  };
-
-  const toggleSlot = (slotId: string) => {
-    setAvailability((prev) =>
-      prev.map((day, i) =>
-        i === selectedDay
-          ? {
-              ...day,
-              slots: day.slots.includes(slotId)
-                ? day.slots.filter((s) => s !== slotId)
-                : [...day.slots, slotId],
-            }
-          : day,
-      ),
-    );
-  };
-
-  const selectAllSlots = () => {
-    setAvailability((prev) =>
-      prev.map((day, i) =>
-        i === selectedDay
-          ? { ...day, enabled: true, slots: TIME_SLOTS.map((s) => s.id) }
-          : day,
-      ),
-    );
-  };
-
-  const clearAllSlots = () => {
-    setAvailability((prev) =>
-      prev.map((day, i) => (i === selectedDay ? { ...day, slots: [] } : day)),
-    );
-  };
-
-  const currentDay = availability[selectedDay];
-  const totalSlots = availability.reduce(
-    (acc, day) => acc + day.slots.length,
-    0,
-  );
-  const enabledDays = availability.filter((d) => d.enabled).length;
+  const selected = MY_STUDENTS.find((s) => s.id === selectedId);
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Header simple */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerLabel}>DISPONIBILITÉS</Text>
-            <Text style={styles.headerTitle}>Mes créneaux</Text>
+
+      {/* ── HEADER ── */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <ChevronLeft size={22} color="#1E293B" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Mes élèves</Text>
+        <TouchableOpacity
+          style={styles.addBtn}
+          onPress={() => Alert.alert("Bientôt", "Ajout d'élève disponible prochainement.")}
+        >
+          <Plus size={20} color="#6366F1" />
+        </TouchableOpacity>
+      </View>
+
+      {/* ── SEARCH ── */}
+      <View style={styles.searchBar}>
+        <Search size={16} color="#94A3B8" />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Rechercher un élève ou matière..."
+          placeholderTextColor="#94A3B8"
+          value={search}
+          onChangeText={setSearch}
+        />
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+
+        {/* ── STATS RAPIDES ── */}
+        <View style={styles.statsRow}>
+          <View style={styles.statPill}>
+            <Text style={styles.statPillValue}>{MY_STUDENTS.length}</Text>
+            <Text style={styles.statPillLabel}>Élèves</Text>
           </View>
-          <View style={styles.headerBadge}>
-            <Clock size={16} color="#6366F1" />
-            <Text style={styles.headerBadgeText}>{totalSlots}</Text>
+          <View style={styles.statPill}>
+            <Text style={styles.statPillValue}>
+              {MY_STUDENTS.reduce((a, s) => a + s.sessionsTotal, 0)}
+            </Text>
+            <Text style={styles.statPillLabel}>Sessions total</Text>
+          </View>
+          <View style={styles.statPill}>
+            <Text style={styles.statPillValue}>
+              {Math.round(MY_STUDENTS.reduce((a, s) => a + s.progress, 0) / MY_STUDENTS.length)}%
+            </Text>
+            <Text style={styles.statPillLabel}>Progression moy.</Text>
           </View>
         </View>
 
-        {/* Carte statistiques */}
-        <View style={styles.statsCard}>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{totalSlots}</Text>
-              <Text style={styles.statLabel}>Créneaux</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{enabledDays}</Text>
-              <Text style={styles.statLabel}>Jours actifs</Text>
-            </View>
-          </View>
-        </View>
+        {/* ── LISTE ÉLÈVES ── */}
+        <Text style={styles.sectionLabel}>Tous les élèves</Text>
 
-        {/* Section Jours */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Jours disponibles</Text>
-          <View style={styles.daysGrid}>
-            {DAYS.map((day, index) => {
-              const dayData = availability[index];
-              const isSelected = selectedDay === index;
-              const isEnabled = dayData.enabled;
+        {filtered.map((student) => {
+          const isOpen = selectedId === student.id;
+          return (
+            <View key={student.id}>
+              {/* Carte principale */}
+              <TouchableOpacity
+                style={[styles.studentCard, isOpen && styles.studentCardOpen]}
+                onPress={() => setSelectedId(isOpen ? null : student.id)}
+                activeOpacity={0.85}
+              >
+                <Image source={{ uri: student.image }} style={styles.avatar} />
 
-              return (
-                <Pressable
-                  key={day.short}
-                  style={({ pressed }) => [
-                    styles.dayCard,
-                    isSelected && styles.dayCardSelected,
-                    pressed && { opacity: 0.8 },
-                  ]}
-                  onPress={() => setSelectedDay(index)}
-                >
-                  <View style={styles.dayHeader}>
-                    <Text style={[
-                      styles.dayShort,
-                      isSelected && styles.dayTextSelected
-                    ]}>
-                      {day.short}
-                    </Text>
-                    <TouchableOpacity
-                      style={[
-                        styles.dayToggle,
-                        isEnabled && styles.dayToggleActive,
-                      ]}
-                      onPress={() => toggleDay(index)}
-                    >
-                      {isEnabled && <Check size={10} color="white" />}
-                    </TouchableOpacity>
-                  </View>
-                  {isEnabled && (
-                    <View style={[
-                      styles.daySlotBadge,
-                      isSelected && styles.daySlotBadgeSelected
-                    ]}>
-                      <Text style={[
-                        styles.daySlotCount,
-                        isSelected && styles.dayTextSelected
-                      ]}>
-                        {dayData.slots.length}
+                <View style={styles.studentInfo}>
+                  <View style={styles.studentTopRow}>
+                    <Text style={styles.studentName}>{student.fullName}</Text>
+                    <View style={[styles.subjectBadge, { backgroundColor: student.subjectColor + "18" }]}>
+                      <Text style={[styles.subjectText, { color: student.subjectColor }]}>
+                        {student.subject}
                       </Text>
                     </View>
-                  )}
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
+                  </View>
 
-        {/* Créneaux horaires */}
-        {currentDay.enabled ? (
-          <View style={styles.section}>
-            <View style={styles.slotHeader}>
-              <Text style={styles.sectionTitle}>{currentDay.dayFull}</Text>
-              <View style={styles.slotActions}>
-                <TouchableOpacity
-                  style={styles.slotActionButton}
-                  onPress={selectAllSlots}
-                >
-                  <Text style={styles.slotActionText}>Tout</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.slotActionButton}
-                  onPress={clearAllSlots}
-                >
-                  <Text style={styles.slotActionText}>Rien</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+                  <View style={styles.studentMeta}>
+                    <Text style={styles.metaText}>{student.grade} · {student.age} ans</Text>
+                    <View style={styles.metaDot} />
+                    <Clock size={11} color="#94A3B8" />
+                    <Text style={styles.metaText}>{student.nextSession}</Text>
+                  </View>
 
-            <View style={styles.slotsGrid}>
-              {TIME_SLOTS.map((slot) => {
-                const isSelected = currentDay.slots.includes(slot.id);
-                return (
-                  <Pressable
-                    key={slot.id}
-                    style={({ pressed }) => [
-                      styles.slotCard,
-                      isSelected && styles.slotCardSelected,
-                      pressed && { opacity: 0.8 },
-                    ]}
-                    onPress={() => toggleSlot(slot.id)}
-                  >
-                    <View style={[
-                      styles.slotIcon,
-                      isSelected && styles.slotIconSelected
-                    ]}>
-                      <Clock
-                        size={14}
-                        color={isSelected ? "white" : "#6366F1"}
+                  {/* Barre de progression */}
+                  <View style={styles.progressRow}>
+                    <View style={styles.progressBar}>
+                      <View
+                        style={[
+                          styles.progressFill,
+                          {
+                            width: `${student.progress}%` as any,
+                            backgroundColor: student.subjectColor,
+                          },
+                        ]}
                       />
                     </View>
-                    <Text style={[
-                      styles.slotText,
-                      isSelected && styles.slotTextSelected
-                    ]}>
-                      {slot.displayTime}
+                    <Text style={[styles.progressLabel, { color: student.subjectColor }]}>
+                      {student.progress}%
                     </Text>
-                    {isSelected && (
-                      <Check size={14} color="white" />
-                    )}
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        ) : (
-          <View style={styles.disabledSection}>
-            <View style={styles.disabledCard}>
-              <Calendar size={40} color="#CBD5E1" />
-              <Text style={styles.disabledTitle}>
-                {currentDay.dayFull} désactivé
-              </Text>
-              <Text style={styles.disabledText}>
-                Activez ce jour pour définir vos créneaux
-              </Text>
-              <TouchableOpacity
-                style={styles.enableButton}
-                onPress={() => toggleDay(selectedDay)}
-              >
-                <Text style={styles.enableButtonText}>
-                  Activer {currentDay.dayFull}
-                </Text>
+                  </View>
+                </View>
+
+                <ChevronRight
+                  size={16}
+                  color="#CBD5E1"
+                  style={{ transform: [{ rotate: isOpen ? "90deg" : "0deg" }] }}
+                />
               </TouchableOpacity>
+
+              {/* ── DÉTAIL DÉROULANT ── */}
+              {isOpen && (
+                <View style={styles.detailPanel}>
+                  {/* Infos parent */}
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailKey}>Parent</Text>
+                    <Text style={styles.detailValue}>{student.parentName}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailKey}>Sessions</Text>
+                    <Text style={styles.detailValue}>{student.sessionsTotal} cours effectués</Text>
+                  </View>
+
+                  {/* Notes */}
+                  <View style={styles.notesBox}>
+                    <Text style={styles.notesLabel}>📝 Notes</Text>
+                    <Text style={styles.notesText}>{student.notes}</Text>
+                  </View>
+
+                  {/* Actions */}
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { backgroundColor: "#EEF2FF" }]}
+                      onPress={() => {
+                        router.push("/(tabs-tutor)/sessions");
+                      }}
+                    >
+                      <Calendar size={15} color="#6366F1" />
+                      <Text style={[styles.actionBtnText, { color: "#6366F1" }]}>Planifier</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { backgroundColor: "#F0FDF4" }]}
+                      onPress={() => Alert.alert("Ressource", "Ouvre le partage de ressource")}
+                    >
+                      <BookOpen size={15} color="#10B981" />
+                      <Text style={[styles.actionBtnText, { color: "#10B981" }]}>Ressource</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { backgroundColor: "#FFF7ED" }]}
+                      onPress={() => Alert.alert("Message", `Contacter ${student.parentName}`)}
+                    >
+                      <MessageSquare size={15} color="#F59E0B" />
+                      <Text style={[styles.actionBtnText, { color: "#F59E0B" }]}>Message</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
             </View>
+          );
+        })}
+
+        {filtered.length === 0 && (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyText}>Aucun élève trouvé</Text>
           </View>
         )}
 
-        {/* Conseil */}
-        <View style={styles.tipCard}>
-          <Sparkles size={16} color="#6366F1" />
-          <Text style={styles.tipText}>
-            Les parents pourront réserver des sessions pendant vos créneaux disponibles.
-          </Text>
-        </View>
-
-        {/* Bouton Add source */}
-        <TouchableOpacity style={styles.sourceButton}>
-          <Text style={styles.sourceButtonText}>+ Ajouter des disponibilités</Text>
+        {/* Bouton ajouter élève */}
+        <TouchableOpacity
+          style={styles.addStudentBtn}
+          onPress={() => Alert.alert("Bientôt", "Ajout d'élève disponible prochainement.")}
+        >
+          <Plus size={18} color="#6366F1" />
+          <Text style={styles.addStudentText}>Ajouter un élève</Text>
         </TouchableOpacity>
 
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  scrollContent: {
-    paddingBottom: 100,
-  },
+  container: { flex: 1, backgroundColor: "#FFFFFF" },
+  scroll: { paddingBottom: 120 },
 
   // Header
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 16,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 20, paddingVertical: 16,
+    borderBottomWidth: 1, borderBottomColor: "#F1F5F9",
   },
-  headerLabel: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    color: "#6366F1",
-    letterSpacing: 1.2,
-    fontWeight: "700",
-    marginBottom: 4,
+  backBtn: {
+    width: 38, height: 38, borderRadius: 12,
+    backgroundColor: "#F8FAFC", justifyContent: "center", alignItems: "center",
+    borderWidth: 1, borderColor: "#F1F5F9",
   },
-  headerTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 24,
-    color: "#1E293B",
-  },
-  headerBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#F1F5F9",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  headerBadgeText: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 16,
-    color: "#6366F1",
+  headerTitle: { fontSize: 18, fontWeight: "700", color: "#1E293B" },
+  addBtn: {
+    width: 38, height: 38, borderRadius: 12,
+    backgroundColor: "#EEF2FF", justifyContent: "center", alignItems: "center",
+    borderWidth: 1, borderColor: "#E0E7FF",
   },
 
-  // Stats Card
-  statsCard: {
-    backgroundColor: "#F8FAFC",
-    marginHorizontal: 24,
-    marginBottom: 24,
-    padding: 20,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
+  // Search
+  searchBar: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    marginHorizontal: 20, marginVertical: 14,
+    backgroundColor: "#F8FAFC", borderRadius: 14,
+    borderWidth: 1, borderColor: "#F1F5F9", paddingHorizontal: 14,
   },
+  searchInput: { flex: 1, fontSize: 14, color: "#1E293B", paddingVertical: 12 },
+
+  // Stats rapides
   statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
+    flexDirection: "row", gap: 10,
+    marginHorizontal: 20, marginBottom: 24,
   },
-  statItem: {
-    alignItems: "center",
+  statPill: {
+    flex: 1, backgroundColor: "#F8FAFC", borderRadius: 14, padding: 14,
+    alignItems: "center", borderWidth: 1, borderColor: "#F1F5F9",
   },
-  statValue: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 28,
-    color: "#1E293B",
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 13,
-    color: "#64748B",
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: "#F1F5F9",
+  statPillValue: { fontSize: 20, fontWeight: "800", color: "#1E293B" },
+  statPillLabel: { fontSize: 10, color: "#94A3B8", marginTop: 2, fontWeight: "600" },
+
+  sectionLabel: {
+    fontSize: 13, fontWeight: "700", color: "#94A3B8",
+    letterSpacing: 1, marginHorizontal: 20, marginBottom: 12,
   },
 
-  // Section
-  section: {
-    paddingHorizontal: 24,
-    marginBottom: 24,
+  // Carte élève
+  studentCard: {
+    flexDirection: "row", alignItems: "center",
+    marginHorizontal: 20, marginBottom: 2,
+    backgroundColor: "#F8FAFC", borderRadius: 18, padding: 14,
+    borderWidth: 1.5, borderColor: "#F1F5F9", gap: 12,
   },
-  sectionTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 16,
-    color: "#1E293B",
-    marginBottom: 12,
+  studentCardOpen: {
+    borderColor: "#C7D2FE", backgroundColor: "#F5F7FF",
+    borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
   },
+  avatar: { width: 50, height: 50, borderRadius: 25 },
+  studentInfo: { flex: 1 },
+  studentTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
+  studentName: { fontSize: 15, fontWeight: "700", color: "#1E293B" },
+  subjectBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  subjectText: { fontSize: 10, fontWeight: "700" },
+  studentMeta: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 8 },
+  metaText: { fontSize: 11, color: "#64748B" },
+  metaDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: "#CBD5E1" },
 
-  // Days Grid
-  daysGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+  // Progression
+  progressRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  progressBar: {
+    flex: 1, height: 5, backgroundColor: "#E2E8F0", borderRadius: 10, overflow: "hidden",
   },
-  dayCard: {
-    width: 70,
-    backgroundColor: "#F8FAFC",
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
-  dayCardSelected: {
-    borderColor: "#6366F1",
-    backgroundColor: "#EEF2FF",
-  },
-  dayHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  dayShort: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1E293B",
-  },
-  dayTextSelected: {
-    color: "#6366F1",
-  },
-  dayToggle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
-    borderColor: "#CBD5E1",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  dayToggleActive: {
-    backgroundColor: "#6366F1",
-    borderColor: "#6366F1",
-  },
-  daySlotBadge: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    alignSelf: "flex-start",
-  },
-  daySlotBadgeSelected: {
-    backgroundColor: "#FFFFFF",
-  },
-  daySlotCount: {
-    fontSize: 11,
-    color: "#64748B",
-  },
+  progressFill: { height: "100%", borderRadius: 10 },
+  progressLabel: { fontSize: 11, fontWeight: "700", minWidth: 32, textAlign: "right" },
 
-  // Slots
-  slotHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
+  // Détail déroulant
+  detailPanel: {
+    marginHorizontal: 20, marginBottom: 14,
+    backgroundColor: "#F5F7FF", borderRadius: 18,
+    borderTopLeftRadius: 0, borderTopRightRadius: 0,
+    padding: 16, borderWidth: 1.5, borderTopWidth: 0, borderColor: "#C7D2FE",
   },
-  slotActions: {
-    flexDirection: "row",
-    gap: 8,
+  detailRow: {
+    flexDirection: "row", justifyContent: "space-between",
+    paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: "#E0E7FF",
   },
-  slotActionButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: "#F1F5F9",
-    borderRadius: 20,
-  },
-  slotActionText: {
-    fontSize: 12,
-    color: "#64748B",
-    fontWeight: "600",
-  },
-  slotsGrid: {
-    gap: 8,
-  },
-  slotCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F8FAFC",
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-    gap: 10,
-  },
-  slotCardSelected: {
-    backgroundColor: "#6366F1",
-    borderColor: "#6366F1",
-  },
-  slotIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: "#EEF2FF",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  slotIconSelected: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-  },
-  slotText: {
-    flex: 1,
-    fontSize: 14,
-    color: "#1E293B",
-    fontWeight: "500",
-  },
-  slotTextSelected: {
-    color: "white",
-  },
+  detailKey: { fontSize: 13, color: "#64748B", fontWeight: "500" },
+  detailValue: { fontSize: 13, color: "#1E293B", fontWeight: "600" },
 
-  // Disabled Section
-  disabledSection: {
-    paddingHorizontal: 24,
-    marginBottom: 24,
+  notesBox: {
+    backgroundColor: "white", borderRadius: 12, padding: 12,
+    marginTop: 12, borderWidth: 1, borderColor: "#E0E7FF",
   },
-  disabledCard: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 20,
-    padding: 32,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-    borderStyle: "dashed",
-  },
-  disabledTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: "#1E293B",
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  disabledText: {
-    fontSize: 14,
-    color: "#64748B",
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  enableButton: {
-    backgroundColor: "#6366F1",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 30,
-  },
-  enableButtonText: {
-    color: "white",
-    fontSize: 14,
-    fontWeight: "600",
-  },
+  notesLabel: { fontSize: 11, fontWeight: "700", color: "#64748B", marginBottom: 4 },
+  notesText: { fontSize: 13, color: "#475569", lineHeight: 18 },
 
-  // Tip Card
-  tipCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: "#EEF2FF",
-    marginHorizontal: 24,
-    marginBottom: 20,
-    padding: 16,
-    borderRadius: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: "#6366F1",
+  // Actions
+  actionRow: { flexDirection: "row", gap: 8, marginTop: 14 },
+  actionBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 5, paddingVertical: 10, borderRadius: 12,
   },
-  tipText: {
-    flex: 1,
-    fontSize: 13,
-    color: "#1E293B",
-    lineHeight: 18,
-  },
+  actionBtnText: { fontSize: 12, fontWeight: "600" },
 
-  // Source Button
-  sourceButton: {
-    backgroundColor: "#F1F5F9",
-    marginHorizontal: 24,
-    marginTop: 8,
-    paddingVertical: 14,
-    borderRadius: 30,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+  // Empty + add
+  emptyBox: { alignItems: "center", padding: 40 },
+  emptyText: { fontSize: 14, color: "#94A3B8" },
+
+  addStudentBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    marginHorizontal: 20, marginTop: 20, padding: 16,
+    borderRadius: 16, borderWidth: 1.5, borderColor: "#E0E7FF",
+    borderStyle: "dashed", backgroundColor: "#F5F7FF",
   },
-  sourceButtonText: {
-    fontSize: 15,
-    color: "#64748B",
-    fontWeight: "600",
-  },
+  addStudentText: { fontSize: 15, fontWeight: "600", color: "#6366F1" },
 });

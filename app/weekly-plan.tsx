@@ -5,650 +5,483 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useSafeBack } from "@/hooks/useSafeBack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  ArrowLeft,
-  Calendar,
-  BookOpen,
+  ChevronLeft,
+  Check,
   Clock,
-  CheckCircle,
-  Circle,
+  BookOpen,
   Sparkles,
+  Lock,
   ChevronRight,
-  Calculator,
-  FileText,
-  FlaskConical,
-  Languages,
 } from "lucide-react-native";
-import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
 
-import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
+import { useAppSelector } from "@/store/hooks";
 
-const { width } = Dimensions.get("window");
+// ── Jours de la semaine ──
+const DAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
-interface Lesson {
-  id: number;
-  subject: string;
-  title: string;
-  duration: number;
-  completed: boolean;
-  color: string;
-  Icon: React.ComponentType<{ size?: number; color?: string }>;
-}
-
-interface DayPlan {
-  day: string;
-  date: string;
-  lessons: Lesson[];
-}
-
-const weekDays: DayPlan[] = [
+// ── Plan mock par matière / élève ──
+const WEEKLY_PLAN = [
   {
-    day: "Lundi",
-    date: "10 Fév",
-    lessons: [
-      {
-        id: 1,
-        subject: "Mathématiques",
-        title: "Les fractions",
-        duration: 45,
-        completed: true,
-        color: "#3B82F6",
-        Icon: Calculator,
-      },
-      {
-        id: 2,
-        subject: "Français",
-        title: "Conjugaison: passé composé",
-        duration: 30,
-        completed: true,
-        color: "#EF4444",
-        Icon: FileText,
-      },
-    ],
+    id: 1,
+    childId: 0, // index dans children
+    day: "Lun",
+    subject: "Maths",
+    topic: "Les fractions",
+    duration: "45 min",
+    color: "#3B82F6",
+    done: true,
+    isPaid: false,
+    tutorName: "M. Karim",
   },
   {
-    day: "Mardi",
-    date: "11 Fév",
-    lessons: [
-      {
-        id: 3,
-        subject: "Sciences",
-        title: "Le cycle de l'eau",
-        duration: 40,
-        completed: false,
-        color: "#10B981",
-        Icon: FlaskConical,
-      },
-      {
-        id: 4,
-        subject: "Anglais",
-        title: "Vocabulaire: les couleurs",
-        duration: 25,
-        completed: false,
-        color: "#6366F1",
-        Icon: Languages,
-      },
-    ],
+    id: 2,
+    childId: 0,
+    day: "Mar",
+    subject: "Français",
+    topic: "Conjugaison – passé composé",
+    duration: "30 min",
+    color: "#EF4444",
+    done: true,
+    isPaid: false,
+    tutorName: null,
   },
   {
-    day: "Mercredi",
-    date: "12 Fév",
-    lessons: [
-      {
-        id: 5,
-        subject: "Histoire",
-        title: "La Révolution française",
-        duration: 35,
-        completed: false,
-        color: "#F59E0B",
-        Icon: BookOpen,
-      },
-    ],
+    id: 3,
+    childId: 0,
+    day: "Mer",
+    subject: "Sciences",
+    topic: "Le système solaire",
+    duration: "60 min",
+    color: "#8B5CF6",
+    done: false,
+    isPaid: true,
+    tutorName: "M. Karim",
+  },
+  {
+    id: 4,
+    childId: 0,
+    day: "Jeu",
+    subject: "Maths",
+    topic: "Exercices révision",
+    duration: "45 min",
+    color: "#3B82F6",
+    done: false,
+    isPaid: false,
+    tutorName: null,
+  },
+  {
+    id: 5,
+    childId: 0,
+    day: "Ven",
+    subject: "Lecture",
+    topic: "Compréhension de texte",
+    duration: "30 min",
+    color: "#10B981",
+    done: false,
+    isPaid: false,
+    tutorName: null,
+  },
+  {
+    id: 6,
+    childId: 1,
+    day: "Lun",
+    subject: "Français",
+    topic: "L'alphabet et les sons",
+    duration: "30 min",
+    color: "#EF4444",
+    done: true,
+    isPaid: false,
+    tutorName: "Mme Sofia",
+  },
+  {
+    id: 7,
+    childId: 1,
+    day: "Mer",
+    subject: "Eveil",
+    topic: "Les animaux de la ferme",
+    duration: "45 min",
+    color: "#F59E0B",
+    done: false,
+    isPaid: false,
+    tutorName: null,
   },
 ];
 
-interface LessonCardProps {
-  lesson: Lesson;
-  delay: number;
-}
-
-const LessonCard: React.FC<LessonCardProps> = ({ lesson, delay }) => (
-  <Animated.View entering={FadeInRight.delay(delay).duration(400)}>
-    <TouchableOpacity style={styles.lessonCard} activeOpacity={0.7}>
-      <LinearGradient
-        colors={[lesson.color + "15", lesson.color + "08"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.lessonGradient}
-      >
-        <View style={styles.lessonHeader}>
-          <View style={styles.lessonIconContainer}>
-            <View
-              style={[
-                styles.lessonIcon,
-                { backgroundColor: lesson.color + "30" },
-              ]}
-            >
-              <lesson.Icon size={24} color={lesson.color} />
-            </View>
-            <View style={styles.lessonInfo}>
-              <Text style={[styles.lessonSubject, { color: lesson.color }]}>
-                {lesson.subject}
-              </Text>
-              <Text style={styles.lessonTitle}>{lesson.title}</Text>
-            </View>
-          </View>
-          {lesson.completed ? (
-            <CheckCircle size={24} color={COLORS.primary.DEFAULT} />
-          ) : (
-            <Circle size={24} color={COLORS.neutral[300]} />
-          )}
-        </View>
-        <View style={styles.lessonFooter}>
-          <View style={styles.durationContainer}>
-            <Clock size={14} color={COLORS.secondary[500]} />
-            <Text style={styles.durationText}>{lesson.duration} min</Text>
-          </View>
-          <TouchableOpacity style={styles.startButton}>
-            <Text style={styles.startButtonText}>
-              {lesson.completed ? "Revoir" : "Commencer"}
-            </Text>
-            <ChevronRight size={16} color={COLORS.primary.DEFAULT} />
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
-    </TouchableOpacity>
-  </Animated.View>
-);
-
-interface DayCardProps {
-  day: DayPlan;
-  delay: number;
-  isToday?: boolean;
-}
-
-const DayCard: React.FC<DayCardProps> = ({ day, delay, isToday }) => {
-  const completedCount = day.lessons.filter((l) => l.completed).length;
-  const totalCount = day.lessons.length;
-  const progress = (completedCount / totalCount) * 100;
-
-  return (
-    <Animated.View
-      entering={FadeInDown.delay(delay).duration(600)}
-      style={styles.daySection}
-    >
-      <View style={styles.dayHeader}>
-        <View style={styles.dayHeaderLeft}>
-          <View style={[styles.dayDot, isToday && styles.dayDotActive]} />
-          <View>
-            <Text style={styles.dayName}>
-              {day.day} {isToday && "• Aujourd'hui"}
-            </Text>
-            <Text style={styles.dayDate}>{day.date}</Text>
-          </View>
-        </View>
-        <View style={styles.dayProgress}>
-          <Text style={styles.dayProgressText}>
-            {completedCount}/{totalCount}
-          </Text>
-        </View>
-      </View>
-
-      {day.lessons.map((lesson, index) => (
-        <LessonCard
-          key={lesson.id}
-          lesson={lesson}
-          delay={delay + (index + 1) * 100}
-        />
-      ))}
-    </Animated.View>
-  );
-};
+const childImages = [
+  "https://cdn-icons-png.flaticon.com/512/4140/4140048.png",
+  "https://cdn-icons-png.flaticon.com/512/4140/4140049.png",
+  "https://cdn-icons-png.flaticon.com/512/4140/4140050.png",
+];
 
 export default function WeeklyPlanScreen() {
   const router = useRouter();
-  const handleBack = useSafeBack();
-  const [selectedChild, setSelectedChild] = useState("Adam");
+  const children = useAppSelector((state) => state.children.children);
 
-  const totalLessons = weekDays.reduce(
-    (sum, day) => sum + day.lessons.length,
-    0,
+  const [selectedChildIdx, setSelectedChildIdx] = useState(0);
+  const [selectedDay, setSelectedDay] = useState("Lun");
+  const [completedIds, setCompletedIds] = useState<number[]>(
+    WEEKLY_PLAN.filter((p) => p.done).map((p) => p.id)
   );
-  const completedLessons = weekDays.reduce(
-    (sum, day) => sum + day.lessons.filter((l) => l.completed).length,
-    0,
+
+  const toggleDone = (id: number) => {
+    setCompletedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  // Filtre par enfant sélectionné + jour
+  const dayPlan = WEEKLY_PLAN.filter(
+    (p) => p.childId === selectedChildIdx && p.day === selectedDay
   );
-  const weekProgress = Math.round((completedLessons / totalLessons) * 100);
+
+  // Stats de la semaine pour l'enfant sélectionné
+  const childPlan = WEEKLY_PLAN.filter((p) => p.childId === selectedChildIdx);
+  const doneCount = childPlan.filter((p) => completedIds.includes(p.id)).length;
+  const totalCount = childPlan.length;
+  const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
+  const selectedChild = children[selectedChildIdx];
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+
+      {/* ── HEADER ── */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <ArrowLeft size={24} color={COLORS.secondary[900]} />
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <ChevronLeft size={22} color="#1E293B" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Plan hebdomadaire</Text>
-        <TouchableOpacity style={styles.calendarButton}>
-          <Calendar size={24} color={COLORS.secondary[900]} />
-        </TouchableOpacity>
+        <View style={{ width: 38 }} />
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Child Selector */}
-        <Animated.View
-          entering={FadeInDown.delay(200).duration(600)}
-          style={styles.childSelector}
-        >
-          <Text style={styles.childSelectorLabel}>Enfant sélectionné</Text>
-          <TouchableOpacity style={styles.childSelectorButton}>
-            <Text style={styles.childSelectorName}>{selectedChild}</Text>
-            <Text style={styles.childSelectorGrade}>CE2</Text>
-          </TouchableOpacity>
-        </Animated.View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-        {/* Week Summary */}
-        <Animated.View
-          entering={FadeInDown.delay(300).duration(600)}
-          style={styles.weekSummary}
-        >
-          <LinearGradient
-            colors={[COLORS.primary.DEFAULT, COLORS.primary[700]]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.weekSummaryGradient}
+        {/* ── SÉLECTEUR ENFANT ── */}
+        {children.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.childSelector}
           >
-            <View style={styles.weekSummaryHeader}>
-              <View>
-                <Text style={styles.weekSummaryTitle}>
-                  Semaine du 10-16 Février
+            {children.map((child, idx) => (
+              <TouchableOpacity
+                key={child.id}
+                style={[styles.childPill, selectedChildIdx === idx && styles.childPillActive]}
+                onPress={() => { setSelectedChildIdx(idx); setSelectedDay("Lun"); }}
+              >
+                <Image
+                  source={{ uri: childImages[idx % childImages.length] }}
+                  style={styles.childPillAvatar}
+                />
+                <Text style={[styles.childPillName, selectedChildIdx === idx && styles.childPillNameActive]}>
+                  {child.name}
                 </Text>
-                <Text style={styles.weekSummarySubtitle}>
-                  {completedLessons} sur {totalLessons} leçons complétées
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+
+        {/* ── CARTE PROGRESSION SEMAINE ── */}
+        <View style={styles.progressCard}>
+          <View style={styles.progressTop}>
+            <View>
+              <Text style={styles.progressLabel}>Cette semaine</Text>
+              <Text style={styles.progressValue}>{doneCount}/{totalCount} séances</Text>
+            </View>
+            <View style={styles.progressCircle}>
+              <Text style={styles.progressCircleText}>{progressPct}%</Text>
+            </View>
+          </View>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${progressPct}%` as any }]} />
+          </View>
+        </View>
+
+        {/* ── SÉLECTEUR JOUR ── */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.daysRow}
+        >
+          {DAYS.map((day) => {
+            const hasTasks = WEEKLY_PLAN.some(
+              (p) => p.childId === selectedChildIdx && p.day === day
+            );
+            const allDone =
+              hasTasks &&
+              WEEKLY_PLAN.filter(
+                (p) => p.childId === selectedChildIdx && p.day === day
+              ).every((p) => completedIds.includes(p.id));
+
+            return (
+              <TouchableOpacity
+                key={day}
+                style={[
+                  styles.dayBtn,
+                  selectedDay === day && styles.dayBtnActive,
+                  allDone && selectedDay !== day && styles.dayBtnDone,
+                ]}
+                onPress={() => setSelectedDay(day)}
+              >
+                <Text
+                  style={[
+                    styles.dayBtnText,
+                    selectedDay === day && styles.dayBtnTextActive,
+                    allDone && selectedDay !== day && styles.dayBtnTextDone,
+                  ]}
+                >
+                  {day}
                 </Text>
-              </View>
-              <View style={styles.weekProgressCircle}>
-                <Text style={styles.weekProgressText}>{weekProgress}%</Text>
-              </View>
-            </View>
+                {hasTasks && !allDone && selectedDay !== day && (
+                  <View style={styles.dayDot} />
+                )}
+                {allDone && <Check size={10} color={selectedDay === day ? "white" : "#10B981"} />}
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
-            <View style={styles.weekProgressBar}>
-              <View
-                style={[styles.weekProgressFill, { width: `${weekProgress}%` }]}
-              />
-            </View>
+        {/* ── SÉANCES DU JOUR ── */}
+        <View style={styles.sessionsSection}>
+          <Text style={styles.sectionLabel}>
+            {selectedDay === "Lun" ? "Lundi" : selectedDay === "Mar" ? "Mardi" :
+             selectedDay === "Mer" ? "Mercredi" : selectedDay === "Jeu" ? "Jeudi" :
+             selectedDay === "Ven" ? "Vendredi" : selectedDay === "Sam" ? "Samedi" : "Dimanche"}
+          </Text>
 
-            <View style={styles.weekStats}>
-              <View style={styles.weekStat}>
-                <BookOpen size={16} color="white" />
-                <Text style={styles.weekStatText}>{totalLessons} leçons</Text>
-              </View>
-              <View style={styles.weekStat}>
-                <Clock size={16} color="white" />
-                <Text style={styles.weekStatText}>
-                  {weekDays.reduce(
-                    (sum, day) =>
-                      sum + day.lessons.reduce((s, l) => s + l.duration, 0),
-                    0,
-                  )}{" "}
-                  min
-                </Text>
-              </View>
+          {dayPlan.length === 0 ? (
+            <View style={styles.emptyDay}>
+              <Text style={styles.emptyDayEmoji}>🎉</Text>
+              <Text style={styles.emptyDayTitle}>Pas de séance ce jour</Text>
+              <Text style={styles.emptyDayText}>Profitez du temps libre !</Text>
             </View>
-          </LinearGradient>
-        </Animated.View>
+          ) : (
+            dayPlan.map((item) => {
+              const isDone = completedIds.includes(item.id);
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[styles.sessionCard, { borderLeftColor: item.color }, isDone && styles.sessionCardDone]}
+                  onPress={() => toggleDone(item.id)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.sessionLeft}>
+                    {/* Icône matière */}
+                    <View style={[styles.sessionIconBox, { backgroundColor: item.color + "18" }]}>
+                      <BookOpen size={16} color={item.color} />
+                    </View>
 
-        {/* AI Generate Button */}
-        <Animated.View entering={FadeInDown.delay(400).duration(600)}>
-          <TouchableOpacity style={styles.generateButton} activeOpacity={0.7}>
-            <View style={styles.generateIcon}>
-              <Sparkles size={20} color="#8B5CF6" />
-            </View>
-            <View style={styles.generateContent}>
-              <Text style={styles.generateTitle}>
-                Générer un nouveau plan avec l'IA
-              </Text>
-              <Text style={styles.generateSubtitle}>
-                Adapté au niveau et aux progrès
-              </Text>
-            </View>
-            <ChevronRight size={20} color={COLORS.secondary[400]} />
-          </TouchableOpacity>
-        </Animated.View>
+                    <View style={styles.sessionInfo}>
+                      <View style={styles.sessionTopRow}>
+                        <Text style={[styles.sessionSubject, isDone && styles.textDone]}>
+                          {item.subject}
+                        </Text>
+                        {item.isPaid && (
+                          <View style={styles.paidBadge}>
+                            <Lock size={9} color="#6366F1" />
+                            <Text style={styles.paidBadgeText}>Payant</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={[styles.sessionTopic, isDone && styles.textDone]}>
+                        {item.topic}
+                      </Text>
+                      <View style={styles.sessionMeta}>
+                        <Clock size={11} color="#94A3B8" />
+                        <Text style={styles.sessionDuration}>{item.duration}</Text>
+                        {item.tutorName && (
+                          <>
+                            <View style={styles.metaDot} />
+                            <Sparkles size={11} color="#F59E0B" />
+                            <Text style={styles.sessionTutor}>{item.tutorName}</Text>
+                          </>
+                        )}
+                      </View>
+                    </View>
+                  </View>
 
-        {/* Day Plans */}
-        {weekDays.map((day, index) => (
-          <DayCard
-            key={index}
-            day={day}
-            delay={500 + index * 150}
-            isToday={index === 0}
-          />
-        ))}
+                  {/* Bouton check */}
+                  <View style={[styles.checkBtn, isDone && styles.checkBtnDone]}>
+                    {isDone && <Check size={14} color="white" />}
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </View>
+
+        {/* ── RÉSUMÉ SEMAINE ── */}
+        <View style={styles.summarySection}>
+          <Text style={styles.sectionLabel}>Résumé de la semaine</Text>
+          <View style={styles.summaryGrid}>
+            {DAYS.filter((d) =>
+              WEEKLY_PLAN.some((p) => p.childId === selectedChildIdx && p.day === d)
+            ).map((day) => {
+              const tasks = WEEKLY_PLAN.filter(
+                (p) => p.childId === selectedChildIdx && p.day === day
+              );
+              const done = tasks.filter((p) => completedIds.includes(p.id)).length;
+              return (
+                <TouchableOpacity
+                  key={day}
+                  style={styles.summaryCard}
+                  onPress={() => setSelectedDay(day)}
+                >
+                  <Text style={styles.summaryDay}>{day}</Text>
+                  <Text style={styles.summaryCount}>{done}/{tasks.length}</Text>
+                  <View style={styles.summaryBar}>
+                    <View
+                      style={[
+                        styles.summaryFill,
+                        {
+                          width: `${tasks.length > 0 ? (done / tasks.length) * 100 : 0}%` as any,
+                          backgroundColor: done === tasks.length ? "#10B981" : "#6366F1",
+                        },
+                      ]}
+                    />
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.neutral[50],
-  },
+  container: { flex: 1, backgroundColor: "#FFFFFF" },
+  scroll: { paddingBottom: 40 },
+
+  // Header
   header: {
-    flexDirection: "row",
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 20, paddingVertical: 16,
+    borderBottomWidth: 1, borderBottomColor: "#F1F5F9",
+  },
+  backBtn: {
+    width: 38, height: 38, borderRadius: 12,
+    backgroundColor: "#F8FAFC", justifyContent: "center", alignItems: "center",
+    borderWidth: 1, borderColor: "#F1F5F9",
+  },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: "#1E293B", fontFamily: FONTS.fredoka },
+
+  // Child selector
+  childSelector: { paddingHorizontal: 20, paddingVertical: 16, gap: 10 },
+  childPill: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 30, borderWidth: 1.5, borderColor: "#E2E8F0",
+    backgroundColor: "#F8FAFC",
+  },
+  childPillActive: { backgroundColor: "#EEF2FF", borderColor: "#6366F1" },
+  childPillAvatar: { width: 26, height: 26, borderRadius: 13 },
+  childPillName: { fontSize: 13, fontWeight: "600", color: "#64748B" },
+  childPillNameActive: { color: "#6366F1" },
+
+  // Progress card
+  progressCard: {
+    marginHorizontal: 20, marginBottom: 20,
+    backgroundColor: "#F8FAFC", borderRadius: 20, padding: 18,
+    borderWidth: 1, borderColor: "#F1F5F9",
+  },
+  progressTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
+  progressLabel: { fontSize: 12, color: "#94A3B8", fontWeight: "600", marginBottom: 2 },
+  progressValue: { fontSize: 18, fontWeight: "800", color: "#1E293B", fontFamily: FONTS.fredoka },
+  progressCircle: {
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: "#EEF2FF", justifyContent: "center", alignItems: "center",
+    borderWidth: 3, borderColor: "#6366F1",
+  },
+  progressCircleText: { fontSize: 14, fontWeight: "800", color: "#6366F1" },
+  progressBar: { height: 6, backgroundColor: "#E2E8F0", borderRadius: 3, overflow: "hidden" },
+  progressFill: { height: "100%", backgroundColor: "#6366F1", borderRadius: 3 },
+
+  // Days selector
+  daysRow: { paddingHorizontal: 20, gap: 8, marginBottom: 20 },
+  dayBtn: {
+    width: 52, height: 52, borderRadius: 14,
+    backgroundColor: "#F8FAFC", borderWidth: 1.5, borderColor: "#E2E8F0",
+    justifyContent: "center", alignItems: "center", gap: 2,
+  },
+  dayBtnActive: { backgroundColor: "#6366F1", borderColor: "#6366F1" },
+  dayBtnDone: { backgroundColor: "#F0FDF4", borderColor: "#6EE7B7" },
+  dayBtnText: { fontSize: 12, fontWeight: "700", color: "#64748B" },
+  dayBtnTextActive: { color: "white" },
+  dayBtnTextDone: { color: "#10B981" },
+  dayDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: "#6366F1" },
+
+  // Sessions
+  sessionsSection: { paddingHorizontal: 20, marginBottom: 28 },
+  sectionLabel: {
+    fontSize: 12, fontWeight: "800", color: "#94A3B8",
+    letterSpacing: 1.2, marginBottom: 14,
+  },
+
+  emptyDay: {
+    backgroundColor: "#F8FAFC", borderRadius: 18, padding: 32,
+    alignItems: "center", borderWidth: 1, borderColor: "#F1F5F9",
+  },
+  emptyDayEmoji: { fontSize: 32, marginBottom: 8 },
+  emptyDayTitle: { fontSize: 16, fontWeight: "700", color: "#1E293B", marginBottom: 4 },
+  emptyDayText: { fontSize: 13, color: "#94A3B8" },
+
+  sessionCard: {
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: "#F8FAFC", borderRadius: 16, padding: 14,
+    borderLeftWidth: 4, borderWidth: 1, borderColor: "#F1F5F9",
+    marginBottom: 10, gap: 12,
+  },
+  sessionCardDone: { opacity: 0.55 },
+  sessionLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
+  sessionIconBox: {
+    width: 38, height: 38, borderRadius: 10,
+    justifyContent: "center", alignItems: "center",
+  },
+  sessionInfo: { flex: 1 },
+  sessionTopRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 },
+  sessionSubject: { fontSize: 14, fontWeight: "700", color: "#1E293B" },
+  textDone: { textDecorationLine: "line-through", color: "#94A3B8" },
+  sessionTopic: { fontSize: 12, color: "#475569", marginBottom: 5 },
+  sessionMeta: { flexDirection: "row", alignItems: "center", gap: 4 },
+  sessionDuration: { fontSize: 11, color: "#94A3B8" },
+  metaDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: "#CBD5E1" },
+  sessionTutor: { fontSize: 11, color: "#F59E0B", fontWeight: "600" },
+
+  // Paid badge
+  paidBadge: {
+    flexDirection: "row", alignItems: "center", gap: 3,
+    backgroundColor: "#EEF2FF", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6,
+  },
+  paidBadgeText: { fontSize: 9, color: "#6366F1", fontWeight: "700" },
+
+  // Check button
+  checkBtn: {
+    width: 28, height: 28, borderRadius: 14,
+    borderWidth: 2, borderColor: "#CBD5E1",
+    justifyContent: "center", alignItems: "center",
+  },
+  checkBtnDone: { backgroundColor: "#10B981", borderColor: "#10B981" },
+
+  // Summary
+  summarySection: { paddingHorizontal: 20 },
+  summaryGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  summaryCard: {
+    backgroundColor: "#F8FAFC", borderRadius: 14, padding: 12,
+    borderWidth: 1, borderColor: "#F1F5F9", width: "30%",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral.white,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  headerTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 20,
-    color: COLORS.secondary[900],
-  },
-  calendarButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral.white,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  scrollContent: {
-    padding: 24,
-    paddingTop: 8,
-  },
-  // Child Selector
-  childSelector: {
-    marginBottom: 16,
-  },
-  childSelectorLabel: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    color: COLORS.secondary[500],
-    marginBottom: 8,
-    fontWeight: "600",
-  },
-  childSelectorButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.neutral.white,
-    padding: 12,
-    borderRadius: 12,
-    gap: 8,
-  },
-  childSelectorName: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 16,
-    color: COLORS.secondary[900],
-  },
-  childSelectorGrade: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[500],
-  },
-  // Week Summary
-  weekSummary: {
-    marginBottom: 20,
-    borderRadius: 20,
-    overflow: "hidden",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  weekSummaryGradient: {
-    padding: 20,
-  },
-  weekSummaryHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  weekSummaryTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.neutral.white,
-    marginBottom: 4,
-  },
-  weekSummarySubtitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.neutral[100],
-    opacity: 0.9,
-  },
-  weekProgressCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  weekProgressText: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.neutral.white,
-    fontWeight: "700",
-  },
-  weekProgressBar: {
-    height: 8,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 4,
-    overflow: "hidden",
-    marginBottom: 12,
-  },
-  weekProgressFill: {
-    height: "100%",
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 4,
-  },
-  weekStats: {
-    flexDirection: "row",
-    gap: 16,
-  },
-  weekStat: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  weekStatText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.neutral.white,
-    fontWeight: "600",
-  },
-  // Generate Button
-  generateButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.neutral.white,
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 24,
-    borderWidth: 2,
-    borderColor: "#EDE9FE",
-  },
-  generateIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#F5F3FF",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  generateContent: {
-    flex: 1,
-  },
-  generateTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 15,
-    color: COLORS.secondary[900],
-    marginBottom: 2,
-  },
-  generateSubtitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    color: COLORS.secondary[500],
-  },
-  // Day Section
-  daySection: {
-    marginBottom: 24,
-  },
-  dayHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  dayHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  dayDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: COLORS.neutral[300],
-  },
-  dayDotActive: {
-    backgroundColor: COLORS.primary.DEFAULT,
-  },
-  dayName: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 16,
-    color: COLORS.secondary[900],
-    marginBottom: 2,
-  },
-  dayDate: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[500],
-  },
-  dayProgress: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    backgroundColor: COLORS.primary[50],
-    borderRadius: 12,
-  },
-  dayProgressText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.primary.DEFAULT,
-    fontWeight: "700",
-  },
-  // Lesson Card
-  lessonCard: {
-    marginBottom: 12,
-    borderRadius: 16,
-    overflow: "hidden",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  lessonGradient: {
-    padding: 16,
-    backgroundColor: COLORS.neutral.white,
-  },
-  lessonHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  lessonIconContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  lessonIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  lessonInfo: {
-    flex: 1,
-  },
-  lessonSubject: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    fontWeight: "700",
-    marginBottom: 2,
-  },
-  lessonTitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[900],
-    fontWeight: "600",
-  },
-  lessonFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.neutral[100],
-  },
-  durationContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  durationText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[600],
-  },
-  startButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.primary[50],
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 4,
-  },
-  startButtonText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.primary.DEFAULT,
-    fontWeight: "600",
-  },
+  summaryDay: { fontSize: 12, fontWeight: "700", color: "#64748B", marginBottom: 4 },
+  summaryCount: { fontSize: 15, fontWeight: "800", color: "#1E293B", marginBottom: 6 },
+  summaryBar: { width: "100%", height: 4, backgroundColor: "#E2E8F0", borderRadius: 2, overflow: "hidden" },
+  summaryFill: { height: "100%", borderRadius: 2 },
 });

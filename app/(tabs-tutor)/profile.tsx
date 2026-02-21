@@ -192,10 +192,7 @@ export default function TutorProfileScreen() {
           <Text style={styles.versionText}>Oumi'School v1.0.0</Text>
         </View>
 
-        {/* Bouton Add source */}
-        <TouchableOpacity style={styles.sourceButton}>
-          <Text style={styles.sourceButtonText}>+ Modifier mon profil</Text>
-        </TouchableOpacity>
+     
 
       </ScrollView>
     </SafeAreaView>

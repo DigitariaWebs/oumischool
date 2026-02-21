@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import { Users, Calendar, Inbox, Clock, User } from "lucide-react-native";
+import { Users, Calendar, Inbox, Clock, User, Home } from "lucide-react-native";
 import { View, StyleSheet, Pressable, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -66,8 +66,8 @@ export default function TutorTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Élèves",
-          tabBarIcon: ({ color }) => <Users size={22} color={color} />,
+          title: "Accueil",
+          tabBarIcon: ({ color }) => <Home size={22} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -87,8 +87,8 @@ export default function TutorTabLayout() {
       <Tabs.Screen
         name="availability"
         options={{
-          title: "Dispos",
-          tabBarIcon: ({ color }) => <Clock size={22} color={color} />,
+          title: "Élèves",
+          tabBarIcon: ({ color }) => <Users size={22} color={color} />,
         }}
       />
       <Tabs.Screen
