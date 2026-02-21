@@ -19,9 +19,9 @@ import {
   Sparkles,
   TrendingUp,
   Award,
-  Users,
   Clock,
   ChevronRight,
+  Filter,
 } from "lucide-react-native";
 
 import { COLORS } from "@/config/colors";
@@ -56,7 +56,6 @@ interface AssignLessonModalProps {
 }
 
 const AVAILABLE_LESSONS: AvailableLesson[] = [
-  // Mathématiques
   {
     id: "math-1",
     title: "Introduction aux fractions",
@@ -73,38 +72,8 @@ const AVAILABLE_LESSONS: AvailableLesson[] = [
     difficulty: "Intermédiaire",
     duration: 35,
     description: "Opérations complexes avec les fractions décimales",
-    prerequisites: ["math-1"],
     isAssigned: false,
   },
-  {
-    id: "math-3",
-    title: "La géométrie plane",
-    subject: "Mathématiques",
-    difficulty: "Débutant",
-    duration: 30,
-    description: "Formes géométriques et leurs propriétés",
-    isAssigned: false,
-  },
-  {
-    id: "math-4",
-    title: "Les pourcentages",
-    subject: "Mathématiques",
-    difficulty: "Intermédiaire",
-    duration: 28,
-    description: "Calcul et application des pourcentages",
-    isAssigned: false,
-  },
-  {
-    id: "math-5",
-    title: "Équations du premier degré",
-    subject: "Mathématiques",
-    difficulty: "Avancé",
-    duration: 40,
-    description: "Résolution d'équations linéaires",
-    isAssigned: false,
-  },
-
-  // Français
   {
     id: "french-1",
     title: "Les temps composés",
@@ -121,38 +90,8 @@ const AVAILABLE_LESSONS: AvailableLesson[] = [
     difficulty: "Avancé",
     duration: 30,
     description: "Règles d'accord du participe passé",
-    prerequisites: ["french-1"],
     isAssigned: false,
   },
-  {
-    id: "french-3",
-    title: "La conjugaison des verbes irréguliers",
-    subject: "Français",
-    difficulty: "Intermédiaire",
-    duration: 40,
-    description: "Conjuguer les verbes irréguliers courants",
-    isAssigned: false,
-  },
-  {
-    id: "french-4",
-    title: "L'analyse grammaticale",
-    subject: "Français",
-    difficulty: "Avancé",
-    duration: 45,
-    description: "Identifier les fonctions grammaticales",
-    isAssigned: false,
-  },
-  {
-    id: "french-5",
-    title: "L'orthographe courante",
-    subject: "Français",
-    difficulty: "Débutant",
-    duration: 25,
-    description: "Règles d'orthographe essentielles",
-    isAssigned: false,
-  },
-
-  // Sciences
   {
     id: "science-1",
     title: "Le cycle de l'eau",
@@ -163,126 +102,12 @@ const AVAILABLE_LESSONS: AvailableLesson[] = [
     isAssigned: false,
   },
   {
-    id: "science-2",
-    title: "Les planètes du système solaire",
-    subject: "Sciences",
-    difficulty: "Débutant",
-    duration: 35,
-    description: "Explorer notre système solaire",
-    isAssigned: false,
-  },
-  {
-    id: "science-3",
-    title: "La photosynthèse",
-    subject: "Sciences",
-    difficulty: "Intermédiaire",
-    duration: 32,
-    description: "Comment les plantes produisent leur nourriture",
-    isAssigned: false,
-  },
-  {
-    id: "science-4",
-    title: "L'électricité et les circuits",
-    subject: "Sciences",
-    difficulty: "Intermédiaire",
-    duration: 38,
-    description: "Principes de base de l'électricité",
-    isAssigned: false,
-  },
-
-  // Anglais
-  {
     id: "english-1",
-    title: "Les verbes irréguliers anglais",
+    title: "Les verbes irréguliers",
     subject: "Anglais",
     difficulty: "Intermédiaire",
     duration: 30,
     description: "Apprendre les verbes irréguliers courants",
-    isAssigned: false,
-  },
-  {
-    id: "english-2",
-    title: "Present Perfect",
-    subject: "Anglais",
-    difficulty: "Intermédiaire",
-    duration: 35,
-    description: "Maîtriser le present perfect",
-    isAssigned: false,
-  },
-  {
-    id: "english-3",
-    title: "Vocabulaire quotidien",
-    subject: "Anglais",
-    difficulty: "Débutant",
-    duration: 25,
-    description: "Mots et expressions de tous les jours",
-    isAssigned: false,
-  },
-  {
-    id: "english-4",
-    title: "La conversation courante",
-    subject: "Anglais",
-    difficulty: "Débutant",
-    duration: 28,
-    description: "Phrases utiles pour converser",
-    isAssigned: false,
-  },
-
-  // Histoire
-  {
-    id: "history-1",
-    title: "La Révolution française",
-    subject: "Histoire",
-    difficulty: "Intermédiaire",
-    duration: 40,
-    description: "Les événements clés de la Révolution",
-    isAssigned: false,
-  },
-  {
-    id: "history-2",
-    title: "L'Antiquité égyptienne",
-    subject: "Histoire",
-    difficulty: "Débutant",
-    duration: 35,
-    description: "Découvrir l'Égypte ancienne",
-    isAssigned: false,
-  },
-  {
-    id: "history-3",
-    title: "Les grandes découvertes",
-    subject: "Histoire",
-    difficulty: "Intermédiaire",
-    duration: 38,
-    description: "L'ère des explorateurs",
-    isAssigned: false,
-  },
-
-  // Géographie
-  {
-    id: "geo-1",
-    title: "Les continents et océans",
-    subject: "Géographie",
-    difficulty: "Débutant",
-    duration: 25,
-    description: "Carte du monde et repères géographiques",
-    isAssigned: false,
-  },
-  {
-    id: "geo-2",
-    title: "Le climat et les zones climatiques",
-    subject: "Géographie",
-    difficulty: "Intermédiaire",
-    duration: 32,
-    description: "Comprendre les différents climats",
-    isAssigned: false,
-  },
-  {
-    id: "geo-3",
-    title: "La France et ses régions",
-    subject: "Géographie",
-    difficulty: "Débutant",
-    duration: 30,
-    description: "Découvrir la géographie française",
     isAssigned: false,
   },
 ];
@@ -299,8 +124,8 @@ export default function AssignLessonModal({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubject, setSelectedSubject] = useState<string>("Tous");
   const [selectedLessons, setSelectedLessons] = useState<string[]>([]);
+  const [showRecommendations, setShowRecommendations] = useState(true);
 
-  // Mark lessons as assigned
   const lessons = useMemo(() => {
     return AVAILABLE_LESSONS.map((lesson) => ({
       ...lesson,
@@ -308,101 +133,62 @@ export default function AssignLessonModal({
     }));
   }, [assignedLessonIds]);
 
-  // Get unique subjects
   const subjects = useMemo(() => {
-    const uniqueSubjects = Array.from(
-      new Set(lessons.map((l) => l.subject))
-    );
+    const uniqueSubjects = Array.from(new Set(lessons.map((l) => l.subject)));
     return ["Tous", ...uniqueSubjects];
   }, [lessons]);
 
-  // Generate recommendations
   const recommendations = useMemo((): Recommendation[] => {
     const recs: Recommendation[] = [];
 
-    // Reinforcement recommendations based on weaknesses
     childWeaknesses.forEach((weakness) => {
-      const weaknessLower = weakness.toLowerCase();
-
-      if (weaknessLower.includes("verbe") || weaknessLower.includes("conjugaison")) {
-        const lesson = lessons.find((l) => l.id === "french-3");
+      if (weakness.toLowerCase().includes("verbe")) {
+        const lesson = lessons.find((l) => l.id === "french-1");
         if (lesson && !lesson.isAssigned) {
           recs.push({
             lesson,
-            reason: "Renforce les faiblesses identifiées",
+            reason: "Renforce les verbes",
             type: "reinforcement",
             matchScore: 95,
           });
         }
       }
+    });
 
-      if (weaknessLower.includes("participe")) {
-        const lesson = lessons.find((l) => l.id === "french-2");
-        if (lesson && !lesson.isAssigned) {
-          recs.push({
-            lesson,
-            reason: "Améliore l'accord du participe passé",
-            type: "reinforcement",
-            matchScore: 92,
-          });
-        }
-      }
-
-      if (weaknessLower.includes("opération") || weaknessLower.includes("complexe")) {
+    childStrengths.forEach((strength) => {
+      if (strength.toLowerCase().includes("fraction")) {
         const lesson = lessons.find((l) => l.id === "math-2");
         if (lesson && !lesson.isAssigned) {
           recs.push({
             lesson,
-            reason: "Pratique les opérations complexes",
-            type: "reinforcement",
+            reason: "Approfondir les fractions",
+            type: "advanced",
             matchScore: 88,
           });
         }
       }
     });
 
-    // Advanced recommendations based on strengths
-    childStrengths.forEach((strength) => {
-      const strengthLower = strength.toLowerCase();
-
-      if (strengthLower.includes("conversion") || strengthLower.includes("fraction")) {
-        const lesson = lessons.find((l) => l.id === "math-5");
-        if (lesson && !lesson.isAssigned) {
-          recs.push({
-            lesson,
-            reason: "Parfait pour approfondir vos acquis",
-            type: "advanced",
-            matchScore: 85,
-          });
-        }
-      }
-    });
-
-    // Recommended next steps (popular for grade)
     const popularLessons = [
-      { id: "math-4", score: 90 },
-      { id: "science-3", score: 87 },
-      { id: "geo-2", score: 82 },
-      { id: "english-2", score: 84 },
+      { id: "science-1", score: 90 },
+      { id: "english-1", score: 85 },
     ];
 
     popularLessons.forEach(({ id, score }) => {
       const lesson = lessons.find((l) => l.id === id);
-      if (lesson && !lesson.isAssigned && recs.length < 8) {
+      if (lesson && !lesson.isAssigned && recs.length < 4) {
         recs.push({
           lesson,
-          reason: `Recommandé pour ${childGrade}`,
-          type: "recommended",
+          reason: `Populaire en ${childGrade}`,
+          type: "popular",
           matchScore: score,
         });
       }
     });
 
-    // Sort by match score
-    return recs.sort((a, b) => b.matchScore - a.matchScore).slice(0, 6);
+    return recs.sort((a, b) => b.matchScore - a.matchScore).slice(0, 3);
   }, [lessons, childWeaknesses, childStrengths, childGrade]);
 
-  // Filter lessons
   const filteredLessons = useMemo(() => {
     return lessons.filter((lesson) => {
       const matchesSearch =
@@ -432,7 +218,6 @@ export default function AssignLessonModal({
       onAssign(selectedLessons);
       setSelectedLessons([]);
       setSearchQuery("");
-      setSelectedSubject("Tous");
       onClose();
     }
   };
@@ -442,42 +227,12 @@ export default function AssignLessonModal({
     onClose();
   };
 
-  const getRecommendationIcon = (type: Recommendation["type"]) => {
-    switch (type) {
-      case "reinforcement":
-        return <TrendingUp size={16} color={COLORS.info} />;
-      case "advanced":
-        return <Award size={16} color={COLORS.warning} />;
-      case "popular":
-        return <Users size={16} color={COLORS.primary.DEFAULT} />;
-      default:
-        return <Sparkles size={16} color={COLORS.success} />;
-    }
-  };
-
   const getRecommendationColor = (type: Recommendation["type"]) => {
     switch (type) {
-      case "reinforcement":
-        return COLORS.info;
-      case "advanced":
-        return COLORS.warning;
-      case "popular":
-        return COLORS.primary.DEFAULT;
-      default:
-        return COLORS.success;
-    }
-  };
-
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case "Débutant":
-        return COLORS.success;
-      case "Intermédiaire":
-        return COLORS.warning;
-      case "Avancé":
-        return COLORS.error;
-      default:
-        return COLORS.neutral[500];
+      case "reinforcement": return "#F59E0B";
+      case "advanced": return "#10B981";
+      case "popular": return "#3B82F6";
+      default: return "#6366F1";
     }
   };
 
@@ -494,34 +249,23 @@ export default function AssignLessonModal({
         <Animated.View entering={FadeIn.duration(200)} style={styles.modalContent}>
           {/* Header */}
           <View style={styles.modalHeader}>
-            <View>
-              <Text style={styles.modalTitle}>Assigner des leçons</Text>
-              <Text style={styles.modalSubtitle}>
-                {selectedLessons.length > 0 &&
-                  `${selectedLessons.length} sélectionnée${selectedLessons.length > 1 ? "s" : ""}`}
-              </Text>
-            </View>
+            <Text style={styles.modalTitle}>Assigner des leçons</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <X size={24} color={COLORS.secondary[600]} />
+              <X size={20} color="#64748B" />
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-          >
-            {/* Recommendations Section */}
-            {recommendations.length > 0 && (
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            {/* Recommandations */}
+            {recommendations.length > 0 && showRecommendations && (
               <View style={styles.recommendationsSection}>
                 <View style={styles.recommendationsHeader}>
-                  <Sparkles size={20} color={COLORS.primary.DEFAULT} />
-                  <Text style={styles.recommendationsTitle}>
-                    Recommandations personnalisées
-                  </Text>
+                  <Sparkles size={16} color="#6366F1" />
+                  <Text style={styles.recommendationsTitle}>Recommandé pour vous</Text>
+                  <TouchableOpacity onPress={() => setShowRecommendations(false)}>
+                    <X size={14} color="#94A3B8" />
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.recommendationsSubtitle}>
-                  Basées sur les performances et objectifs
-                </Text>
 
                 {recommendations.map((rec, index) => (
                   <Animated.View
@@ -529,90 +273,64 @@ export default function AssignLessonModal({
                     entering={FadeInDown.delay(index * 50).duration(400)}
                   >
                     <TouchableOpacity
-                      style={styles.recommendationCard}
+                      style={[styles.recommendationCard, { borderLeftColor: getRecommendationColor(rec.type) }]}
                       onPress={() => handleQuickAssign(rec.lesson.id)}
-                      activeOpacity={0.7}
                     >
-                      <View style={styles.recommendationHeader}>
-                        <View
-                          style={[
-                            styles.recommendationBadge,
-                            {
-                              backgroundColor:
-                                getRecommendationColor(rec.type) + "20",
-                            },
-                          ]}
-                        >
-                          {getRecommendationIcon(rec.type)}
+                      <View style={styles.recommendationContent}>
+                        <View style={styles.recommendationHeader}>
+                          <Text style={styles.recommendationTitle}>{rec.lesson.title}</Text>
+                          <View style={styles.recommendationMatch}>
+                            <Text style={styles.matchScore}>{rec.matchScore}%</Text>
+                          </View>
                         </View>
-                        <View style={styles.matchScoreContainer}>
-                          <Text style={styles.matchScore}>{rec.matchScore}%</Text>
-                          <Text style={styles.matchLabel}>Match</Text>
-                        </View>
-                      </View>
-
-                      <Text style={styles.recommendationTitle}>
-                        {rec.lesson.title}
-                      </Text>
-                      <Text style={styles.recommendationReason}>{rec.reason}</Text>
-
-                      <View style={styles.recommendationFooter}>
+                        <Text style={styles.recommendationReason}>{rec.reason}</Text>
                         <View style={styles.recommendationMeta}>
-                          <Text style={styles.recommendationSubject}>
-                            {rec.lesson.subject}
-                          </Text>
+                          <Text style={styles.recommendationSubject}>{rec.lesson.subject}</Text>
                           <Text style={styles.recommendationDot}>•</Text>
-                          <Clock size={12} color={COLORS.neutral[500]} />
-                          <Text style={styles.recommendationDuration}>
-                            {rec.lesson.duration} min
-                          </Text>
-                        </View>
-                        <View style={styles.quickAssignButton}>
-                          <Text style={styles.quickAssignText}>
-                            Assigner
-                          </Text>
-                          <ChevronRight size={16} color={COLORS.primary.DEFAULT} />
+                          <Clock size={10} color="#94A3B8" />
+                          <Text style={styles.recommendationDuration}>{rec.lesson.duration}min</Text>
                         </View>
                       </View>
+                      <ChevronRight size={16} color="#CBD5E1" />
                     </TouchableOpacity>
                   </Animated.View>
                 ))}
               </View>
             )}
 
-            {/* Search */}
+            {/* Barre de recherche */}
             <View style={styles.searchContainer}>
-              <Search size={20} color={COLORS.neutral[400]} />
+              <Search size={16} color="#94A3B8" />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Rechercher une leçon..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholderTextColor={COLORS.neutral[400]}
+                placeholderTextColor="#94A3B8"
               />
+              <Filter size={16} color="#94A3B8" />
             </View>
 
-            {/* Subject Filter */}
+            {/* Filtres */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              style={styles.subjectFilter}
-              contentContainerStyle={styles.subjectFilterContent}
+              style={styles.filtersContainer}
+              contentContainerStyle={styles.filtersContent}
             >
               {subjects.map((subject) => (
                 <TouchableOpacity
                   key={subject}
                   style={[
-                    styles.subjectChip,
-                    selectedSubject === subject && styles.subjectChipActive,
+                    styles.filterChip,
+                    selectedSubject === subject && styles.filterChipActive,
                   ]}
                   onPress={() => setSelectedSubject(subject)}
                 >
                   <Text
                     style={[
-                      styles.subjectChipText,
-                      selectedSubject === subject &&
-                        styles.subjectChipTextActive,
+                      styles.filterChipText,
+                      selectedSubject === subject && styles.filterChipTextActive,
                     ]}
                   >
                     {subject}
@@ -621,10 +339,10 @@ export default function AssignLessonModal({
               ))}
             </ScrollView>
 
-            {/* Lessons List */}
+            {/* Liste des leçons */}
             <View style={styles.lessonsSection}>
-              <Text style={styles.lessonsSectionTitle}>
-                Toutes les leçons ({filteredLessons.length})
+              <Text style={styles.lessonsCount}>
+                {filteredLessons.length} leçon{filteredLessons.length > 1 ? "s" : ""}
               </Text>
 
               {filteredLessons.map((lesson) => {
@@ -641,100 +359,61 @@ export default function AssignLessonModal({
                     ]}
                     onPress={() => toggleLesson(lesson.id, isDisabled)}
                     disabled={isDisabled}
-                    activeOpacity={0.7}
                   >
                     <View style={styles.lessonCheckbox}>
                       {isSelected ? (
-                        <CheckCircle2
-                          size={24}
-                          color={COLORS.primary.DEFAULT}
-                          fill={COLORS.primary[100]}
-                        />
+                        <CheckCircle2 size={20} color="#6366F1" />
                       ) : (
-                        <Circle
-                          size={24}
-                          color={
-                            isDisabled
-                              ? COLORS.neutral[300]
-                              : COLORS.neutral[400]
-                          }
-                        />
+                        <Circle size={20} color={isDisabled ? "#E2E8F0" : "#CBD5E1"} />
                       )}
                     </View>
 
                     <View style={styles.lessonContent}>
-                      <View style={styles.lessonHeader}>
-                        <Text
-                          style={[
-                            styles.lessonTitle,
-                            isDisabled && styles.lessonTitleDisabled,
-                          ]}
-                        >
-                          {lesson.title}
-                        </Text>
-                        {isDisabled && (
-                          <View style={styles.assignedBadge}>
-                            <Text style={styles.assignedBadgeText}>
-                              Assignée
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-
-                      <Text
-                        style={[
-                          styles.lessonDescription,
-                          isDisabled && styles.lessonDescriptionDisabled,
-                        ]}
-                      >
+                      <Text style={[styles.lessonTitle, isDisabled && styles.lessonTitleDisabled]}>
+                        {lesson.title}
+                      </Text>
+                      <Text style={[styles.lessonDescription, isDisabled && styles.lessonDescriptionDisabled]}>
                         {lesson.description}
                       </Text>
 
                       <View style={styles.lessonFooter}>
                         <View style={styles.lessonMeta}>
-                          <View
-                            style={[
-                              styles.difficultyBadge,
-                              {
-                                backgroundColor:
-                                  getDifficultyColor(lesson.difficulty) + "20",
-                              },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.difficultyText,
-                                { color: getDifficultyColor(lesson.difficulty) },
-                              ]}
-                            >
+                          <View style={[styles.difficultyBadge, { backgroundColor: 
+                            lesson.difficulty === "Débutant" ? "#D1FAE5" :
+                            lesson.difficulty === "Intermédiaire" ? "#FEF3C7" : "#FEE2E2"
+                          }]}>
+                            <Text style={[styles.difficultyText, { color:
+                              lesson.difficulty === "Débutant" ? "#10B981" :
+                              lesson.difficulty === "Intermédiaire" ? "#F59E0B" : "#EF4444"
+                            }]}>
                               {lesson.difficulty}
                             </Text>
                           </View>
-                          <Clock size={14} color={COLORS.neutral[500]} />
-                          <Text style={styles.durationText}>
-                            {lesson.duration} min
-                          </Text>
+                          <Clock size={12} color="#94A3B8" />
+                          <Text style={styles.durationText}>{lesson.duration}min</Text>
                         </View>
                         <Text style={styles.subjectText}>{lesson.subject}</Text>
                       </View>
                     </View>
+
+                    {isDisabled && (
+                      <View style={styles.assignedBadge}>
+                        <Text style={styles.assignedBadgeText}>Assignée</Text>
+                      </View>
+                    )}
                   </TouchableOpacity>
                 );
               })}
             </View>
           </ScrollView>
 
-          {/* Action Button */}
+          {/* Bouton d'assignation */}
           {selectedLessons.length > 0 && (
             <Animated.View entering={FadeInDown.duration(300)} style={styles.actionBar}>
-              <TouchableOpacity
-                style={styles.assignButton}
-                onPress={handleAssign}
-              >
-                <BookOpen size={20} color={COLORS.neutral.white} />
+              <TouchableOpacity style={styles.assignButton} onPress={handleAssign}>
+                <BookOpen size={18} color="white" />
                 <Text style={styles.assignButtonText}>
-                  Assigner {selectedLessons.length} leçon
-                  {selectedLessons.length > 1 ? "s" : ""}
+                  Assigner {selectedLessons.length} leçon{selectedLessons.length > 1 ? "s" : ""}
                 </Text>
               </TouchableOpacity>
             </Animated.View>
@@ -755,7 +434,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: "90%",
@@ -763,260 +442,206 @@ const styles = StyleSheet.create({
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    padding: 24,
-    paddingBottom: 16,
+    alignItems: "center",
+    padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral[200],
+    borderBottomColor: "#F1F5F9",
   },
   modalTitle: {
     fontFamily: FONTS.fredoka,
-    fontSize: 24,
-    fontWeight: "700",
-    color: COLORS.secondary[900],
-    marginBottom: 4,
-  },
-  modalSubtitle: {
-    fontFamily: FONTS.primary,
-    fontSize: 14,
-    color: COLORS.primary.DEFAULT,
-    fontWeight: "600",
+    fontSize: 20,
+    color: "#1E293B",
   },
   closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral[100],
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#F8FAFC",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   scrollContent: {
     padding: 20,
     paddingBottom: 100,
   },
+
+  // Recommandations
   recommendationsSection: {
-    marginBottom: 24,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   recommendationsHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 4,
+    marginBottom: 12,
   },
   recommendationsTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.secondary[900],
-  },
-  recommendationsSubtitle: {
-    fontFamily: FONTS.primary,
-    fontSize: 13,
-    color: COLORS.secondary[500],
-    marginBottom: 16,
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1E293B",
   },
   recommendationCard: {
-    backgroundColor: COLORS.neutral[50],
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: COLORS.primary[100],
+    padding: 14,
+    marginBottom: 8,
+    borderLeftWidth: 4,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  recommendationContent: {
+    flex: 1,
   },
   recommendationHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
-  },
-  recommendationBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  matchScoreContainer: {
-    alignItems: "flex-end",
-  },
-  matchScore: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 20,
-    fontWeight: "700",
-    color: COLORS.primary.DEFAULT,
-  },
-  matchLabel: {
-    fontFamily: FONTS.primary,
-    fontSize: 10,
-    color: COLORS.secondary[500],
+    marginBottom: 4,
   },
   recommendationTitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
-    color: COLORS.secondary[900],
-    marginBottom: 6,
+    color: "#1E293B",
+  },
+  recommendationMatch: {
+    backgroundColor: "#EEF2FF",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  matchScore: {
+    fontSize: 11,
+    color: "#6366F1",
+    fontWeight: "600",
   },
   recommendationReason: {
-    fontFamily: FONTS.primary,
-    fontSize: 13,
-    color: COLORS.secondary[600],
-    marginBottom: 12,
-  },
-  recommendationFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    fontSize: 12,
+    color: "#64748B",
+    marginBottom: 6,
   },
   recommendationMeta: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 4,
   },
   recommendationSubject: {
-    fontFamily: FONTS.primary,
-    fontSize: 12,
-    color: COLORS.secondary[600],
+    fontSize: 11,
+    color: "#64748B",
   },
   recommendationDot: {
-    color: COLORS.neutral[400],
+    fontSize: 11,
+    color: "#CBD5E1",
   },
   recommendationDuration: {
-    fontFamily: FONTS.primary,
-    fontSize: 12,
-    color: COLORS.secondary[600],
+    fontSize: 11,
+    color: "#64748B",
   },
-  quickAssignButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: COLORS.primary[50],
-  },
-  quickAssignText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    fontWeight: "600",
-    color: COLORS.primary.DEFAULT,
-  },
+
+  // Search
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.neutral[50],
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.neutral[200],
+    borderColor: "#F1F5F9",
+    gap: 10,
   },
   searchInput: {
     flex: 1,
-    marginLeft: 12,
-    fontFamily: FONTS.primary,
-    fontSize: 16,
-    color: COLORS.secondary[900],
+    fontSize: 14,
+    color: "#1E293B",
   },
-  subjectFilter: {
-    marginBottom: 24,
+
+  // Filters
+  filtersContainer: {
+    marginBottom: 20,
   },
-  subjectFilterContent: {
+  filtersContent: {
     gap: 8,
   },
-  subjectChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: "#F8FAFC",
     borderRadius: 20,
-    backgroundColor: COLORS.neutral[100],
     borderWidth: 1,
-    borderColor: COLORS.neutral[200],
+    borderColor: "#F1F5F9",
   },
-  subjectChipActive: {
-    backgroundColor: COLORS.primary.DEFAULT,
-    borderColor: COLORS.primary.DEFAULT,
+  filterChipActive: {
+    backgroundColor: "#6366F1",
+    borderColor: "#6366F1",
   },
-  subjectChipText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.secondary[600],
+  filterChipText: {
+    fontSize: 13,
+    color: "#64748B",
   },
-  subjectChipTextActive: {
-    color: COLORS.neutral.white,
+  filterChipTextActive: {
+    color: "white",
   },
+
+  // Lessons
   lessonsSection: {
     marginBottom: 20,
   },
-  lessonsSectionTitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.secondary[700],
+  lessonsCount: {
+    fontSize: 13,
+    color: "#64748B",
     marginBottom: 12,
   },
   lessonCard: {
     flexDirection: "row",
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: COLORS.neutral[200],
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   lessonCardDisabled: {
-    backgroundColor: COLORS.neutral[50],
-    opacity: 0.6,
+    backgroundColor: "#F8FAFC",
+    opacity: 0.7,
   },
   lessonCardSelected: {
-    borderColor: COLORS.primary.DEFAULT,
-    backgroundColor: COLORS.primary[50],
+    borderColor: "#6366F1",
   },
   lessonCheckbox: {
     marginRight: 12,
+    justifyContent: "center",
   },
   lessonContent: {
     flex: 1,
   },
-  lessonHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 6,
-  },
   lessonTitle: {
-    fontFamily: FONTS.secondary,
     fontSize: 15,
     fontWeight: "600",
-    color: COLORS.secondary[900],
-    flex: 1,
+    color: "#1E293B",
+    marginBottom: 4,
   },
   lessonTitleDisabled: {
-    color: COLORS.secondary[500],
-  },
-  assignedBadge: {
-    backgroundColor: COLORS.neutral[200],
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginLeft: 8,
-  },
-  assignedBadgeText: {
-    fontFamily: FONTS.primary,
-    fontSize: 10,
-    fontWeight: "600",
-    color: COLORS.secondary[600],
+    color: "#94A3B8",
   },
   lessonDescription: {
-    fontFamily: FONTS.primary,
-    fontSize: 13,
-    color: COLORS.secondary[600],
-    marginBottom: 10,
-    lineHeight: 18,
+    fontSize: 12,
+    color: "#64748B",
+    marginBottom: 8,
+    lineHeight: 16,
   },
   lessonDescriptionDisabled: {
-    color: COLORS.secondary[400],
+    color: "#CBD5E1",
   },
   lessonFooter: {
     flexDirection: "row",
@@ -1026,51 +651,63 @@ const styles = StyleSheet.create({
   lessonMeta: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
   difficultyBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   difficultyText: {
-    fontFamily: FONTS.primary,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "600",
   },
   durationText: {
-    fontFamily: FONTS.primary,
-    fontSize: 12,
-    color: COLORS.secondary[600],
+    fontSize: 11,
+    color: "#64748B",
   },
   subjectText: {
-    fontFamily: FONTS.primary,
-    fontSize: 12,
-    color: COLORS.secondary[500],
+    fontSize: 11,
+    color: "#94A3B8",
   },
+  assignedBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  assignedBadgeText: {
+    fontSize: 9,
+    color: "#64748B",
+    fontWeight: "600",
+  },
+
+  // Action Bar
   actionBar: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 20,
-    backgroundColor: COLORS.neutral.white,
+    padding: 16,
+    backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
-    borderTopColor: COLORS.neutral[200],
+    borderTopColor: "#F1F5F9",
   },
   assignButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.primary.DEFAULT,
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: "#6366F1",
+    borderRadius: 30,
+    padding: 14,
     gap: 8,
   },
   assignButtonText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    fontWeight: "700",
-    color: COLORS.neutral.white,
+    fontSize: 15,
+    fontWeight: "600",
+    color: "white",
   },
 });

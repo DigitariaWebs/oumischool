@@ -10,31 +10,13 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Mail, ArrowLeft, CheckCircle } from "lucide-react-native";
+import { Mail, ArrowLeft, CheckCircle, Sparkles } from "lucide-react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
-import Svg, { Path } from "react-native-svg";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
-
-const HeaderBackground = () => (
-  <View style={styles.headerBackgroundContainer}>
-    <Svg
-      height="100%"
-      width="100%"
-      viewBox="0 0 375 300"
-      preserveAspectRatio="none"
-      style={StyleSheet.absoluteFill}
-    >
-      <Path
-        d="M0 0H375V220C375 220 280 280 187.5 280C95 280 0 220 0 220V0Z"
-        fill={COLORS.primary.DEFAULT}
-      />
-    </Svg>
-  </View>
-);
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -47,7 +29,6 @@ export default function ForgotPasswordScreen() {
 
     setIsLoading(true);
 
-    // Mock API call
     setTimeout(() => {
       setIsLoading(false);
       setIsSuccess(true);
@@ -56,52 +37,47 @@ export default function ForgotPasswordScreen() {
 
   if (isSuccess) {
     return (
-      <View style={styles.container}>
-        <HeaderBackground />
-        <SafeAreaView style={{ flex: 1 }}>
-          <View style={styles.successContainer}>
-            <Animated.View
-              entering={FadeInDown.delay(200).duration(600)}
-              style={styles.successContent}
+      <SafeAreaView style={styles.container}>
+        <View style={styles.successContainer}>
+          <Animated.View
+            entering={FadeInDown.delay(200).duration(600)}
+            style={styles.successCard}
+          >
+            <View style={styles.successIcon}>
+              <CheckCircle size={48} color="#6366F1" />
+            </View>
+            <Text style={styles.successTitle}>Email envoyé !</Text>
+            <Text style={styles.successMessage}>
+              Nous avons envoyé un lien de réinitialisation à
+            </Text>
+            <Text style={styles.successEmail}>{email}</Text>
+            <Text style={styles.successHelp}>
+              Vérifiez votre boîte de réception
+            </Text>
+
+            <Button
+              title="Retour à la connexion"
+              onPress={() => router.replace("/sign-in")}
+              fullWidth
+              style={styles.successButton}
+            />
+
+            <TouchableOpacity
+              style={styles.resendButton}
+              onPress={() => setIsSuccess(false)}
             >
-              <View style={styles.successIconContainer}>
-                <CheckCircle size={64} color={COLORS.primary.DEFAULT} />
-              </View>
-              <Text style={styles.successTitle}>Email envoyé !</Text>
-              <Text style={styles.successMessage}>
-                Nous avons envoyé un lien de réinitialisation à{"\n"}
-                <Text style={styles.emailHighlight}>{email}</Text>
+              <Text style={styles.resendText}>
+                Vous n'avez pas reçu l'email ?
               </Text>
-              <Text style={styles.successHelp}>
-                Vérifiez votre boîte de réception et suivez les instructions.
-              </Text>
-
-              <Button
-                title="Retour à la connexion"
-                onPress={() => router.replace("/sign-in")}
-                fullWidth
-                style={{ marginTop: 32, height: 56 }}
-              />
-
-              <TouchableOpacity
-                style={styles.resendButton}
-                onPress={() => setIsSuccess(false)}
-              >
-                <Text style={styles.resendText}>
-                  Vous n&apos;avez pas reçu l&apos;email ?
-                </Text>
-              </TouchableOpacity>
-            </Animated.View>
-          </View>
-        </SafeAreaView>
-      </View>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <HeaderBackground />
-
+    <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
@@ -110,28 +86,24 @@ export default function ForgotPasswordScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {/* Header */}
-          <Animated.View
-            entering={FadeInUp.delay(200).duration(600)}
-            style={styles.header}
-          >
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <ArrowLeft size={24} color={COLORS.neutral.white} />
+          {/* Bouton retour */}
+          <Animated.View entering={FadeInUp.delay(200).duration(600)}>
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+              <ArrowLeft size={22} color="#1E293B" />
             </TouchableOpacity>
-            <Text style={styles.title}>Mot de passe oublié</Text>
-            <Text style={styles.subtitle}>
+          </Animated.View>
+
+          {/* Header */}
+          <Animated.View entering={FadeInUp.delay(300).duration(600)} style={styles.header}>
+            <Text style={styles.headerLabel}>MOT DE PASSE OUBLIÉ</Text>
+            <Text style={styles.headerTitle}>Réinitialisation</Text>
+            <Text style={styles.headerSubtitle}>
               Entrez votre email pour recevoir un lien de réinitialisation
             </Text>
           </Animated.View>
 
-          {/* Form Card */}
-          <Animated.View
-            entering={FadeInDown.delay(400).duration(600)}
-            style={styles.card}
-          >
+          {/* Formulaire */}
+          <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.formCard}>
             <Input
               label="Email"
               placeholder="votre@email.com"
@@ -139,7 +111,8 @@ export default function ForgotPasswordScreen() {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
-              icon={<Mail size={20} color={COLORS.neutral[400]} />}
+              icon={<Mail size={18} color="#94A3B8" />}
+              containerStyle={styles.inputContainer}
             />
 
             <Button
@@ -148,145 +121,180 @@ export default function ForgotPasswordScreen() {
               isLoading={isLoading}
               disabled={!email}
               fullWidth
-              style={{
-                marginTop: 24,
-                height: 56,
-              }}
+              style={[styles.sendButton, !email && styles.sendButtonDisabled]}
             />
 
             <Text style={styles.helpText}>
               Le lien sera valable pendant 1 heure
             </Text>
           </Animated.View>
+
+          {/* Petit rappel */}
+          <Animated.View entering={FadeInUp.delay(500).duration(600)} style={styles.tipCard}>
+            <Sparkles size={14} color="#6366F1" />
+            <Text style={styles.tipText}>
+              Vérifiez vos spams si vous ne trouvez pas l'email
+            </Text>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral[50],
-  },
-  headerBackgroundContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 350,
-    zIndex: 0,
+    backgroundColor: "#FFFFFF",
   },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 60,
+    paddingTop: 20,
     paddingBottom: 40,
   },
-  header: {
-    marginBottom: 30,
-    zIndex: 1,
-  },
+
+  // Bouton retour
   backButton: {
     width: 44,
     height: 44,
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    marginBottom: 24,
+  },
+
+  // Header
+  header: {
+    marginBottom: 24,
+  },
+  headerLabel: {
+    fontFamily: FONTS.secondary,
+    fontSize: 12,
+    color: "#6366F1",
+    letterSpacing: 1.2,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  headerTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 28,
+    color: "#1E293B",
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    fontSize: 15,
+    color: "#64748B",
+    lineHeight: 22,
+  },
+
+  // Formulaire
+  formCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    marginBottom: 16,
+  },
+  inputContainer: {
     marginBottom: 20,
   },
-  title: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 32,
-    color: COLORS.neutral.white,
-    marginBottom: 8,
-    textShadowColor: "rgba(0,0,0,0.1)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+  sendButton: {
+    height: 52,
+    borderRadius: 30,
+    backgroundColor: "#6366F1",
+    marginBottom: 16,
   },
-  subtitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    color: COLORS.neutral[100],
-    opacity: 0.9,
-  },
-  card: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 8,
+  sendButtonDisabled: {
+    backgroundColor: "#CBD5E1",
   },
   helpText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[500],
+    fontSize: 13,
+    color: "#64748B",
     textAlign: "center",
-    marginTop: 16,
   },
+
+  // Tip
+  tipCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#EEF2FF",
+    padding: 14,
+    borderRadius: 16,
+    marginTop: 8,
+  },
+  tipText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#1E293B",
+  },
+
   // Success State
   successContainer: {
     flex: 1,
     justifyContent: "center",
     paddingHorizontal: 24,
   },
-  successContent: {
-    backgroundColor: COLORS.neutral.white,
+  successCard: {
+    backgroundColor: "#F8FAFC",
     borderRadius: 24,
-    padding: 32,
+    padding: 24,
     alignItems: "center",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 8,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
-  successIconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: COLORS.primary[50],
+  successIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    backgroundColor: "#EEF2FF",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 20,
   },
   successTitle: {
     fontFamily: FONTS.fredoka,
-    fontSize: 28,
-    color: COLORS.secondary[900],
+    fontSize: 24,
+    color: "#1E293B",
     marginBottom: 12,
     textAlign: "center",
   },
   successMessage: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    color: COLORS.secondary[600],
+    fontSize: 15,
+    color: "#64748B",
     textAlign: "center",
-    marginBottom: 8,
-    lineHeight: 24,
+    marginBottom: 4,
   },
-  emailHighlight: {
-    fontWeight: "700",
-    color: COLORS.primary.DEFAULT,
+  successEmail: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#6366F1",
+    textAlign: "center",
+    marginBottom: 16,
   },
   successHelp: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[500],
+    fontSize: 13,
+    color: "#94A3B8",
     textAlign: "center",
+    marginBottom: 24,
+  },
+  successButton: {
+    height: 52,
+    borderRadius: 30,
+    backgroundColor: "#6366F1",
+    marginBottom: 16,
   },
   resendButton: {
-    marginTop: 24,
     padding: 8,
   },
   resendText: {
-    fontFamily: FONTS.secondary,
     fontSize: 14,
-    color: COLORS.primary.DEFAULT,
+    color: "#6366F1",
     fontWeight: "600",
   },
 });

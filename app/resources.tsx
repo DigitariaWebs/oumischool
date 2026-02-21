@@ -5,11 +5,10 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
   TextInput,
+  Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useSafeBack } from "@/hooks/useSafeBack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ArrowLeft,
@@ -23,13 +22,12 @@ import {
   Calculator,
   FlaskConical,
   Languages,
+  Sparkles,
 } from "lucide-react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
-
-const { width } = Dimensions.get("window");
 
 interface Subject {
   id: string;
@@ -51,12 +49,11 @@ interface Resource {
 }
 
 const subjects: Subject[] = [
-  { id: "all", name: "Tout", Icon: BookOpen, color: COLORS.secondary[600] },
+  { id: "all", name: "Tout", Icon: BookOpen, color: "#64748B" },
   { id: "math", name: "Maths", Icon: Calculator, color: "#3B82F6" },
   { id: "french", name: "Français", Icon: FileText, color: "#EF4444" },
   { id: "science", name: "Sciences", Icon: FlaskConical, color: "#10B981" },
   { id: "english", name: "Anglais", Icon: Languages, color: "#6366F1" },
-  { id: "history", name: "Histoire", Icon: BookOpen, color: "#F59E0B" },
 ];
 
 const resources: Resource[] = [
@@ -104,35 +101,18 @@ const resources: Resource[] = [
     rating: 4.5,
     color: "#6366F1",
   },
-  {
-    id: 5,
-    title: "La Révolution française",
-    subject: "Histoire",
-    type: "PDF",
-    level: "CM2",
-    pages: 15,
-    downloads: 890,
-    rating: 4.7,
-    color: "#F59E0B",
-  },
 ];
 
-interface SubjectChipProps {
+const SubjectChip: React.FC<{
   subject: Subject;
   isSelected: boolean;
   onPress: () => void;
-}
-
-const SubjectChip: React.FC<SubjectChipProps> = ({
-  subject,
-  isSelected,
-  onPress,
-}) => (
+}> = ({ subject, isSelected, onPress }) => (
   <TouchableOpacity
     style={[
       styles.subjectChip,
       isSelected && {
-        backgroundColor: subject.color + "20",
+        backgroundColor: subject.color + "15",
         borderColor: subject.color,
       },
     ]}
@@ -140,13 +120,13 @@ const SubjectChip: React.FC<SubjectChipProps> = ({
     activeOpacity={0.7}
   >
     <subject.Icon
-      size={20}
-      color={isSelected ? subject.color : COLORS.secondary[600]}
+      size={16}
+      color={isSelected ? subject.color : "#64748B"}
     />
     <Text
       style={[
         styles.subjectChipText,
-        isSelected && { color: subject.color, fontWeight: "700" },
+        isSelected && { color: subject.color, fontWeight: "600" },
       ]}
     >
       {subject.name}
@@ -154,86 +134,57 @@ const SubjectChip: React.FC<SubjectChipProps> = ({
   </TouchableOpacity>
 );
 
-interface ResourceCardProps {
-  resource: Resource;
-  delay: number;
-}
-
-const ResourceCard: React.FC<ResourceCardProps> = ({ resource, delay }) => (
+const ResourceCard: React.FC<{ resource: Resource; delay: number }> = ({ resource, delay }) => (
   <Animated.View entering={FadeInDown.delay(delay).duration(400)}>
-    <TouchableOpacity style={styles.resourceCard} activeOpacity={0.7}>
-      <View
-        style={[
-          styles.resourceIconContainer,
-          { backgroundColor: resource.color + "15" },
-        ]}
-      >
-        <View
-          style={[
-            styles.resourceIcon,
-            { backgroundColor: resource.color + "30" },
-          ]}
-        >
-          <FileText size={24} color={resource.color} />
-        </View>
-      </View>
-
-      <View style={styles.resourceContent}>
-        <View style={styles.resourceHeader}>
-          <View style={styles.resourceBadges}>
-            <View
-              style={[
-                styles.typeBadge,
-                { backgroundColor: resource.color + "15" },
-              ]}
-            >
-              <Text style={[styles.typeBadgeText, { color: resource.color }]}>
-                {resource.type}
-              </Text>
-            </View>
-            <View style={styles.levelBadge}>
-              <Text style={styles.levelBadgeText}>{resource.level}</Text>
-            </View>
+    <Pressable style={styles.resourceCard} activeOpacity={0.7}>
+      <View style={styles.resourceHeader}>
+        <View style={styles.resourceBadges}>
+          <View style={[styles.typeBadge, { backgroundColor: resource.color + "15" }]}>
+            <Text style={[styles.typeBadgeText, { color: resource.color }]}>
+              {resource.type}
+            </Text>
           </View>
-        </View>
-
-        <Text style={styles.resourceTitle} numberOfLines={2}>
-          {resource.title}
-        </Text>
-        <Text style={styles.resourceSubject}>{resource.subject}</Text>
-
-        <View style={styles.resourceFooter}>
-          <View style={styles.resourceStats}>
-            <View style={styles.statItem}>
-              <Star size={14} color="#F59E0B" fill="#F59E0B" />
-              <Text style={styles.statText}>{resource.rating}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Download size={14} color={COLORS.secondary[500]} />
-              <Text style={styles.statText}>{resource.downloads}</Text>
-            </View>
-            <Text style={styles.pagesText}>{resource.pages} pages</Text>
-          </View>
-
-          <View style={styles.resourceActions}>
-            <TouchableOpacity style={styles.actionButton}>
-              <Eye size={18} color={COLORS.primary.DEFAULT} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.downloadButton]}
-            >
-              <Download size={18} color="white" />
-            </TouchableOpacity>
+          <View style={styles.levelBadge}>
+            <Text style={styles.levelBadgeText}>{resource.level}</Text>
           </View>
         </View>
       </View>
-    </TouchableOpacity>
+
+      <Text style={styles.resourceTitle} numberOfLines={2}>
+        {resource.title}
+      </Text>
+      <Text style={styles.resourceSubject}>{resource.subject}</Text>
+
+      <View style={styles.resourceFooter}>
+        <View style={styles.resourceStats}>
+          <View style={styles.statItem}>
+            <Star size={12} color="#F59E0B" fill="#F59E0B" />
+            <Text style={styles.statText}>{resource.rating}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Download size={12} color="#64748B" />
+            <Text style={styles.statText}>{resource.downloads}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <Text style={styles.pagesText}>{resource.pages}p</Text>
+        </View>
+
+        <View style={styles.resourceActions}>
+          <TouchableOpacity style={styles.actionButton}>
+            <Eye size={16} color="#6366F1" />
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionButton, styles.downloadButton]}>
+            <Download size={16} color="white" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Pressable>
   </Animated.View>
 );
 
 export default function ResourcesScreen() {
   const router = useRouter();
-  const handleBack = useSafeBack();
   const [selectedSubject, setSelectedSubject] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -249,40 +200,37 @@ export default function ResourcesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/* Header simple */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <ArrowLeft size={24} color={COLORS.secondary[900]} />
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <ArrowLeft size={22} color="#1E293B" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Ressources</Text>
         <TouchableOpacity style={styles.filterButton}>
-          <Filter size={24} color={COLORS.secondary[900]} />
+          <Filter size={20} color="#64748B" />
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
-      <Animated.View
-        entering={FadeInDown.delay(200).duration(600)}
-        style={styles.searchContainer}
-      >
+      {/* Barre de recherche */}
+      <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Search size={20} color={COLORS.neutral[400]} />
+          <Search size={18} color="#94A3B8" />
           <TextInput
             style={styles.searchInput}
             placeholder="Rechercher une ressource..."
-            placeholderTextColor={COLORS.neutral[400]}
+            placeholderTextColor="#94A3B8"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
         </View>
-      </Animated.View>
+      </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Subject Filters */}
-        <Animated.View entering={FadeInDown.delay(300).duration(600)}>
+        {/* Filtres matières */}
+        <View style={styles.filtersSection}>
           <Text style={styles.sectionTitle}>Matières</Text>
           <ScrollView
             horizontal
@@ -298,37 +246,39 @@ export default function ResourcesScreen() {
               />
             ))}
           </ScrollView>
-        </Animated.View>
+        </View>
 
-        {/* Resources Grid */}
+        {/* Liste des ressources */}
         <View style={styles.resourcesSection}>
           <Text style={styles.sectionTitle}>
-            {filteredResources.length} ressources disponibles
+            {filteredResources.length} ressource{filteredResources.length > 1 ? "s" : ""}
           </Text>
           {filteredResources.map((resource, index) => (
             <ResourceCard
               key={resource.id}
               resource={resource}
-              delay={400 + index * 100}
+              delay={200 + index * 50}
             />
           ))}
         </View>
 
-        {/* Empty State */}
+        {/* État vide */}
         {filteredResources.length === 0 && (
-          <Animated.View
-            entering={FadeInDown.delay(500).duration(600)}
-            style={styles.emptyState}
-          >
-            <View style={styles.emptyStateIcon}>
-              <BookOpen size={48} color={COLORS.secondary[400]} />
-            </View>
-            <Text style={styles.emptyStateTitle}>Aucune ressource trouvée</Text>
+          <View style={styles.emptyState}>
+            <BookOpen size={48} color="#CBD5E1" />
+            <Text style={styles.emptyStateTitle}>Aucune ressource</Text>
             <Text style={styles.emptyStateText}>
-              Essayez de modifier vos filtres ou votre recherche
+              Modifiez vos filtres ou votre recherche
             </Text>
-          </Animated.View>
+          </View>
         )}
+
+        {/* Bouton Add source */}
+        <TouchableOpacity style={styles.sourceButton}>
+          <Sparkles size={18} color="#64748B" />
+          <Text style={styles.sourceButtonText}>Proposer une ressource</Text>
+        </TouchableOpacity>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -337,179 +287,152 @@ export default function ResourcesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral[50],
+    backgroundColor: "#FFFFFF",
   },
+
+  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   headerTitle: {
     fontFamily: FONTS.fredoka,
-    fontSize: 24,
-    color: COLORS.secondary[900],
+    fontSize: 22,
+    color: "#1E293B",
   },
   filterButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
+
   // Search
   searchContainer: {
-    paddingHorizontal: 24,
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: "#F8FAFC",
     borderRadius: 16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 12,
-    gap: 12,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   searchInput: {
     flex: 1,
-    fontFamily: FONTS.secondary,
     fontSize: 15,
-    color: COLORS.secondary[900],
+    color: "#1E293B",
   },
+
   scrollContent: {
-    paddingBottom: 24,
+    paddingBottom: 40,
+  },
+
+  // Filters
+  filtersSection: {
+    marginBottom: 20,
   },
   sectionTitle: {
     fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.secondary[900],
+    fontSize: 16,
+    color: "#1E293B",
     marginBottom: 12,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
   },
-  // Subjects
   subjectsContainer: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     gap: 8,
-    marginBottom: 24,
   },
   subjectChip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: COLORS.neutral[200],
+    backgroundColor: "#F8FAFC",
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
     gap: 6,
   },
   subjectChipText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[700],
-    fontWeight: "500",
+    fontSize: 13,
+    color: "#64748B",
   },
+
   // Resources
   resourcesSection: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
   },
   resourceCard: {
-    flexDirection: "row",
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: "#F8FAFC",
     borderRadius: 20,
-    marginBottom: 16,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-    overflow: "hidden",
-  },
-  resourceIconContainer: {
-    width: 100,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  resourceIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  resourceContent: {
-    flex: 1,
     padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   resourceHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   resourceBadges: {
     flexDirection: "row",
-    gap: 6,
+    gap: 8,
   },
   typeBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   typeBadgeText: {
-    fontFamily: FONTS.secondary,
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   levelBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: COLORS.neutral[100],
+    borderRadius: 6,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   levelBadgeText: {
-    fontFamily: FONTS.secondary,
     fontSize: 11,
-    fontWeight: "600",
-    color: COLORS.secondary[700],
+    color: "#64748B",
+    fontWeight: "500",
   },
   resourceTitle: {
     fontFamily: FONTS.fredoka,
     fontSize: 16,
-    color: COLORS.secondary[900],
+    color: "#1E293B",
     marginBottom: 4,
   },
   resourceSubject: {
-    fontFamily: FONTS.secondary,
     fontSize: 13,
-    color: COLORS.secondary[500],
-    marginBottom: 12,
+    color: "#64748B",
+    marginBottom: 14,
   },
   resourceFooter: {
     flexDirection: "row",
@@ -519,7 +442,7 @@ const styles = StyleSheet.create({
   resourceStats: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 8,
   },
   statItem: {
     flexDirection: "row",
@@ -527,52 +450,74 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statText: {
-    fontFamily: FONTS.secondary,
     fontSize: 12,
-    color: COLORS.secondary[600],
-    fontWeight: "600",
+    color: "#64748B",
+    fontWeight: "500",
+  },
+  statDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: "#F1F5F9",
   },
   pagesText: {
-    fontFamily: FONTS.secondary,
     fontSize: 12,
-    color: COLORS.secondary[500],
+    color: "#64748B",
   },
   resourceActions: {
     flexDirection: "row",
     gap: 8,
   },
   actionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.primary[50],
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   downloadButton: {
-    backgroundColor: COLORS.primary.DEFAULT,
+    backgroundColor: "#6366F1",
+    borderWidth: 0,
   },
+
   // Empty State
   emptyState: {
     alignItems: "center",
-    paddingVertical: 48,
-    paddingHorizontal: 32,
-  },
-  emptyStateIcon: {
-    marginBottom: 16,
+    paddingVertical: 40,
+    paddingHorizontal: 20,
   },
   emptyStateTitle: {
     fontFamily: FONTS.fredoka,
-    fontSize: 20,
-    color: COLORS.secondary[900],
+    fontSize: 18,
+    color: "#1E293B",
+    marginTop: 16,
     marginBottom: 8,
-    textAlign: "center",
   },
   emptyStateText: {
-    fontFamily: FONTS.secondary,
     fontSize: 14,
-    color: COLORS.secondary[500],
+    color: "#64748B",
     textAlign: "center",
-    lineHeight: 20,
+  },
+
+  // Source Button
+  sourceButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#F1F5F9",
+    marginHorizontal: 20,
+    marginTop: 20,
+    paddingVertical: 14,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  sourceButtonText: {
+    fontSize: 15,
+    color: "#64748B",
+    fontWeight: "600",
   },
 });

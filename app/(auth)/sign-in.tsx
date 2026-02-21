@@ -4,17 +4,13 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
   ScrollView,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
-// Removed SafeAreaView to manage status bar transparency manually if needed but keeping it for now
-// Actually, for the header to go top, we should not use SafeAreaView or handle it differently.
-// Let's use View and handle padding nicely. We'll stick to a standard View container.
 import { Mail, Lock, ArrowRight } from "lucide-react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { AntDesign } from "@expo/vector-icons";
-import Svg, { Path } from "react-native-svg";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
@@ -24,21 +20,15 @@ import { Input } from "@/components/Input";
 import { useAppDispatch } from "@/store/hooks";
 import { mockLogin } from "@/store/slices/authSlice";
 
-// Custom Header Shape using SVG
-const HeaderBackground = () => (
-  <View style={styles.headerBackgroundContainer}>
-    <Svg
-      height="100%"
-      width="100%"
-      viewBox="0 0 375 300" // Adjusted layout
-      preserveAspectRatio="none"
-      style={StyleSheet.absoluteFill}
-    >
-      <Path
-        d="M0 0H375V220C375 220 280 280 187.5 280C95 280 0 220 0 220V0Z"
-        fill={COLORS.primary.DEFAULT}
-      />
-    </Svg>
+// Arrière-plan décoré avec points
+const BackgroundDecorations = () => (
+  <View style={StyleSheet.absoluteFill} pointerEvents="none">
+    <View style={[styles.dot, { top: '15%', left: '10%', backgroundColor: "#6366F1", width: 16, height: 16 }]} />
+    <View style={[styles.dot, { top: '25%', right: '15%', backgroundColor: "#F59E0B", width: 20, height: 20 }]} />
+    <View style={[styles.dot, { bottom: '30%', left: '20%', backgroundColor: "#10B981", width: 12, height: 12, opacity: 0.6 }]} />
+    <View style={[styles.dot, { bottom: '20%', right: '25%', backgroundColor: "#EF4444", width: 14, height: 14 }]} />
+    <View style={[styles.ring, { top: '10%', right: '-10%' }]} />
+    <View style={[styles.ring, { bottom: '5%', left: '-15%' }]} />
   </View>
 );
 
@@ -49,11 +39,11 @@ export default function SignInScreen() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // LOGIQUE INTACTE
   const handleSignIn = () => {
     setIsLoading(true);
 
     setTimeout(() => {
-      // Mock login based on email
       let role: "parent" | "child" | "tutor" = "parent";
 
       if (email.includes("adam") || email.includes("sofia")) {
@@ -62,11 +52,9 @@ export default function SignInScreen() {
         role = "tutor";
       }
 
-      // Dispatch mock login action
       dispatch(mockLogin(role));
-
       setIsLoading(false);
-      // Redirect to role-specific dashboard
+      
       if (role === "child") {
         router.replace("/(tabs-child)");
       } else if (role === "tutor") {
@@ -79,14 +67,13 @@ export default function SignInScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Background Graphic */}
-      <HeaderBackground />
+      <BackgroundDecorations />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Header Content */}
+        {/* Logo et Header */}
         <Animated.View
           entering={FadeInUp.delay(200).duration(600)}
           style={styles.header}
@@ -99,13 +86,15 @@ export default function SignInScreen() {
             />
           </View>
           <Text style={styles.title}>Bienvenue !</Text>
-          <Text style={styles.subtitle}>Connectez-vous à votre espace</Text>
+          <Text style={styles.subtitle}>
+            Connectez-vous à votre espace Oumi'School
+          </Text>
         </Animated.View>
 
-        {/* Login Card */}
+        {/* Formulaire */}
         <Animated.View
           entering={FadeInDown.delay(400).duration(600)}
-          style={styles.card}
+          style={styles.formCard}
         >
           <Input
             label="Email"
@@ -114,8 +103,8 @@ export default function SignInScreen() {
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
-            icon={<Mail size={20} color={COLORS.neutral[400]} />}
-            style={{ marginBottom: 20 }}
+            icon={<Mail size={18} color="#94A3B8" />}
+            containerStyle={styles.inputContainer}
           />
 
           <Input
@@ -124,7 +113,8 @@ export default function SignInScreen() {
             value={password}
             onChangeText={setPassword}
             isPassword
-            icon={<Lock size={20} color={COLORS.neutral[400]} />}
+            icon={<Lock size={18} color="#94A3B8" />}
+            containerStyle={styles.inputContainer}
           />
 
           <TouchableOpacity
@@ -139,36 +129,24 @@ export default function SignInScreen() {
             onPress={handleSignIn}
             isLoading={isLoading}
             fullWidth
-            style={{
-              marginTop: 24,
-              marginBottom: 24,
-              height: 56,
-            }}
-            icon={<ArrowRight size={20} color="white" />}
+            style={styles.signInButton}
+            icon={<ArrowRight size={18} color="white" />}
           />
 
-          {/* Divider */}
+          {/* Séparateur */}
           <View style={styles.dividerContainer}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>Ou via</Text>
+            <Text style={styles.dividerText}>Ou continuer avec</Text>
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Social Buttons */}
+          {/* Boutons sociaux */}
           <View style={styles.socialButtons}>
             <TouchableOpacity style={styles.socialButton}>
-              <AntDesign
-                name="google"
-                size={24}
-                color={COLORS.secondary.DEFAULT}
-              />
+              <AntDesign name="google" size={22} color="#1E293B" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.socialButton}>
-              <AntDesign
-                name="apple"
-                size={24}
-                color={COLORS.secondary.DEFAULT}
-              />
+              <AntDesign name="apple" size={22} color="#1E293B" />
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -184,13 +162,13 @@ export default function SignInScreen() {
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Dev Mode Button */}
+        {/* Mode test */}
         <Animated.View entering={FadeInUp.delay(700).duration(600)}>
           <TouchableOpacity
             onPress={() => router.push("/dev-accounts")}
-            style={styles.devModeButton}
+            style={styles.devButton}
           >
-            <Text style={styles.devModeText}>Comptes de test</Text>
+            <Text style={styles.devButtonText}>Comptes de test</Text>
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
@@ -201,84 +179,101 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral[50], // Slightly off-white background
+    backgroundColor: "#F8FAFC", // Fond légèrement gris
   },
-  headerBackgroundContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 350, // Should cover enough space
-    zIndex: 0,
+  // Décorations
+  dot: {
+    position: 'absolute',
+    borderRadius: 999,
+    opacity: 0.5,
+  },
+  ring: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    opacity: 0.3,
   },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 80, // Space from top
+    paddingTop: 40,
     paddingBottom: 40,
   },
+
+  // Header avec logo
   header: {
     alignItems: "center",
-    marginBottom: 30,
-    zIndex: 1,
+    marginBottom: 32,
   },
   logoContainer: {
-    width: 100,
-    height: 100,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 30,
+    width: 90,
+    height: 90,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
-    shadowColor: COLORS.secondary.DEFAULT,
+    marginBottom: 20,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 10,
-    elevation: 5,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   logo: {
-    width: 70,
-    height: 70,
+    width: 60,
+    height: 60,
   },
   title: {
     fontFamily: FONTS.fredoka,
-    fontSize: 32,
-    color: COLORS.neutral.white,
+    fontSize: 28,
+    color: "#1E293B",
     marginBottom: 8,
-    textAlign: "center",
-    textShadowColor: "rgba(0,0,0,0.1)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
   },
   subtitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    color: COLORS.neutral[100], // Lighter text on green bg
+    fontSize: 15,
+    color: "#64748B",
     textAlign: "center",
-    opacity: 0.9,
   },
-  // Card Design
-  card: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 24,
+
+  // Formulaire
+  formCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 28,
     padding: 24,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 8, // Android shadow
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
     marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  inputContainer: {
+    marginBottom: 16,
   },
   forgotPassword: {
     alignSelf: "flex-end",
-    marginTop: 8,
+    marginBottom: 20,
   },
   forgotPasswordText: {
-    fontFamily: FONTS.secondary,
+    fontSize: 13,
+    color: "#6366F1",
     fontWeight: "600",
-    fontSize: 14,
-    color: COLORS.primary.DEFAULT,
   },
+  signInButton: {
+    height: 54,
+    borderRadius: 18,
+    backgroundColor: "#6366F1",
+    marginBottom: 24,
+  },
+
+  // Divider
   dividerContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -287,60 +282,62 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: COLORS.neutral[200],
+    backgroundColor: "#F1F5F9",
   },
   dividerText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.neutral[500],
-    marginHorizontal: 16,
+    fontSize: 13,
+    color: "#94A3B8",
+    marginHorizontal: 12,
   },
+
+  // Social buttons
   socialButtons: {
     flexDirection: "row",
     justifyContent: "center",
-    gap: 20,
+    gap: 16,
   },
   socialButton: {
     width: 56,
     height: 56,
-    borderRadius: 999,
-    backgroundColor: COLORS.neutral[100],
+    borderRadius: 18,
+    backgroundColor: "#F8FAFC",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: COLORS.neutral[200],
+    borderColor: "#F1F5F9",
   },
+
+  // Footer
   footer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: 16,
   },
   footerText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    color: COLORS.secondary[600],
+    fontSize: 14,
+    color: "#64748B",
   },
   signUpText: {
-    fontFamily: FONTS.secondary,
+    fontSize: 14,
     fontWeight: "700",
-    fontSize: 15,
-    color: COLORS.primary.DEFAULT,
+    color: "#6366F1",
   },
-  devModeButton: {
-    marginTop: 16,
-    marginHorizontal: 24,
-    padding: 12,
-    backgroundColor: COLORS.neutral[100],
-    borderRadius: 12,
+
+  // Dev button
+  devButton: {
+    marginTop: 8,
+    paddingVertical: 14,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: COLORS.neutral[300],
+    borderColor: "#E2E8F0",
     borderStyle: "dashed",
+    borderRadius: 30,
+    backgroundColor: "#FFFFFF",
   },
-  devModeText: {
-    fontFamily: FONTS.secondary,
+  devButtonText: {
     fontSize: 13,
-    color: COLORS.secondary[600],
+    color: "#64748B",
     fontWeight: "600",
   },
 });

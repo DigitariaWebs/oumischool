@@ -7,9 +7,8 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useSafeBack } from "@/hooks/useSafeBack";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronLeft, User, Users, GraduationCap } from "lucide-react-native";
+import { ChevronLeft, User, Users, GraduationCap, Sparkles } from "lucide-react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { COLORS } from "@/config/colors";
@@ -21,7 +20,6 @@ interface AccountCardProps {
   title: string;
   subtitle: string;
   email: string;
-  role: "parent" | "child" | "tutor";
   icon: React.ReactNode;
   color: string;
   onPress: () => void;
@@ -39,11 +37,11 @@ const AccountCard: React.FC<AccountCardProps> = ({
 }) => (
   <Animated.View entering={FadeInDown.delay(delay).duration(400)}>
     <TouchableOpacity
-      style={styles.accountCard}
+      style={[styles.accountCard, { borderLeftColor: color }]}
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <View style={[styles.accountIcon, { backgroundColor: color + "20" }]}>
+      <View style={[styles.accountIcon, { backgroundColor: color + "15" }]}>
         {icon}
       </View>
       <View style={styles.accountInfo}>
@@ -58,7 +56,6 @@ const AccountCard: React.FC<AccountCardProps> = ({
 export default function DevAccountsScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const handleBack = useSafeBack("/sign-in");
 
   const handleLogin = (role: "parent" | "child" | "tutor") => {
     dispatch(mockLogin(role));
@@ -73,11 +70,12 @@ export default function DevAccountsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header simple */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <ChevronLeft size={24} color={COLORS.secondary[900]} />
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <ChevronLeft size={22} color="#1E293B" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Comptes de Test</Text>
+        <Text style={styles.headerTitle}>Comptes de test</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -85,62 +83,63 @@ export default function DevAccountsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Animated.View
-          entering={FadeInDown.delay(200).duration(600)}
-          style={styles.infoCard}
-        >
-          <Text style={styles.infoTitle}>Mode Développement</Text>
-          <Text style={styles.infoText}>
-            Connectez-vous avec différents types de comptes pour tester
-            l'application.
+        {/* Carte info */}
+        <View style={styles.infoCard}>
+          <Sparkles size={20} color="#6366F1" />
+          <View style={styles.infoTextContainer}>
+            <Text style={styles.infoTitle}>Mode développement</Text>
+            <Text style={styles.infoText}>
+              Connectez-vous avec différents types de comptes pour tester l'application.
+            </Text>
+          </View>
+        </View>
+
+        {/* Comptes */}
+        <View style={styles.accountsSection}>
+          <Text style={styles.sectionTitle}>Sélectionnez un compte</Text>
+
+          <AccountCard
+            title="Fatima (Parent)"
+            subtitle="Compte parent avec 2 enfants"
+            email={MOCK_ACCOUNTS.parent.email}
+            icon={<User size={22} color="#6366F1" />}
+            color="#6366F1"
+            onPress={() => handleLogin("parent")}
+            delay={200}
+          />
+
+          <AccountCard
+            title="Adam (Enfant)"
+            subtitle="8 ans • CE2"
+            email={MOCK_ACCOUNTS.child1.email}
+            icon={<Users size={22} color="#3B82F6" />}
+            color="#3B82F6"
+            onPress={() => handleLogin("child")}
+            delay={300}
+          />
+
+          <AccountCard
+            title="Mohamed (Tuteur)"
+            subtitle="Tuteur • Maths & Sciences"
+            email={MOCK_ACCOUNTS.tutor.email}
+            icon={<GraduationCap size={22} color="#8B5CF6" />}
+            color="#8B5CF6"
+            onPress={() => handleLogin("tutor")}
+            delay={400}
+          />
+        </View>
+
+        {/* Astuce */}
+        <View style={styles.tipCard}>
+          <Text style={styles.tipText}>
+            <Text style={styles.tipBold}>Astuce :</Text> Vous pouvez aussi vous connecter via l'écran de connexion avec les emails contenant "adam", "sofia", "tutor" ou "mohamed".
           </Text>
-        </Animated.View>
+        </View>
 
-        <Text style={styles.sectionTitle}>Sélectionnez un compte</Text>
-
-        <AccountCard
-          title="Fatima (Parent)"
-          subtitle="Compte parent avec 2 enfants"
-          email={MOCK_ACCOUNTS.parent.email}
-          role="parent"
-          icon={<User size={24} color={COLORS.primary.DEFAULT} />}
-          color={COLORS.primary.DEFAULT}
-          onPress={() => handleLogin("parent")}
-          delay={300}
-        />
-
-        <AccountCard
-          title="Adam (Enfant)"
-          subtitle="8 ans • CE2"
-          email={MOCK_ACCOUNTS.child1.email}
-          role="child"
-          icon={<Users size={24} color="#3B82F6" />}
-          color="#3B82F6"
-          onPress={() => handleLogin("child")}
-          delay={400}
-        />
-
-        <AccountCard
-          title="Mohamed (Tuteur)"
-          subtitle="Tuteur • Math & Sciences"
-          email={MOCK_ACCOUNTS.tutor.email}
-          role="tutor"
-          icon={<GraduationCap size={24} color="#8B5CF6" />}
-          color="#8B5CF6"
-          onPress={() => handleLogin("tutor")}
-          delay={500}
-        />
-
-        <Animated.View
-          entering={FadeInDown.delay(600).duration(600)}
-          style={styles.noteCard}
-        >
-          <Text style={styles.noteText}>
-            <Text style={styles.noteBold}>Astuce:</Text> Vous pouvez aussi vous
-            connecter via l'écran de connexion en utilisant n'importe quelle
-            adresse email contenant "adam", "sofia", "tutor", ou "mohamed".
-          </Text>
-        </Animated.View>
+        {/* Bouton retour */}
+        <TouchableOpacity style={styles.backToSignIn} onPress={() => router.push("/sign-in")}>
+          <Text style={styles.backToSignInText}>Retour à la connexion</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -149,74 +148,94 @@ export default function DevAccountsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral[50],
+    backgroundColor: "#FFFFFF",
   },
+
+  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: COLORS.neutral.white,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral[200],
+    borderBottomColor: "#F1F5F9",
   },
   backButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   headerTitle: {
     fontFamily: FONTS.fredoka,
     fontSize: 18,
-    color: COLORS.secondary[900],
+    color: "#1E293B",
   },
+
   scrollContent: {
-    padding: 24,
-  },
-  infoCard: {
-    backgroundColor: "#EFF6FF",
-    borderRadius: 16,
     padding: 20,
+    paddingBottom: 40,
+  },
+
+  // Info Card
+  infoCard: {
+    flexDirection: "row",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 20,
+    padding: 16,
     marginBottom: 24,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.primary.DEFAULT,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    gap: 12,
+  },
+  infoTextContainer: {
+    flex: 1,
   },
   infoTitle: {
     fontFamily: FONTS.fredoka,
     fontSize: 16,
-    color: COLORS.secondary[900],
-    marginBottom: 8,
+    color: "#1E293B",
+    marginBottom: 4,
   },
   infoText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[700],
-    lineHeight: 20,
+    fontSize: 13,
+    color: "#64748B",
+    lineHeight: 18,
+  },
+
+  // Accounts Section
+  accountsSection: {
+    marginBottom: 20,
   },
   sectionTitle: {
     fontFamily: FONTS.fredoka,
     fontSize: 18,
-    color: COLORS.secondary[900],
+    color: "#1E293B",
     marginBottom: 16,
   },
   accountCard: {
     flexDirection: "row",
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 20,
     padding: 16,
     marginBottom: 12,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    borderLeftWidth: 4,
   },
   accountIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: 14,
   },
   accountInfo: {
     flex: 1,
@@ -225,35 +244,49 @@ const styles = StyleSheet.create({
   accountTitle: {
     fontFamily: FONTS.fredoka,
     fontSize: 16,
-    color: COLORS.secondary[900],
+    color: "#1E293B",
     marginBottom: 4,
   },
   accountSubtitle: {
-    fontFamily: FONTS.secondary,
     fontSize: 13,
-    color: COLORS.secondary[600],
+    color: "#64748B",
     marginBottom: 4,
   },
   accountEmail: {
-    fontFamily: FONTS.secondary,
     fontSize: 12,
-    color: COLORS.secondary[400],
+    color: "#94A3B8",
   },
-  noteCard: {
+
+  // Tip Card
+  tipCard: {
     backgroundColor: "#FFFBEB",
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-    marginTop: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: "#EAB308",
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: "#F59E0B",
   },
-  noteText: {
-    fontFamily: FONTS.secondary,
+  tipText: {
     fontSize: 13,
-    color: COLORS.secondary[700],
-    lineHeight: 20,
+    color: "#92400E",
+    lineHeight: 18,
   },
-  noteBold: {
+  tipBold: {
     fontWeight: "700",
+  },
+
+  // Back to Sign In
+  backToSignIn: {
+    backgroundColor: "#F1F5F9",
+    paddingVertical: 14,
+    borderRadius: 30,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  backToSignInText: {
+    fontSize: 15,
+    color: "#64748B",
+    fontWeight: "600",
   },
 });

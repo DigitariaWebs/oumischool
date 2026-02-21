@@ -14,39 +14,47 @@ import Animated, {
   Extrapolation,
   interpolate,
   useAnimatedScrollHandler,
-  SharedValue, // Import type directly
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronRight, Check } from "lucide-react-native";
+import { ArrowRight, Sparkles, Target, Users } from "lucide-react-native";
+import { Image } from "expo-image";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { ASSETS } from "@/config/assets";
-import { Image } from "expo-image";
 
 const { width, height } = Dimensions.get("window");
 
 const SLIDES = [
   {
     id: "1",
-    title: "Bienvenue sur\nOumi'School",
+    title: "Bienvenue sur",
+    highlight: "Oumi'School",
     description:
       "La plateforme éducative qui s'adapte à votre rythme et à vos besoins.",
     image: ASSETS.welcome1,
+    icon: <Sparkles size={24} color="#6366F1" />,
+    color: "#6366F1",
   },
   {
     id: "2",
-    title: "Suivi\nPersonnalisé",
+    title: "Suivi",
+    highlight: "Personnalisé",
     description:
       "Visualisez vos progrès en temps réel et atteignez vos objectifs pédagogiques.",
     image: ASSETS.welcome2,
+    icon: <Target size={24} color="#10B981" />,
+    color: "#10B981",
   },
   {
     id: "3",
-    title: "Communauté\nActive",
+    title: "Communauté",
+    highlight: "Active",
     description:
       "Échangez, partagez et grandissez avec d'autres étudiants et professeurs.",
     image: ASSETS.welcome3,
+    icon: <Users size={24} color="#F59E0B" />,
+    color: "#F59E0B",
   },
 ];
 
@@ -57,131 +65,75 @@ const Slide = ({
 }: {
   item: (typeof SLIDES)[0];
   index: number;
-  scrollX: SharedValue<number>;
+  scrollX: Animated.SharedValue<number>;
 }) => {
-  const rnStyle = useAnimatedStyle(() => {
-    const inputRange = [
-      (index - 1) * width,
-      index * width,
-      (index + 1) * width,
-    ];
+  const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
 
-    // Fade and scale for text
-    const opacity = interpolate(
-      scrollX.value,
-      inputRange,
-      [0, 1, 0],
-      Extrapolation.CLAMP,
-    );
-
-    const scale = interpolate(
-      scrollX.value,
-      inputRange,
-      [0.5, 1, 0.5],
-      Extrapolation.CLAMP,
-    );
-
-    return {
-      width,
-      alignItems: "center",
-      paddingHorizontal: 40,
-      opacity, // Apply fade
-      transform: [{ scale }], // Apply scale
-    };
+  const animatedStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(scrollX.value, inputRange, [0, 1, 0], Extrapolation.CLAMP);
+    const scale = interpolate(scrollX.value, inputRange, [0.8, 1, 0.8], Extrapolation.CLAMP);
+    return { opacity, transform: [{ scale }] };
   });
 
-  // Separate animation for the icon to give it depth
-  const iconStyle = useAnimatedStyle(() => {
-    const inputRange = [
-      (index - 1) * width,
-      index * width,
-      (index + 1) * width,
-    ];
-
-    // Parallax
-    const translateY = interpolate(
-      scrollX.value,
-      inputRange,
-      [-50, 0, 50],
-      Extrapolation.CLAMP,
-    );
-
-    const scale = interpolate(
-      scrollX.value,
-      inputRange,
-      [0.5, 1, 0.5],
-      Extrapolation.CLAMP,
-    );
-    return {
-      transform: [{ scale }, { translateY }],
-    };
+  const imageStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(scrollX.value, inputRange, [50, 0, -50], Extrapolation.CLAMP);
+    return { transform: [{ translateY }] };
   });
 
   return (
-    <Animated.View style={[styles.slide, { width }]}>
-      {/* Use a container for content that applies the animations */}
-      <Animated.View
-        style={[
-          { alignItems: "center", width: "100%", paddingHorizontal: 20 },
-          rnStyle,
-        ]}
-      >
-        <View style={styles.imageContainer}>
-          <Animated.View style={iconStyle}>
-            <Image
-              source={item.image}
-              style={{ width: 280, height: 280 }}
-              contentFit="contain"
-            />
-          </Animated.View>
+    <View style={[styles.slide, { width }]}>
+      <Animated.View style={[styles.slideContent, animatedStyle]}>
+        <View style={[styles.iconContainer, { backgroundColor: item.color + "15" }]}>
+          {item.icon}
         </View>
 
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.description}>{item.description}</Text>
+        <Animated.View style={[styles.imageContainer, imageStyle]}>
+          <Image
+            source={item.image}
+            style={styles.image}
+            contentFit="contain"
+          />
+        </Animated.View>
+
+        <View style={styles.textContainer}>
+          <Text style={styles.title}>
+            {item.title}{" "}
+            <Text style={[styles.highlight, { color: item.color }]}>
+              {item.highlight}
+            </Text>
+          </Text>
+          <Text style={styles.description}>{item.description}</Text>
+        </View>
       </Animated.View>
-    </Animated.View>
+    </View>
   );
 };
 
 const PaginationDot = ({
   index,
   scrollX,
+  color,
 }: {
   index: number;
-  scrollX: SharedValue<number>;
+  scrollX: Animated.SharedValue<number>;
+  color: string;
 }) => {
+  const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
+
   const animatedStyle = useAnimatedStyle(() => {
-    const inputRange = [
-      (index - 1) * width,
-      index * width,
-      (index + 1) * width,
-    ];
-    const dotWidth = interpolate(
-      scrollX.value,
-      inputRange,
-      [8, 24, 8],
-      Extrapolation.CLAMP,
-    );
-    const opacity = interpolate(
-      scrollX.value,
-      inputRange,
-      [0.3, 1, 0.3],
-      Extrapolation.CLAMP,
-    );
-    return {
-      width: dotWidth,
-      opacity,
-    };
+    const dotWidth = interpolate(scrollX.value, inputRange, [8, 24, 8], Extrapolation.CLAMP);
+    const opacity = interpolate(scrollX.value, inputRange, [0.3, 1, 0.3], Extrapolation.CLAMP);
+    return { width: dotWidth, opacity, backgroundColor: color };
   });
 
   return <Animated.View style={[styles.dot, animatedStyle]} />;
 };
 
-const Pagination = ({ scrollX }: { scrollX: SharedValue<number> }) => {
+const Pagination = ({ scrollX }: { scrollX: Animated.SharedValue<number> }) => {
   return (
     <View style={styles.paginationContainer}>
-      {SLIDES.map((_, index) => (
-        <PaginationDot key={index} index={index} scrollX={scrollX} />
+      {SLIDES.map((slide, index) => (
+        <PaginationDot key={index} index={index} scrollX={scrollX} color={slide.color} />
       ))}
     </View>
   );
@@ -205,21 +157,16 @@ export default function WelcomeScreen() {
     }
   };
 
-  const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: any[] }) => {
-      if (viewableItems.length > 0) {
-        setCurrentIndex(viewableItems[0].index);
-      }
-    },
-  ).current;
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: any[] }) => {
+    if (viewableItems.length > 0) {
+      setCurrentIndex(viewableItems[0].index);
+    }
+  }).current;
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Skip Button */}
-      <TouchableOpacity
-        style={styles.skipButton}
-        onPress={() => router.replace("/(tabs)")}
-      >
+      <TouchableOpacity style={styles.skipButton} onPress={() => router.replace("/sign-in")}>
         <Text style={styles.skipText}>Passer</Text>
       </TouchableOpacity>
 
@@ -227,9 +174,7 @@ export default function WelcomeScreen() {
         ref={flatListRef}
         data={SLIDES}
         keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => (
-          <Slide item={item} index={index} scrollX={scrollX} />
-        )}
+        renderItem={({ item, index }) => <Slide item={item} index={index} scrollX={scrollX} />}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -242,12 +187,8 @@ export default function WelcomeScreen() {
       <View style={styles.footer}>
         <Pagination scrollX={scrollX} />
 
-        <TouchableOpacity style={styles.button} onPress={handleNext}>
-          {currentIndex === SLIDES.length - 1 ? (
-            <Check size={24} color={COLORS.neutral.white} />
-          ) : (
-            <ChevronRight size={24} color={COLORS.neutral.white} />
-          )}
+        <TouchableOpacity style={[styles.button, { backgroundColor: SLIDES[currentIndex].color }]} onPress={handleNext}>
+          <ArrowRight size={22} color="white" />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -257,80 +198,103 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: "#FFFFFF",
   },
   skipButton: {
     position: "absolute",
-    top: 60, // Adjust for safe area
+    top: 20,
     right: 24,
     zIndex: 10,
-    padding: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 30,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   skipText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    color: COLORS.neutral[400],
+    fontSize: 14,
+    color: "#64748B",
+    fontWeight: "600",
   },
   slide: {
-    width: width,
-    height: height * 0.75, // Adjust height to leave room for footer
     justifyContent: "center",
     alignItems: "center",
+  },
+  slideContent: {
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  iconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
   },
   imageContainer: {
-    marginBottom: 40,
-    width: 300,
-    height: 300,
+    width: width * 0.7,
+    height: width * 0.7,
     justifyContent: "center",
     alignItems: "center",
-    // Removed background circle as SVGs usually have their own style or transparency
+    marginBottom: 32,
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+  textContainer: {
+    alignItems: "center",
+    paddingHorizontal: 16,
   },
   title: {
-    fontFamily: FONTS.fredoka, // Using custom font
+    fontFamily: FONTS.fredoka,
     fontSize: 32,
-    color: COLORS.secondary.DEFAULT,
+    color: "#1E293B",
     textAlign: "center",
-    marginBottom: 16,
+    marginBottom: 12,
     lineHeight: 40,
   },
+  highlight: {
+    fontFamily: FONTS.fredoka,
+  },
   description: {
-    fontFamily: FONTS.secondary,
-    fontSize: 18,
-    color: COLORS.neutral[500],
+    fontSize: 16,
+    color: "#64748B",
     textAlign: "center",
-    paddingHorizontal: 32,
-    lineHeight: 26,
+    lineHeight: 24,
+    maxWidth: 320,
   },
   footer: {
-    height: height * 0.25,
+    position: "absolute",
+    bottom: 40,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingBottom: 50,
     paddingHorizontal: 24,
-    flexDirection: "row",
   },
   paginationContainer: {
     flexDirection: "row",
-    height: 40,
     alignItems: "center",
+    gap: 8,
   },
   dot: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: COLORS.primary.DEFAULT,
-    marginHorizontal: 4,
   },
   button: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.primary.DEFAULT,
+    width: 56,
+    height: 56,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: COLORS.primary.DEFAULT,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 8,
+    elevation: 4,
   },
 });

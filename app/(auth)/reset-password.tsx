@@ -1,375 +1,345 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
+  TextInput,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Lock, ArrowLeft, CheckCircle } from "lucide-react-native";
+import { ArrowLeft, Check } from "lucide-react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
-import Svg, { Path } from "react-native-svg";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/Input";
 
-const HeaderBackground = () => (
-  <View style={styles.headerBackgroundContainer}>
-    <Svg
-      height="100%"
-      width="100%"
-      viewBox="0 0 375 300"
-      preserveAspectRatio="none"
-      style={StyleSheet.absoluteFill}
-    >
-      <Path
-        d="M0 0H375V220C375 220 280 280 187.5 280C95 280 0 220 0 220V0Z"
-        fill={COLORS.primary.DEFAULT}
-      />
-    </Svg>
-  </View>
-);
-
-export default function ResetPasswordScreen() {
+export default function OTPVerificationScreen() {
   const router = useRouter();
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [timer, setTimer] = useState(120);
+  const [canResend, setCanResend] = useState(false);
 
-  const validatePassword = () => {
-    if (password.length < 8) {
-      setError("Le mot de passe doit contenir au moins 8 caractères");
-      return false;
+  const inputRefs = useRef<(TextInput | null)[]>([]);
+
+  useEffect(() => {
+    if (timer > 0) {
+      const interval = setInterval(() => {
+        setTimer((prev) => {
+          if (prev <= 1) {
+            setCanResend(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
     }
-    if (password !== confirmPassword) {
-      setError("Les mots de passe ne correspondent pas");
-      return false;
-    }
-    return true;
+  }, [timer]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const handleResetPassword = () => {
+  const handleOtpChange = (value: string, index: number) => {
+    if (value && !/^\d+$/.test(value)) return;
+
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
     setError("");
 
-    if (!validatePassword()) return;
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyPress = (e: any, index: number) => {
+    if (e.nativeEvent.key === "Backspace" && !otp[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleVerify = async () => {
+    const otpCode = otp.join("");
+
+    if (otpCode.length !== 6) {
+      setError("Veuillez entrer le code complet");
+      return;
+    }
 
     setIsLoading(true);
+    setError("");
 
-    // Mock API call
     setTimeout(() => {
       setIsLoading(false);
-      setIsSuccess(true);
+      router.replace("/onboarding");
     }, 1500);
   };
 
-  if (isSuccess) {
-    return (
-      <View style={styles.container}>
-        <HeaderBackground />
-        <SafeAreaView style={{ flex: 1 }}>
-          <View style={styles.successContainer}>
-            <Animated.View
-              entering={FadeInDown.delay(200).duration(600)}
-              style={styles.successContent}
-            >
-              <View style={styles.successIconContainer}>
-                <CheckCircle size={64} color={COLORS.primary.DEFAULT} />
-              </View>
-              <Text style={styles.successTitle}>Mot de passe modifié !</Text>
-              <Text style={styles.successMessage}>
-                Votre mot de passe a été réinitialisé avec succès.
-              </Text>
+  const handleResend = () => {
+    if (!canResend) return;
 
-              <Button
-                title="Se connecter"
-                onPress={() => router.replace("/sign-in")}
-                fullWidth
-                style={{ marginTop: 32, height: 56 }}
-              />
-            </Animated.View>
-          </View>
-        </SafeAreaView>
-      </View>
-    );
-  }
+    setTimer(120);
+    setCanResend(false);
+    setError("");
+    setOtp(["", "", "", "", "", ""]);
+    inputRefs.current[0]?.focus();
+
+    console.log("Resending OTP code...");
+  };
+
+  const isOtpComplete = otp.every((digit) => digit !== "");
 
   return (
-    <View style={styles.container}>
-      <HeaderBackground />
-
+    <SafeAreaView style={styles.container}>
+      {/* Boule violette décorative */}
+      <View style={styles.purpleBlob} />
+      
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          {/* Header */}
-          <Animated.View
-            entering={FadeInUp.delay(200).duration(600)}
-            style={styles.header}
-          >
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <ArrowLeft size={24} color={COLORS.neutral.white} />
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Bouton retour */}
+          <Animated.View entering={FadeInUp.delay(200).duration(600)}>
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+              <ArrowLeft size={22} color="#1E293B" />
             </TouchableOpacity>
-            <Text style={styles.title}>Nouveau mot de passe</Text>
-            <Text style={styles.subtitle}>
-              Créez un nouveau mot de passe sécurisé
+          </Animated.View>
+
+          {/* Header */}
+          <Animated.View entering={FadeInUp.delay(300).duration(600)} style={styles.header}>
+            <Text style={styles.headerLabel}>VÉRIFICATION</Text>
+            <Text style={styles.headerTitle}>Code de vérification</Text>
+            <Text style={styles.headerSubtitle}>
+              Entrez le code à 6 chiffres envoyé à votre email
             </Text>
           </Animated.View>
 
-          {/* Form Card */}
-          <Animated.View
-            entering={FadeInDown.delay(400).duration(600)}
-            style={styles.card}
-          >
-            <Input
-              label="Nouveau mot de passe"
-              placeholder="••••••••"
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                setError("");
-              }}
-              isPassword
-              icon={<Lock size={20} color={COLORS.neutral[400]} />}
-              style={{ marginBottom: 20 }}
-            />
-
-            <Input
-              label="Confirmer le mot de passe"
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChangeText={(text) => {
-                setConfirmPassword(text);
-                setError("");
-              }}
-              isPassword
-              icon={<Lock size={20} color={COLORS.neutral[400]} />}
-            />
-
-            {/* Password Strength Indicator */}
-            {password.length > 0 && (
-              <View style={styles.strengthContainer}>
-                <Text style={styles.strengthLabel}>Force du mot de passe:</Text>
-                <View style={styles.strengthBar}>
-                  <View
-                    style={[
-                      styles.strengthFill,
-                      {
-                        width:
-                          password.length < 6
-                            ? "33%"
-                            : password.length < 10
-                              ? "66%"
-                              : "100%",
-                        backgroundColor:
-                          password.length < 6
-                            ? COLORS.error
-                            : password.length < 10
-                              ? COLORS.warning
-                              : COLORS.success,
-                      },
-                    ]}
-                  />
-                </View>
-                <Text
+          {/* Carte OTP */}
+          <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.otpCard}>
+            {/* Champs OTP */}
+            <View style={styles.otpContainer}>
+              {otp.map((digit, index) => (
+                <TextInput
+                  key={index}
+                  ref={(ref) => (inputRefs.current[index] = ref)}
                   style={[
-                    styles.strengthText,
-                    {
-                      color:
-                        password.length < 6
-                          ? COLORS.error
-                          : password.length < 10
-                            ? COLORS.warning
-                            : COLORS.success,
-                    },
+                    styles.otpInput,
+                    digit && styles.otpInputFilled,
+                    error && styles.otpInputError,
                   ]}
-                >
-                  {password.length < 6
-                    ? "Faible"
-                    : password.length < 10
-                      ? "Moyen"
-                      : "Fort"}
-                </Text>
-              </View>
-            )}
+                  value={digit}
+                  onChangeText={(value) => handleOtpChange(value, index)}
+                  onKeyPress={(e) => handleKeyPress(e, index)}
+                  keyboardType="number-pad"
+                  maxLength={1}
+                  selectTextOnFocus
+                  autoFocus={index === 0}
+                />
+              ))}
+            </View>
 
-            {/* Error Message */}
+            {/* Message d'erreur */}
             {error && (
-              <Animated.Text
-                entering={FadeInDown.duration(300)}
-                style={styles.errorText}
-              >
+              <Animated.Text entering={FadeInDown.duration(300)} style={styles.errorText}>
                 {error}
               </Animated.Text>
             )}
 
+            {/* Timer / Renvoyer */}
+            <View style={styles.resendContainer}>
+              {!canResend ? (
+                <Text style={styles.timerText}>
+                  Renvoyer dans <Text style={styles.timerHighlight}>{formatTime(timer)}</Text>
+                </Text>
+              ) : (
+                <TouchableOpacity onPress={handleResend}>
+                  <Text style={styles.resendText}>Renvoyer le code</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Bouton de vérification */}
             <Button
-              title="Réinitialiser le mot de passe"
-              onPress={handleResetPassword}
+              title="Vérifier"
+              onPress={handleVerify}
               isLoading={isLoading}
-              disabled={!password || !confirmPassword}
+              disabled={!isOtpComplete}
               fullWidth
-              style={{
-                marginTop: 24,
-                height: 56,
-              }}
+              style={[styles.verifyButton, !isOtpComplete && styles.verifyButtonDisabled]}
+              icon={<Check size={18} color="white" />}
             />
 
-            <Text style={styles.helpText}>Minimum 8 caractères recommandé</Text>
+            {/* Lien d'aide */}
+            <Text style={styles.helpText}>
+              Vous n'avez pas reçu le code ?{" "}
+              <Text style={styles.helpLink} onPress={() => console.log("Contact support")}>
+                Contactez-nous
+              </Text>
+            </Text>
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 }
+
+import { ScrollView } from "react-native";
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral[50],
+    backgroundColor: "#FFFFFF",
+    position: "relative",
   },
-  headerBackgroundContainer: {
+  // Boule violette décorative
+  purpleBlob: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 350,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: "#6366F1",
+    top: -100,
+    right: -100,
+    opacity: 0.1,
     zIndex: 0,
   },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 60,
+    paddingTop: 20,
     paddingBottom: 40,
-  },
-  header: {
-    marginBottom: 30,
     zIndex: 1,
   },
+
+  // Bouton retour
   backButton: {
     width: 44,
     height: 44,
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 999,
-    marginBottom: 20,
-  },
-  title: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 32,
-    color: COLORS.neutral.white,
-    marginBottom: 8,
-    textShadowColor: "rgba(0,0,0,0.1)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  subtitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    color: COLORS.neutral[100],
-    opacity: 0.9,
-  },
-  card: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  strengthContainer: {
-    marginTop: 16,
-  },
-  strengthLabel: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    color: COLORS.secondary[600],
-    marginBottom: 8,
-  },
-  strengthBar: {
-    height: 4,
-    backgroundColor: COLORS.neutral[200],
-    borderRadius: 2,
-    overflow: "hidden",
-    marginBottom: 4,
-  },
-  strengthFill: {
-    height: "100%",
-    borderRadius: 2,
-  },
-  strengthText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  errorText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.error,
-    marginTop: 12,
-  },
-  helpText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[500],
-    textAlign: "center",
-    marginTop: 16,
-  },
-  // Success State
-  successContainer: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  successContent: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 24,
-    padding: 32,
-    alignItems: "center",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  successIconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: COLORS.primary[50],
-    justifyContent: "center",
-    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
     marginBottom: 24,
   },
-  successTitle: {
+
+  // Header
+  header: {
+    marginBottom: 32,
+  },
+  headerLabel: {
+    fontFamily: FONTS.secondary,
+    fontSize: 12,
+    color: "#6366F1",
+    letterSpacing: 1.2,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  headerTitle: {
     fontFamily: FONTS.fredoka,
     fontSize: 28,
-    color: COLORS.secondary[900],
-    marginBottom: 12,
+    color: "#1E293B",
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    fontSize: 15,
+    color: "#64748B",
+    lineHeight: 22,
+  },
+
+  // Carte OTP
+  otpCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    marginBottom: 16,
+  },
+
+  // Champs OTP
+  otpContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+    gap: 8,
+  },
+  otpInput: {
+    flex: 1,
+    height: 60,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    borderRadius: 12,
+    textAlign: "center",
+    fontSize: 24,
+    fontFamily: FONTS.fredoka,
+    color: "#1E293B",
+    backgroundColor: "#FFFFFF",
+  },
+  otpInputFilled: {
+    borderColor: "#6366F1",
+  },
+  otpInputError: {
+    borderColor: "#EF4444",
+  },
+
+  // Erreur
+  errorText: {
+    fontSize: 13,
+    color: "#EF4444",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+
+  // Resend
+  resendContainer: {
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  timerText: {
+    fontSize: 14,
+    color: "#64748B",
+  },
+  timerHighlight: {
+    fontWeight: "700",
+    color: "#6366F1",
+  },
+  resendText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#6366F1",
+  },
+
+  // Bouton
+  verifyButton: {
+    height: 52,
+    borderRadius: 30,
+    backgroundColor: "#6366F1",
+    marginBottom: 20,
+  },
+  verifyButtonDisabled: {
+    backgroundColor: "#CBD5E1",
+  },
+
+  // Help
+  helpText: {
+    fontSize: 14,
+    color: "#64748B",
     textAlign: "center",
   },
-  successMessage: {
-    fontFamily: FONTS.secondary,
-    fontSize: 16,
-    color: COLORS.secondary[600],
-    textAlign: "center",
-    lineHeight: 24,
+  helpLink: {
+    fontWeight: "700",
+    color: "#6366F1",
   },
 });

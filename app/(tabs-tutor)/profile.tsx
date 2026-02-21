@@ -1,10 +1,11 @@
-import React, { useMemo } from "react";
+import React from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -23,141 +24,61 @@ import {
   MessageSquare,
   Sparkles,
 } from "lucide-react-native";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
-import { useTheme } from "@/hooks/use-theme";
-import { ThemeColors } from "@/constants/theme";
-import { BlobBackground, AnimatedSection } from "@/components/ui";
-
-interface MenuItemProps {
-  icon: React.ReactNode;
-  title: string;
-  subtitle?: string;
-  onPress: () => void;
-  delay: number;
-  destructive?: boolean;
-  colors: ThemeColors;
-  isDark: boolean;
-}
-
-const MenuItem: React.FC<MenuItemProps> = ({
-  icon,
-  title,
-  subtitle,
-  onPress,
-  delay,
-  destructive,
-  colors,
-  isDark,
-}) => {
-  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
-
-  return (
-    <Animated.View entering={FadeInDown.delay(delay).duration(400).springify()}>
-      <TouchableOpacity
-        style={styles.menuItem}
-        onPress={onPress}
-        activeOpacity={0.7}
-      >
-        <View style={styles.menuItemLeft}>
-          <View
-            style={[
-              styles.menuIcon,
-              destructive && { backgroundColor: "#FEE2E2" },
-            ]}
-          >
-            {icon}
-          </View>
-          <View style={styles.menuItemText}>
-            <Text
-              style={[
-                styles.menuItemTitle,
-                { color: destructive ? COLORS.error : colors.textPrimary },
-              ]}
-            >
-              {title}
-            </Text>
-            {subtitle && (
-              <Text
-                style={[
-                  styles.menuItemSubtitle,
-                  { color: colors.textSecondary },
-                ]}
-              >
-                {subtitle}
-              </Text>
-            )}
-          </View>
-        </View>
-        <ChevronRight
-          size={18}
-          color={destructive ? COLORS.error : colors.textMuted}
-        />
-      </TouchableOpacity>
-    </Animated.View>
-  );
-};
 
 export default function TutorProfileScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { colors, isDark } = useTheme();
   const user = useAppSelector((state) => state.auth.user);
-  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
   const stats = [
     {
-      icon: <Users size={18} color="#8B5CF6" />,
+      icon: <Users size={16} color="#8B5CF6" />,
       value: user?.totalStudents?.toString() || "0",
       label: "Élèves",
-      color: "#8B5CF6",
     },
     {
-      icon: <Calendar size={18} color="#10B981" />,
+      icon: <Calendar size={16} color="#10B981" />,
       value: user?.completedSessions?.toString() || "0",
       label: "Sessions",
-      color: "#10B981",
     },
     {
-      icon: <TrendingUp size={18} color="#F59E0B" />,
+      icon: <TrendingUp size={16} color="#F59E0B" />,
       value: `${user?.monthlyEarnings || 0}€`,
       label: "Ce mois",
-      color: "#F59E0B",
     },
     {
-      icon: <Star size={18} color="#EF4444" fill="#EF4444" />,
+      icon: <Star size={16} color="#EF4444" fill="#EF4444" />,
       value: user?.rating?.toFixed(1) || "5.0",
       label: "Note",
-      color: "#EF4444",
     },
   ];
 
   const menuItems = [
     {
-      icon: <Eye size={19} color={colors.textSecondary} />,
+      icon: <Eye size={18} color="#64748B" />,
       title: "Profil Public",
       subtitle: "Personnaliser votre profil",
       onPress: () => router.push("/tutor/profile/public-profile"),
     },
     {
-      icon: <MessageSquare size={19} color={colors.textSecondary} />,
+      icon: <MessageSquare size={18} color="#64748B" />,
       title: "Messages",
       subtitle: "Conversations avec les parents",
       onPress: () => router.push("/messaging"),
     },
     {
-      icon: <Settings size={19} color={colors.textSecondary} />,
+      icon: <Settings size={18} color="#64748B" />,
       title: "Paramètres",
       subtitle: "Préférences du compte",
       onPress: () => router.push("/tutor/profile/settings"),
     },
     {
-      icon: <CreditCard size={19} color={colors.textSecondary} />,
+      icon: <CreditCard size={18} color="#64748B" />,
       title: "Paiements",
       subtitle: "Revenus et facturation",
       onPress: () => router.push("/tutor/profile/payments"),
@@ -166,496 +87,382 @@ export default function TutorProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <BlobBackground />
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Profile Hero Card */}
-        <AnimatedSection delay={100} style={styles.heroWrapper}>
-          <View style={styles.heroCard}>
-            <LinearGradient
-              colors={["#6366F1", "#8B5CF6", "#A855F7"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.heroGradient}
-            >
-              {/* Decorative circles */}
-              <View style={styles.heroCircle1} />
-              <View style={styles.heroCircle2} />
+        {/* Header simple */}
+        <View style={styles.header}>
+          <Text style={styles.headerLabel}>PROFIL</Text>
+          <Text style={styles.headerTitle}>Mon compte tuteur</Text>
+        </View>
 
-              <View style={styles.heroContent}>
-                <View style={styles.heroTopRow}>
-                  <View style={styles.sparkleContainer}>
-                    <Sparkles size={16} color="rgba(255,255,255,0.9)" />
-                  </View>
-                  <Text style={styles.heroLabel}>Mon profil tuteur</Text>
-                </View>
-
-                <View style={styles.avatarRow}>
-                  <View style={styles.avatarContainer}>
-                    <GraduationCap size={36} color="white" />
-                  </View>
-                  <View style={styles.profileInfo}>
-                    <Text style={styles.profileName}>
-                      {user?.name || "Tuteur"}
-                    </Text>
-                    <Text style={styles.profileSubjects}>
-                      {user?.subjects?.length
-                        ? user.subjects.join(" • ")
-                        : "Tuteur certifié"}
-                    </Text>
-                    <View style={styles.ratingBadge}>
-                      <Star size={13} color="#FCD34D" fill="#FCD34D" />
-                      <Text style={styles.ratingText}>
-                        {user?.rating?.toFixed(1) || "5.0"} / 5
-                      </Text>
-                      <Text style={styles.rateSeparator}>•</Text>
-                      <Text style={styles.rateText}>
-                        {user?.hourlyRate || 25}€/h
-                      </Text>
-                    </View>
-                  </View>
-                </View>
+        {/* Carte profil */}
+        <View style={styles.profileCard}>
+          <View style={styles.profileHeader}>
+            <View style={styles.avatarContainer}>
+              <GraduationCap size={32} color="white" />
+            </View>
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{user?.name || "Tuteur"}</Text>
+              <Text style={styles.profileSubjects}>
+                {user?.subjects?.length
+                  ? user.subjects.join(" • ")
+                  : "Tuteur certifié"}
+              </Text>
+              <View style={styles.ratingBadge}>
+                <Star size={12} color="#F59E0B" fill="#F59E0B" />
+                <Text style={styles.ratingText}>
+                  {user?.rating?.toFixed(1) || "5.0"}
+                </Text>
+                <Text style={styles.rateSeparator}>•</Text>
+                <Text style={styles.rateText}>{user?.hourlyRate || 25}€/h</Text>
               </View>
-            </LinearGradient>
-          </View>
-        </AnimatedSection>
-
-        {/* Stats Row */}
-        <AnimatedSection delay={200} style={styles.statsSection}>
-          <View style={styles.statsGrid}>
-            {stats.map((stat, index) => (
-              <Animated.View
-                key={index}
-                entering={FadeInDown.delay(250 + index * 60)
-                  .duration(500)
-                  .springify()}
-                style={[styles.statCard, { backgroundColor: colors.card }]}
-              >
-                <View
-                  style={[
-                    styles.statIconContainer,
-                    { backgroundColor: stat.color + "18" },
-                  ]}
-                >
-                  {stat.icon}
-                </View>
-                <Text style={[styles.statValue, { color: colors.textPrimary }]}>
-                  {stat.value}
-                </Text>
-                <Text
-                  style={[styles.statLabel, { color: colors.textSecondary }]}
-                >
-                  {stat.label}
-                </Text>
-              </Animated.View>
-            ))}
-          </View>
-        </AnimatedSection>
-
-        {/* Contact Pill */}
-        <AnimatedSection delay={380} style={styles.contactWrapper}>
-          <View style={[styles.contactCard, { backgroundColor: colors.card }]}>
-            <View
-              style={[
-                styles.contactIconContainer,
-                { backgroundColor: "#3B82F620" },
-              ]}
-            >
-              <Mail size={18} color="#3B82F6" />
-            </View>
-            <View style={styles.contactInfo}>
-              <Text
-                style={[styles.contactLabel, { color: colors.textSecondary }]}
-              >
-                Email
-              </Text>
-              <Text
-                style={[styles.contactValue, { color: colors.textPrimary }]}
-              >
-                {user?.email || "email@example.com"}
-              </Text>
             </View>
           </View>
-        </AnimatedSection>
+        </View>
 
-        {/* Menu Section */}
-        <AnimatedSection delay={460} style={styles.menuSection}>
-          <View style={styles.menuSectionHeader}>
-            <Text
-              style={[styles.menuSectionTitle, { color: colors.textPrimary }]}
-            >
-              ⚙️ Paramètres
-            </Text>
+        {/* Stats en grille */}
+        <View style={styles.statsGrid}>
+          {stats.map((stat, index) => (
+            <View key={index} style={styles.statCard}>
+              <View style={[styles.statIcon, { backgroundColor: "#F8FAFC" }]}>
+                {stat.icon}
+              </View>
+              <Text style={styles.statValue}>{stat.value}</Text>
+              <Text style={styles.statLabel}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Email */}
+        <View style={styles.emailCard}>
+          <View style={styles.emailIcon}>
+            <Mail size={16} color="#3B82F6" />
           </View>
-          <View
-            style={[
-              styles.menuCard,
-              {
-                backgroundColor: colors.card,
-                shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
-              },
-            ]}
-          >
+          <View style={styles.emailInfo}>
+            <Text style={styles.emailLabel}>Email</Text>
+            <Text style={styles.emailValue}>{user?.email || "email@example.com"}</Text>
+          </View>
+        </View>
+
+        {/* Menu */}
+        <View style={styles.menuSection}>
+          <Text style={styles.menuTitle}>Paramètres</Text>
+          <View style={styles.menuCard}>
             {menuItems.map((item, index) => (
-              <MenuItem
+              <Pressable
                 key={index}
-                {...item}
-                delay={520 + index * 50}
-                colors={colors}
-                isDark={isDark}
-              />
+                style={({ pressed }) => [
+                  styles.menuItem,
+                  pressed && { backgroundColor: "#F8FAFC" },
+                  index === menuItems.length - 1 && { borderBottomWidth: 0 },
+                ]}
+                onPress={item.onPress}
+              >
+                <View style={styles.menuItemLeft}>
+                  <View style={styles.menuIcon}>{item.icon}</View>
+                  <View style={styles.menuItemText}>
+                    <Text style={styles.menuItemTitle}>{item.title}</Text>
+                    {item.subtitle && (
+                      <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
+                    )}
+                  </View>
+                </View>
+                <ChevronRight size={16} color="#CBD5E1" />
+              </Pressable>
             ))}
           </View>
-        </AnimatedSection>
+        </View>
 
-        {/* Logout */}
-        <AnimatedSection
-          delay={700}
-          direction="up"
-          style={styles.logoutSection}
+        {/* Déconnexion */}
+        <Pressable
+          style={({ pressed }) => [styles.logoutButton, pressed && { opacity: 0.7 }]}
+          onPress={() => {
+            dispatch(logout());
+            router.replace("/sign-in");
+          }}
         >
-          <TouchableOpacity
-            style={[
-              styles.logoutButton,
-              {
-                backgroundColor: isDark ? "rgba(239,68,68,0.1)" : "#FEF2F2",
-                borderColor: isDark ? "rgba(239,68,68,0.2)" : "#FECACA",
-              },
-            ]}
-            onPress={() => {
-              dispatch(logout());
-              router.replace("/sign-in");
-            }}
-            activeOpacity={0.7}
-          >
-            <View style={styles.logoutIcon}>
-              <LogOut size={19} color={COLORS.error} />
-            </View>
-            <Text style={styles.logoutText}>Se déconnecter</Text>
-            <ChevronRight size={18} color={COLORS.error} />
-          </TouchableOpacity>
-        </AnimatedSection>
+          <LogOut size={18} color="#EF4444" />
+          <Text style={styles.logoutText}>Se déconnecter</Text>
+        </Pressable>
 
         {/* Version */}
-        <Animated.View
-          entering={FadeInUp.delay(800).duration(600).springify()}
-          style={styles.versionContainer}
-        >
-          <Text style={[styles.versionText, { color: colors.textMuted }]}>
-            Oumi&apos;School v1.0.0
-          </Text>
-          <View style={[styles.versionBadge, { backgroundColor: "#10B98115" }]}>
-            <Text style={styles.versionBadgeText}>Dernière version</Text>
-          </View>
-        </Animated.View>
+        <View style={styles.versionContainer}>
+          <Text style={styles.versionText}>Oumi'School v1.0.0</Text>
+        </View>
+
+        {/* Bouton Add source */}
+        <TouchableOpacity style={styles.sourceButton}>
+          <Text style={styles.sourceButtonText}>+ Modifier mon profil</Text>
+        </TouchableOpacity>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const createStyles = (colors: ThemeColors, isDark: boolean) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    scrollContent: {
-      paddingBottom: 100,
-    },
-    heroWrapper: {
-      marginHorizontal: 20,
-      marginTop: 16,
-      marginBottom: 20,
-    },
-    heroCard: {
-      borderRadius: 28,
-      overflow: "hidden",
-      shadowColor: "#8B5CF6",
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.3,
-      shadowRadius: 20,
-      elevation: 8,
-    },
-    heroGradient: {
-      padding: 24,
-      position: "relative",
-      overflow: "hidden",
-    },
-    heroCircle1: {
-      position: "absolute",
-      width: 130,
-      height: 130,
-      borderRadius: 65,
-      backgroundColor: "rgba(255,255,255,0.1)",
-      top: -35,
-      right: -35,
-    },
-    heroCircle2: {
-      position: "absolute",
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      backgroundColor: "rgba(255,255,255,0.07)",
-      bottom: -20,
-      right: 55,
-    },
-    heroContent: {
-      position: "relative",
-      zIndex: 1,
-    },
-    heroTopRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-      marginBottom: 18,
-    },
-    sparkleContainer: {
-      width: 30,
-      height: 30,
-      borderRadius: 10,
-      backgroundColor: "rgba(255,255,255,0.2)",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    heroLabel: {
-      fontFamily: FONTS.secondary,
-      fontSize: 13,
-      color: "rgba(255,255,255,0.9)",
-      fontWeight: "500",
-    },
-    avatarRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 16,
-    },
-    avatarContainer: {
-      width: 76,
-      height: 76,
-      borderRadius: 22,
-      backgroundColor: "rgba(255,255,255,0.2)",
-      justifyContent: "center",
-      alignItems: "center",
-      borderWidth: 2.5,
-      borderColor: "rgba(255,255,255,0.3)",
-    },
-    profileInfo: {
-      flex: 1,
-    },
-    profileName: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 24,
-      color: "white",
-      marginBottom: 4,
-    },
-    profileSubjects: {
-      fontFamily: FONTS.secondary,
-      fontSize: 13,
-      color: "rgba(255,255,255,0.8)",
-      marginBottom: 10,
-    },
-    ratingBadge: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      backgroundColor: "rgba(255,255,255,0.18)",
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 20,
-      alignSelf: "flex-start",
-    },
-    ratingText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 12,
-      fontWeight: "700",
-      color: "white",
-    },
-    rateSeparator: {
-      fontFamily: FONTS.secondary,
-      fontSize: 12,
-      color: "rgba(255,255,255,0.5)",
-    },
-    rateText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 12,
-      color: "rgba(255,255,255,0.85)",
-    },
-    statsSection: {
-      paddingHorizontal: 20,
-      marginBottom: 16,
-    },
-    statsGrid: {
-      flexDirection: "row",
-      gap: 10,
-    },
-    statCard: {
-      flex: 1,
-      borderRadius: 18,
-      padding: 14,
-      alignItems: "center",
-      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: 12,
-      elevation: 4,
-    },
-    statIconContainer: {
-      width: 38,
-      height: 38,
-      borderRadius: 12,
-      justifyContent: "center",
-      alignItems: "center",
-      marginBottom: 8,
-    },
-    statValue: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 18,
-      fontWeight: "700",
-      marginBottom: 2,
-    },
-    statLabel: {
-      fontFamily: FONTS.secondary,
-      fontSize: 11,
-      textAlign: "center",
-    },
-    contactWrapper: {
-      paddingHorizontal: 20,
-      marginBottom: 20,
-    },
-    contactCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 14,
-      borderRadius: 18,
-      padding: 16,
-      shadowColor: isDark ? "#000" : COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: 12,
-      elevation: 4,
-    },
-    contactIconContainer: {
-      width: 42,
-      height: 42,
-      borderRadius: 13,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    contactInfo: {
-      flex: 1,
-    },
-    contactLabel: {
-      fontFamily: FONTS.secondary,
-      fontSize: 11,
-      marginBottom: 2,
-    },
-    contactValue: {
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      fontWeight: "600",
-    },
-    menuSection: {
-      paddingHorizontal: 20,
-      marginBottom: 16,
-    },
-    menuSectionHeader: {
-      marginBottom: 14,
-    },
-    menuSectionTitle: {
-      fontFamily: FONTS.secondary,
-      fontSize: 16,
-      fontWeight: "600",
-    },
-    menuCard: {
-      borderRadius: 20,
-      overflow: "hidden",
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: isDark ? 0.3 : 0.08,
-      shadowRadius: 12,
-      elevation: 4,
-    },
-    menuItem: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
-    },
-    menuItemLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      flex: 1,
-    },
-    menuIcon: {
-      width: 42,
-      height: 42,
-      borderRadius: 13,
-      backgroundColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)",
-      justifyContent: "center",
-      alignItems: "center",
-      marginRight: 14,
-    },
-    menuItemText: {
-      flex: 1,
-    },
-    menuItemTitle: {
-      fontFamily: FONTS.secondary,
-      fontSize: 15,
-      fontWeight: "600",
-      marginBottom: 2,
-    },
-    menuItemSubtitle: {
-      fontFamily: FONTS.secondary,
-      fontSize: 12,
-    },
-    logoutSection: {
-      paddingHorizontal: 20,
-      marginBottom: 24,
-    },
-    logoutButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      borderRadius: 18,
-      padding: 16,
-      borderWidth: 1,
-    },
-    logoutIcon: {
-      width: 42,
-      height: 42,
-      borderRadius: 13,
-      backgroundColor: "rgba(239, 68, 68, 0.12)",
-      justifyContent: "center",
-      alignItems: "center",
-      marginRight: 14,
-    },
-    logoutText: {
-      flex: 1,
-      fontFamily: FONTS.secondary,
-      fontSize: 15,
-      fontWeight: "600",
-      color: COLORS.error,
-    },
-    versionContainer: {
-      alignItems: "center",
-      paddingBottom: 8,
-    },
-    versionText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 12,
-      marginBottom: 8,
-    },
-    versionBadge: {
-      paddingHorizontal: 12,
-      paddingVertical: 4,
-      borderRadius: 10,
-    },
-    versionBadgeText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 11,
-      color: "#10B981",
-      fontWeight: "600",
-    },
-  });
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
+
+  // Header
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 16,
+  },
+  headerLabel: {
+    fontFamily: FONTS.secondary,
+    fontSize: 12,
+    color: "#6366F1",
+    letterSpacing: 1.2,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  headerTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 24,
+    color: "#1E293B",
+  },
+
+  // Profile Card
+  profileCard: {
+    backgroundColor: "#F8FAFC",
+    marginHorizontal: 24,
+    marginBottom: 20,
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  profileHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  avatarContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: "#6366F1",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 20,
+    color: "#1E293B",
+    marginBottom: 4,
+  },
+  profileSubjects: {
+    fontSize: 13,
+    color: "#64748B",
+    marginBottom: 8,
+  },
+  ratingBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#EEF2FF",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    alignSelf: "flex-start",
+  },
+  ratingText: {
+    fontSize: 12,
+    color: "#6366F1",
+    fontWeight: "600",
+  },
+  rateSeparator: {
+    fontSize: 12,
+    color: "#94A3B8",
+  },
+  rateText: {
+    fontSize: 12,
+    color: "#64748B",
+  },
+
+  // Stats Grid
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginHorizontal: 24,
+    marginBottom: 20,
+    gap: 8,
+  },
+  statCard: {
+    width: "23%",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
+    padding: 12,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  statIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  statValue: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 16,
+    color: "#1E293B",
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 10,
+    color: "#64748B",
+    textAlign: "center",
+  },
+
+  // Email Card
+  emailCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#F8FAFC",
+    marginHorizontal: 24,
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  emailIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#EEF2FF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emailInfo: {
+    flex: 1,
+  },
+  emailLabel: {
+    fontSize: 11,
+    color: "#64748B",
+    marginBottom: 2,
+  },
+  emailValue: {
+    fontSize: 14,
+    color: "#1E293B",
+    fontWeight: "500",
+  },
+
+  // Menu Section
+  menuSection: {
+    paddingHorizontal: 24,
+    marginBottom: 20,
+  },
+  menuTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 16,
+    color: "#1E293B",
+    marginBottom: 12,
+  },
+  menuCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    overflow: "hidden",
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  menuItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  menuIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#F8FAFC",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  menuItemText: {
+    flex: 1,
+  },
+  menuItemTitle: {
+    fontSize: 15,
+    color: "#1E293B",
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  menuItemSubtitle: {
+    fontSize: 12,
+    color: "#64748B",
+  },
+
+  // Logout
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#FEF2F2",
+    marginHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    marginBottom: 16,
+  },
+  logoutText: {
+    fontSize: 15,
+    color: "#EF4444",
+    fontWeight: "600",
+  },
+
+  // Version
+  versionContainer: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  versionText: {
+    fontSize: 12,
+    color: "#CBD5E1",
+  },
+
+  // Source Button
+  sourceButton: {
+    backgroundColor: "#F1F5F9",
+    marginHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 30,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  sourceButtonText: {
+    fontSize: 15,
+    color: "#64748B",
+    fontWeight: "600",
+  },
+});
