@@ -17,6 +17,7 @@ import {
   Star,
   CreditCard,
   AlertCircle,
+  Sparkles,
 } from "lucide-react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
@@ -53,10 +54,10 @@ const NotificationSetting: React.FC<NotificationSettingProps> = ({
         value={value}
         onValueChange={onValueChange}
         trackColor={{
-          false: COLORS.neutral[300],
-          true: COLORS.primary.DEFAULT,
+          false: "#E2E8F0",
+          true: "#6366F1",
         }}
-        thumbColor={COLORS.neutral.white}
+        thumbColor="white"
       />
     </View>
   </Animated.View>
@@ -80,24 +81,24 @@ export default function ParentNotificationsScreen() {
   const notificationSettings = [
     {
       section: "Sessions",
-      icon: <Calendar size={20} color={COLORS.primary.DEFAULT} />,
+      icon: <Calendar size={18} color="#6366F1" />,
       settings: [
         {
-          icon: <Calendar size={20} color={COLORS.primary[600]} />,
+          icon: <Calendar size={18} color="#6366F1" />,
           title: "Rappels de session",
           description: "Notification 1h avant chaque session",
           value: sessionReminders,
           onValueChange: setSessionReminders,
         },
         {
-          icon: <Calendar size={20} color={COLORS.primary[600]} />,
+          icon: <Calendar size={18} color="#6366F1" />,
           title: "Confirmations",
           description: "Confirmation de réservation",
           value: sessionConfirmations,
           onValueChange: setSessionConfirmations,
         },
         {
-          icon: <AlertCircle size={20} color={COLORS.primary[600]} />,
+          icon: <AlertCircle size={18} color="#6366F1" />,
           title: "Annulations",
           description: "Notification d'annulation",
           value: sessionCancellations,
@@ -107,17 +108,17 @@ export default function ParentNotificationsScreen() {
     },
     {
       section: "Messages",
-      icon: <MessageSquare size={20} color="#10B981" />,
+      icon: <MessageSquare size={18} color="#10B981" />,
       settings: [
         {
-          icon: <MessageSquare size={20} color="#10B981" />,
+          icon: <MessageSquare size={18} color="#10B981" />,
           title: "Nouveaux messages",
           description: "Messages des tuteurs",
           value: messages,
           onValueChange: setMessages,
         },
         {
-          icon: <MessageSquare size={20} color="#10B981" />,
+          icon: <MessageSquare size={18} color="#10B981" />,
           title: "Réponses",
           description: "Réponses à vos messages",
           value: messageReplies,
@@ -127,17 +128,17 @@ export default function ParentNotificationsScreen() {
     },
     {
       section: "Avis & Notes",
-      icon: <Star size={20} color="#F59E0B" />,
+      icon: <Star size={18} color="#F59E0B" />,
       settings: [
         {
-          icon: <Star size={20} color="#F59E0B" />,
+          icon: <Star size={18} color="#F59E0B" />,
           title: "Demandes d'avis",
           description: "Après chaque session",
           value: reviews,
           onValueChange: setReviews,
         },
         {
-          icon: <Star size={20} color="#F59E0B" />,
+          icon: <Star size={18} color="#F59E0B" />,
           title: "Nouveaux avis",
           description: "Avis reçus des tuteurs",
           value: newReviews,
@@ -147,17 +148,17 @@ export default function ParentNotificationsScreen() {
     },
     {
       section: "Paiements",
-      icon: <CreditCard size={20} color="#8B5CF6" />,
+      icon: <CreditCard size={18} color="#8B5CF6" />,
       settings: [
         {
-          icon: <CreditCard size={20} color="#8B5CF6" />,
+          icon: <CreditCard size={18} color="#8B5CF6" />,
           title: "Confirmations de paiement",
           description: "Paiements effectués",
           value: payments,
           onValueChange: setPayments,
         },
         {
-          icon: <CreditCard size={20} color="#8B5CF6" />,
+          icon: <CreditCard size={18} color="#8B5CF6" />,
           title: "Reçus",
           description: "Reçus de paiement",
           value: receipts,
@@ -167,17 +168,17 @@ export default function ParentNotificationsScreen() {
     },
     {
       section: "Général",
-      icon: <Bell size={20} color={COLORS.secondary[600]} />,
+      icon: <Bell size={18} color="#64748B" />,
       settings: [
         {
-          icon: <Bell size={20} color={COLORS.secondary[600]} />,
+          icon: <Bell size={18} color="#64748B" />,
           title: "Mises à jour",
           description: "Nouvelles fonctionnalités",
           value: systemUpdates,
           onValueChange: setSystemUpdates,
         },
         {
-          icon: <Bell size={20} color={COLORS.secondary[600]} />,
+          icon: <Bell size={18} color="#64748B" />,
           title: "Promotions",
           description: "Offres et réductions",
           value: promotions,
@@ -189,30 +190,28 @@ export default function ParentNotificationsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Boule violette décorative */}
+      <View style={styles.purpleBlob} />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
-            <ArrowLeft size={24} color={COLORS.secondary[900]} />
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <ArrowLeft size={22} color="#1E293B" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Notifications</Text>
-          <View style={styles.placeholder} />
+          <View style={styles.headerRight}>
+            <Sparkles size={16} color="#6366F1" />
+          </View>
         </View>
 
         {/* Description */}
-        <Animated.View
-          entering={FadeInDown.delay(100).duration(400)}
-          style={styles.description}
-        >
+        <Animated.View entering={FadeInDown.delay(100).duration(400)} style={styles.description}>
           <Text style={styles.descriptionText}>
-            Gérez vos préférences de notification pour rester informé de tout ce
-            qui est important pour vous.
+            Gérez vos préférences de notification pour rester informé de ce qui est important.
           </Text>
         </Animated.View>
 
@@ -224,7 +223,7 @@ export default function ParentNotificationsScreen() {
             style={styles.section}
           >
             <View style={styles.sectionHeader}>
-              {group.icon}
+              <View style={styles.sectionIcon}>{group.icon}</View>
               <Text style={styles.sectionTitle}>{group.section}</Text>
             </View>
             <View style={styles.card}>
@@ -242,6 +241,12 @@ export default function ParentNotificationsScreen() {
             </View>
           </Animated.View>
         ))}
+
+        {/* Bouton Add source */}
+        <TouchableOpacity style={styles.sourceButton}>
+          <Bell size={16} color="#64748B" />
+          <Text style={styles.sourceButtonText}>Paramètres avancés</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -250,79 +255,101 @@ export default function ParentNotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral[50],
+    backgroundColor: "#FFFFFF",
+    position: "relative",
+  },
+  purpleBlob: {
+    position: "absolute",
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: "#6366F1",
+    top: -100,
+    right: -100,
+    opacity: 0.1,
+    zIndex: 0,
   },
   scrollContent: {
-    paddingBottom: 24,
+    paddingBottom: 40,
+    zIndex: 1,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   headerTitle: {
     fontFamily: FONTS.fredoka,
     fontSize: 20,
-    color: COLORS.secondary[900],
+    color: "#1E293B",
   },
-  placeholder: {
+  headerRight: {
     width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#EEF2FF",
+    justifyContent: "center",
+    alignItems: "center",
   },
   description: {
-    paddingHorizontal: 24,
-    marginBottom: 24,
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
   descriptionText: {
-    fontFamily: FONTS.secondary,
     fontSize: 14,
-    color: COLORS.secondary[600],
+    color: "#64748B",
     lineHeight: 20,
   },
   section: {
-    marginBottom: 24,
-    paddingHorizontal: 24,
+    marginBottom: 20,
+    paddingHorizontal: 20,
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 10,
+  },
+  sectionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "#F8FAFC",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   sectionTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.secondary[900],
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1E293B",
   },
   card: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 20,
     padding: 16,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   settingRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
   settingLeft: {
     flexDirection: "row",
@@ -331,32 +358,50 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral[50],
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   settingText: {
     flex: 1,
   },
   settingTitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
-    color: COLORS.secondary[900],
+    color: "#1E293B",
     marginBottom: 2,
   },
   settingDescription: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[500],
+    fontSize: 12,
+    color: "#64748B",
   },
   divider: {
     height: 1,
-    backgroundColor: COLORS.neutral[100],
-    marginVertical: 4,
+    backgroundColor: "#F1F5F9",
+    marginVertical: 6,
+  },
+  sourceButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#F1F5F9",
+    marginHorizontal: 20,
+    marginTop: 8,
+    paddingVertical: 14,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  sourceButtonText: {
+    fontSize: 15,
+    color: "#64748B",
+    fontWeight: "600",
   },
 });

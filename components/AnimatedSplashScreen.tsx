@@ -1,11 +1,5 @@
 import React, { useEffect } from "react";
-import {
-  View,
-  StyleSheet,
-  Dimensions,
-  Image,
-  Text,
-} from "react-native";
+import { View, StyleSheet, Dimensions, Text } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -16,149 +10,126 @@ import Animated, {
   withSpring,
   Easing,
 } from "react-native-reanimated";
-import { COLORS } from "@/config/colors";
+import { Image } from "expo-image"; 
 import { ASSETS } from "@/config/assets";
 
 const { width, height } = Dimensions.get("window");
 
+// Chemins vers tes SVG
+const PHOTO_1 = require("@/assets/images/1.svg");
+const PHOTO_2 = require("@/assets/images/2.svg");
+const PHOTO_3 = require("@/assets/images/3.svg");
+
 export const AnimatedSplashScreen: React.FC<{
   onFinish?: () => void;
 }> = ({ onFinish }) => {
-  // Animations
+  // Animation du Logo
   const logoScale = useSharedValue(0);
   const logoOpacity = useSharedValue(0);
-  const childrenY = useSharedValue(30);
-  const childrenOpacity = useSharedValue(0);
-  const waveHand = useSharedValue(0);
-  const dotsOpacity = useSharedValue(0);
+  
+  // Animation des Textes
+  const contentOpacity = useSharedValue(0);
+
+  // Valeurs animées pour les 3 photos
+  const p1 = { s: useSharedValue(0), y: useSharedValue(40), r: useSharedValue(0) };
+  const p2 = { s: useSharedValue(0), y: useSharedValue(40), r: useSharedValue(0) };
+  const p3 = { s: useSharedValue(0), y: useSharedValue(40), r: useSharedValue(0) };
 
   useEffect(() => {
-    // Animation du logo
-    logoOpacity.value = withTiming(1, { duration: 600 });
-    logoScale.value = withSpring(1, { damping: 10, stiffness: 100 });
+    // 1. Apparition du logo
+    logoOpacity.value = withTiming(1, { duration: 800 });
+    logoScale.value = withSpring(1, { damping: 12 });
 
-    // Animation des enfants qui courent
-    childrenOpacity.value = withDelay(400, withTiming(1, { duration: 600 }));
-    childrenY.value = withDelay(
-      400,
-      withRepeat(
+    // 2. Fonction d'animation pour les photos
+    const animatePhoto = (photo: any, delay: number) => {
+      photo.s.value = withDelay(delay, withSpring(1));
+      photo.y.value = withDelay(delay, withRepeat(
         withSequence(
-          withTiming(20, { duration: 400, easing: Easing.inOut(Easing.ease) }),
-          withTiming(30, { duration: 400, easing: Easing.inOut(Easing.ease) }),
-        ),
-        -1,
-        true,
-      ),
-    );
-
-    // Animation de la main qui fait coucou
-    waveHand.value = withDelay(
-      800,
-      withRepeat(
+          withTiming(-12, { duration: 1800, easing: Easing.inOut(Easing.sin) }),
+          withTiming(12, { duration: 1800, easing: Easing.inOut(Easing.sin) })
+        ), -1, true
+      ));
+      photo.r.value = withDelay(delay, withRepeat(
         withSequence(
-          withTiming(15, { duration: 300 }),
-          withTiming(-15, { duration: 300 }),
-          withTiming(0, { duration: 300 }),
-        ),
-        3,
-        false,
-      ),
-    );
+          withTiming(-4, { duration: 1400, easing: Easing.inOut(Easing.sin) }), 
+          withTiming(4, { duration: 1400, easing: Easing.inOut(Easing.sin) })
+        ), -1, true
+      ));
+    };
 
-    // Points de chargement
-    dotsOpacity.value = withDelay(1200, withTiming(1, { duration: 400 }));
+    // Lancement des photos en cascade
+    animatePhoto(p1, 500);
+    animatePhoto(p2, 700);
+    animatePhoto(p3, 900);
+
+    // 3. Apparition des textes
+    contentOpacity.value = withDelay(1200, withTiming(1, { duration: 600 }));
 
     // Fin du splash
-    const timer = setTimeout(() => {
-      onFinish?.();
-    }, 3000);
-
+    const timer = setTimeout(() => onFinish?.(), 4500);
     return () => clearTimeout(timer);
   }, []);
 
+  // Styles Animés
   const logoStyle = useAnimatedStyle(() => ({
     opacity: logoOpacity.value,
     transform: [{ scale: logoScale.value }],
   }));
 
-  const childrenStyle = useAnimatedStyle(() => ({
-    opacity: childrenOpacity.value,
-    transform: [{ translateY: childrenY.value }],
+  const getPhotoStyle = (photo: any) => useAnimatedStyle(() => ({
+    transform: [
+      { scale: photo.s.value }, 
+      { translateY: photo.y.value }, 
+      { rotate: `${photo.r.value}deg` }
+    ],
   }));
 
-  const waveStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${waveHand.value}deg` }],
-  }));
-
-  const dotsStyle = useAnimatedStyle(() => ({
-    opacity: dotsOpacity.value,
+  const contentStyle = useAnimatedStyle(() => ({
+    opacity: contentOpacity.value,
   }));
 
   return (
     <View style={styles.container}>
-      {/* Fond avec nuages */}
+      {/* Arrière-plan (Nuages simplifiés) */}
       <View style={styles.cloudsContainer}>
-        <View style={[styles.cloud, styles.cloud1]} />
-        <View style={[styles.cloud, styles.cloud2]} />
-        <View style={[styles.cloud, styles.cloud3]} />
+        <View style={[styles.cloud, { top: "10%", left: "5%", width: 100, height: 50 }]} />
+        <View style={[styles.cloud, { top: "20%", right: "10%", width: 120, height: 60 }]} />
+        <View style={[styles.cloud, { bottom: "15%", left: "15%", width: 80, height: 40 }]} />
       </View>
 
-      {/* Logo animé */}
-      <Animated.View style={[styles.logoContainer, logoStyle]}>
-        <Image source={ASSETS.logo} style={styles.logo} resizeMode="contain" />
+      {/* --- LOGO --- */}
+      <Animated.View style={[styles.logoWrapper, logoStyle]}>
+        <View style={styles.logoCard}>
+          <Image source={ASSETS.logo} style={styles.logoImage} contentFit="contain" />
+        </View>
       </Animated.View>
 
-      {/* Enfants qui courent */}
-      <Animated.View style={[styles.childrenContainer, childrenStyle]}>
-        {/* Premier enfant */}
-        <View style={[styles.child, styles.child1]}>
-          <View style={styles.childHead} />
-          <View style={styles.childBody} />
-          <View style={[styles.childArm, styles.childArmLeft]} />
-          <View style={[styles.childArm, styles.childArmRight]} />
-          <View style={[styles.childLeg, styles.childLegLeft]} />
-          <View style={[styles.childLeg, styles.childLegRight]} />
-        </View>
-
-        {/* Deuxième enfant avec main qui fait coucou */}
-        <Animated.View style={[styles.child, styles.child2, waveStyle]}>
-          <View style={styles.childHead}>
-            <View style={styles.eye} />
-            <View style={[styles.eye, styles.eyeRight]} />
-            <View style={styles.smile} />
-          </View>
-          <View style={styles.childBody} />
-          <View style={[styles.childArm, styles.childArmLeft, styles.wavingArm]} />
-          <View style={[styles.childArm, styles.childArmRight]} />
-          <View style={[styles.childLeg, styles.childLegLeft]} />
-          <View style={[styles.childLeg, styles.childLegRight]} />
+      {/* --- PHOTOS SVG --- */}
+      <View style={styles.photosWrapper}>
+        <Animated.View style={[styles.photoBox, styles.sidePhoto, getPhotoStyle(p1)]}>
+          <Image source={PHOTO_1} style={styles.svgImage} />
         </Animated.View>
+        
+        <Animated.View style={[styles.photoBox, styles.centerPhoto, getPhotoStyle(p2)]}>
+          <Image source={PHOTO_2} style={styles.svgImage} />
+        </Animated.View>
+        
+        <Animated.View style={[styles.photoBox, styles.sidePhoto, getPhotoStyle(p3)]}>
+          <Image source={PHOTO_3} style={styles.svgImage} />
+        </Animated.View>
+      </View>
 
-        {/* Troisième enfant qui court */}
-        <View style={[styles.child, styles.child3]}>
-          <View style={styles.childHead} />
-          <View style={styles.childBody} />
-          <View style={[styles.childArm, styles.childArmLeft]} />
-          <View style={[styles.childArm, styles.childArmRight]} />
-          <View style={[styles.childLeg, styles.childLegLeft]} />
-          <View style={[styles.childLeg, styles.childLegRight]} />
+      {/* --- TEXTES DE BIENVENUE --- */}
+      <Animated.View style={[styles.textContainer, contentStyle]}>
+        <Text style={styles.welcomeText}>Bienvenue sur</Text>
+        <Text style={styles.brandText}>Oumi'School</Text>
+        
+        {/* Barre de chargement stylisée */}
+        <View style={styles.loadingBarContainer}>
+           <Animated.View style={styles.loadingBarFill} />
         </View>
       </Animated.View>
 
-      {/* Message de bienvenue */}
-      <Animated.View style={[styles.welcomeContainer, dotsStyle]}>
-        <Text style={styles.welcomeText}>Bienvenue sur</Text>
-        <Text style={styles.welcomeSubtext}>Oumi'School</Text>
-      </Animated.View>
-
-      {/* Points de chargement */}
-      <Animated.View style={[styles.loadingContainer, dotsStyle]}>
-        <View style={[styles.loadingDot, styles.loadingDot1]} />
-        <View style={[styles.loadingDot, styles.loadingDot2]} />
-        <View style={[styles.loadingDot, styles.loadingDot3]} />
-      </Animated.View>
-
-      {/* Version */}
       <Text style={styles.versionText}>v1.0.0</Text>
     </View>
   );
@@ -167,221 +138,108 @@ export const AnimatedSplashScreen: React.FC<{
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#F0F7FF", 
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 9999,
   },
-  
-  // Nuages
   cloudsContainer: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
+    ...StyleSheet.absoluteFillObject,
+    zIndex: -1,
   },
   cloud: {
     position: "absolute",
     backgroundColor: "white",
-    borderRadius: 50,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    borderRadius: 100,
+    opacity: 0.5,
   },
-  cloud1: {
-    width: 80,
-    height: 40,
-    top: "15%",
-    left: "10%",
-  },
-  cloud2: {
-    width: 100,
-    height: 45,
-    top: "25%",
-    right: "15%",
-  },
-  cloud3: {
-    width: 70,
-    height: 35,
-    bottom: "30%",
-    left: "20%",
-  },
-
-  // Logo
-  logoContainer: {
+  // Style du Logo
+  logoWrapper: {
     position: "absolute",
-    top: height * 0.15,
-    width: 120,
-    height: 120,
-    justifyContent: "center",
+    top: height * 0.1,
     alignItems: "center",
+  },
+  logoCard: {
     backgroundColor: "white",
+    padding: 15,
     borderRadius: 30,
     shadowColor: "#6366F1",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 8,
   },
-  logo: {
-    width: 80,
-    height: 80,
+  logoImage: {
+    width: 90,
+    height: 90,
   },
-
-  // Enfants
-  childrenContainer: {
+  // Style des Photos
+  photosWrapper: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "flex-end",
-    gap: 20,
-    marginTop: 100,
+    gap: 12,
+    marginTop: 40,
   },
-  child: {
-    width: 50,
-    height: 80,
-    position: "relative",
+  photoBox: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    borderWidth: 5,
+    borderColor: "white",
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 15,
+    elevation: 6,
+    overflow: "hidden",
   },
-  child1: {
-    transform: [{ translateY: 5 }],
+  centerPhoto: {
+    width: 120,
+    height: 150,
+    zIndex: 10,
   },
-  child2: {
-    width: 55,
-    height: 85,
+  sidePhoto: {
+    width: 90,
+    height: 115,
+    marginTop: 40,
   },
-  child3: {
-    transform: [{ translateY: 8 }],
+  svgImage: {
+    width: "100%",
+    height: "100%",
   },
-  childHead: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "#FFE5B4",
-    position: "absolute",
-    top: 0,
-    left: 10,
-    borderWidth: 1,
-    borderColor: "#F1C9A4",
-  },
-  childBody: {
-    width: 34,
-    height: 40,
-    backgroundColor: "#6366F1",
-    position: "absolute",
-    top: 25,
-    left: 8,
-    borderRadius: 10,
-    opacity: 0.8,
-  },
-  childArm: {
-    width: 12,
-    height: 4,
-    backgroundColor: "#FFE5B4",
-    position: "absolute",
-    top: 30,
-    borderRadius: 2,
-  },
-  childArmLeft: {
-    left: 2,
-    transform: [{ rotate: "-20deg" }],
-  },
-  childArmRight: {
-    right: 2,
-    transform: [{ rotate: "20deg" }],
-  },
-  childLeg: {
-    width: 10,
-    height: 4,
-    backgroundColor: "#6366F1",
-    position: "absolute",
-    bottom: 8,
-    borderRadius: 2,
-    opacity: 0.8,
-  },
-  childLegLeft: {
-    left: 12,
-    transform: [{ rotate: "10deg" }],
-  },
-  childLegRight: {
-    right: 12,
-    transform: [{ rotate: "-10deg" }],
-  },
-  wavingArm: {
-    transform: [{ rotate: "60deg" }],
-    left: -5,
-  },
-  
-  // Visage
-  eye: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#1E293B",
-    position: "absolute",
-    top: 10,
-    left: 8,
-  },
-  eyeRight: {
-    left: 18,
-  },
-  smile: {
-    width: 12,
-    height: 6,
-    borderBottomLeftRadius: 6,
-    borderBottomRightRadius: 6,
-    borderWidth: 1,
-    borderColor: "#1E293B",
-    borderTopWidth: 0,
-    position: "absolute",
-    top: 16,
-    left: 9,
-  },
-
-  // Message de bienvenue
-  welcomeContainer: {
-    position: "absolute",
-    top: height * 0.45,
+  // Style des Textes
+  textContainer: {
+    marginTop: 50,
     alignItems: "center",
   },
   welcomeText: {
-    fontSize: 16,
-    color: "#64748B",
-    marginBottom: 4,
+    fontSize: 18,
+    color: "#94A3B8",
+    fontWeight: "500",
   },
-  welcomeSubtext: {
-    fontFamily: "Fredoka",
-    fontSize: 32,
+  brandText: {
+    fontSize: 38,
     color: "#6366F1",
-    fontWeight: "600",
+    fontWeight: "800",
+    letterSpacing: -0.5,
   },
-
-  // Loading
-  loadingContainer: {
-    flexDirection: "row",
-    gap: 8,
-    position: "absolute",
-    bottom: height * 0.15,
+  loadingBarContainer: {
+    width: 120,
+    height: 4,
+    backgroundColor: "#E2E8F0",
+    borderRadius: 2,
+    marginTop: 20,
+    overflow: "hidden",
   },
-  loadingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  loadingDot1: {
+  loadingBarFill: {
+    width: "60%", // On peut animer ça aussi si tu veux !
+    height: "100%",
     backgroundColor: "#6366F1",
+    borderRadius: 2,
   },
-  loadingDot2: {
-    backgroundColor: "#8B5CF6",
-  },
-  loadingDot3: {
-    backgroundColor: "#A855F7",
-  },
-
-  // Version
   versionText: {
     position: "absolute",
-    bottom: 30,
-    fontSize: 11,
+    bottom: 40,
+    fontSize: 12,
     color: "#CBD5E1",
+    fontWeight: "600",
   },
 });

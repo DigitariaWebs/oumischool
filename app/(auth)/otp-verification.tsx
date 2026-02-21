@@ -1,24 +1,24 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
+  ScrollView,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ArrowLeft, Check } from "lucide-react-native";
+import { Lock, ArrowLeft, CheckCircle } from "lucide-react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { Button } from "@/components/Button";
+import { Input } from "@/components/Input";
 
-// Header background SVG (reusing from sign-in pattern)
 const HeaderBackground = () => (
   <View style={styles.headerBackgroundContainer}>
     <Svg
@@ -36,105 +36,82 @@ const HeaderBackground = () => (
   </View>
 );
 
-export default function OTPVerificationScreen() {
+export default function ResetPasswordScreen() {
   const router = useRouter();
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState("");
-  const [timer, setTimer] = useState(120); // 2 minutes in seconds
-  const [canResend, setCanResend] = useState(false);
 
-  // Refs for each input field
-  const inputRefs = useRef<(TextInput | null)[]>([]);
-
-  // Timer countdown effect
-  useEffect(() => {
-    if (timer > 0) {
-      const interval = setInterval(() => {
-        setTimer((prev) => {
-          if (prev <= 1) {
-            setCanResend(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(interval);
+  const validatePassword = () => {
+    if (password.length < 8) {
+      setError("Le mot de passe doit contenir au moins 8 caractères");
+      return false;
     }
-  }, [timer]);
-
-  // Format timer as MM:SS
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
+    if (password !== confirmPassword) {
+      setError("Les mots de passe ne correspondent pas");
+      return false;
+    }
+    return true;
   };
 
-  const handleOtpChange = (value: string, index: number) => {
-    // Only allow numbers
-    if (value && !/^\d+$/.test(value)) return;
-
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
+  const handleResetPassword = () => {
     setError("");
 
-    // Auto-focus next input
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyPress = (e: any, index: number) => {
-    // Handle backspace
-    if (e.nativeEvent.key === "Backspace" && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleVerify = async () => {
-    const otpCode = otp.join("");
-
-    if (otpCode.length !== 6) {
-      setError("Veuillez entrer le code complet");
-      return;
-    }
+    if (!validatePassword()) return;
 
     setIsLoading(true);
-    setError("");
 
-    // Mock API call - accept any 6-digit code
+    // Mock API call
     setTimeout(() => {
       setIsLoading(false);
-      // Any 6-digit code is accepted (no backend validation for now)
-      router.replace("/onboarding");
+      setIsSuccess(true);
     }, 1500);
   };
 
-  const handleResend = () => {
-    if (!canResend) return;
+  if (isSuccess) {
+    return (
+      <View style={styles.container}>
+        <HeaderBackground />
+        <SafeAreaView style={{ flex: 1 }}>
+          <View style={styles.successContainer}>
+            <Animated.View
+              entering={FadeInDown.delay(200).duration(600)}
+              style={styles.successContent}
+            >
+              <View style={styles.successIconContainer}>
+                <CheckCircle size={64} color={COLORS.primary.DEFAULT} />
+              </View>
+              <Text style={styles.successTitle}>Mot de passe modifié !</Text>
+              <Text style={styles.successMessage}>
+                Votre mot de passe a été réinitialisé avec succès.
+              </Text>
 
-    // Reset timer and resend code
-    setTimer(120);
-    setCanResend(false);
-    setError("");
-    setOtp(["", "", "", "", "", ""]);
-    inputRefs.current[0]?.focus();
-
-    // Mock API call to resend
-    console.log("Resending OTP code...");
-  };
-
-  const isOtpComplete = otp.every((digit) => digit !== "");
+              <Button
+                title="Se connecter"
+                onPress={() => router.replace("/sign-in")}
+                fullWidth
+                style={{ marginTop: 32, height: 56 }}
+              />
+            </Animated.View>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <HeaderBackground />
 
-      <SafeAreaView style={{ flex: 1 }}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={{ flex: 1 }}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
         >
           {/* Header */}
           <Animated.View
@@ -147,38 +124,88 @@ export default function OTPVerificationScreen() {
             >
               <ArrowLeft size={24} color={COLORS.neutral.white} />
             </TouchableOpacity>
-            <Text style={styles.title}>Vérification</Text>
+            <Text style={styles.title}>Nouveau mot de passe</Text>
             <Text style={styles.subtitle}>
-              Entrez le code envoyé à votre email
+              Créez un nouveau mot de passe sécurisé
             </Text>
           </Animated.View>
 
-          {/* OTP Card */}
+          {/* Form Card */}
           <Animated.View
             entering={FadeInDown.delay(400).duration(600)}
             style={styles.card}
           >
-            {/* OTP Input Fields */}
-            <View style={styles.otpContainer}>
-              {otp.map((digit, index) => (
-                <TextInput
-                  key={index}
-                  ref={(ref) => (inputRefs.current[index] = ref)}
+            <Input
+              label="Nouveau mot de passe"
+              placeholder="••••••••"
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text);
+                setError("");
+              }}
+              isPassword
+              icon={<Lock size={20} color={COLORS.neutral[400]} />}
+              style={{ marginBottom: 20 }}
+            />
+
+            <Input
+              label="Confirmer le mot de passe"
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChangeText={(text) => {
+                setConfirmPassword(text);
+                setError("");
+              }}
+              isPassword
+              icon={<Lock size={20} color={COLORS.neutral[400]} />}
+            />
+
+            {/* Password Strength Indicator */}
+            {password.length > 0 && (
+              <View style={styles.strengthContainer}>
+                <Text style={styles.strengthLabel}>Force du mot de passe:</Text>
+                <View style={styles.strengthBar}>
+                  <View
+                    style={[
+                      styles.strengthFill,
+                      {
+                        width:
+                          password.length < 6
+                            ? "33%"
+                            : password.length < 10
+                              ? "66%"
+                              : "100%",
+                        backgroundColor:
+                          password.length < 6
+                            ? COLORS.error
+                            : password.length < 10
+                              ? COLORS.warning
+                              : COLORS.success,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text
                   style={[
-                    styles.otpInput,
-                    digit && styles.otpInputFilled,
-                    error && styles.otpInputError,
+                    styles.strengthText,
+                    {
+                      color:
+                        password.length < 6
+                          ? COLORS.error
+                          : password.length < 10
+                            ? COLORS.warning
+                            : COLORS.success,
+                    },
                   ]}
-                  value={digit}
-                  onChangeText={(value) => handleOtpChange(value, index)}
-                  onKeyPress={(e) => handleKeyPress(e, index)}
-                  keyboardType="number-pad"
-                  maxLength={1}
-                  selectTextOnFocus
-                  autoFocus={index === 0}
-                />
-              ))}
-            </View>
+                >
+                  {password.length < 6
+                    ? "Faible"
+                    : password.length < 10
+                      ? "Moyen"
+                      : "Fort"}
+                </Text>
+              </View>
+            )}
 
             {/* Error Message */}
             {error && (
@@ -190,47 +217,22 @@ export default function OTPVerificationScreen() {
               </Animated.Text>
             )}
 
-            {/* Timer / Resend */}
-            <View style={styles.resendContainer}>
-              {!canResend ? (
-                <Text style={styles.timerText}>
-                  Renvoyer le code dans{" "}
-                  <Text style={styles.timerHighlight}>{formatTime(timer)}</Text>
-                </Text>
-              ) : (
-                <TouchableOpacity onPress={handleResend}>
-                  <Text style={styles.resendText}>Renvoyer le code</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Verify Button */}
             <Button
-              title="Vérifier"
-              onPress={handleVerify}
+              title="Réinitialiser le mot de passe"
+              onPress={handleResetPassword}
               isLoading={isLoading}
-              disabled={!isOtpComplete}
+              disabled={!password || !confirmPassword}
               fullWidth
               style={{
                 marginTop: 24,
                 height: 56,
               }}
-              icon={<Check size={20} color="white" />}
             />
 
-            {/* Help Text */}
-            <Text style={styles.helpText}>
-              Vous n&apos;avez pas reçu le code ?{" "}
-              <Text
-                style={styles.helpLink}
-                onPress={() => console.log("Contact support")}
-              >
-                Contactez-nous
-              </Text>
-            </Text>
+            <Text style={styles.helpText}>Minimum 8 caractères recommandé</Text>
           </Animated.View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -248,8 +250,13 @@ const styles = StyleSheet.create({
     height: 350,
     zIndex: 0,
   },
-  header: {
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 40,
+  },
+  header: {
     marginBottom: 30,
     zIndex: 1,
   },
@@ -281,63 +288,42 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     borderRadius: 24,
     padding: 24,
-    marginHorizontal: 24,
     shadowColor: COLORS.secondary.DEFAULT,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.08,
     shadowRadius: 20,
     elevation: 8,
   },
-  otpContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 24,
+  strengthContainer: {
+    marginTop: 16,
   },
-  otpInput: {
-    width: 48,
-    height: 56,
-    borderWidth: 2,
-    borderColor: COLORS.neutral[200],
-    borderRadius: 12,
-    textAlign: "center",
-    fontSize: 24,
-    fontFamily: FONTS.fredoka,
-    color: COLORS.secondary[900],
-    backgroundColor: COLORS.neutral[50],
+  strengthLabel: {
+    fontFamily: FONTS.secondary,
+    fontSize: 12,
+    color: COLORS.secondary[600],
+    marginBottom: 8,
   },
-  otpInputFilled: {
-    borderColor: COLORS.primary.DEFAULT,
-    backgroundColor: COLORS.primary[50],
+  strengthBar: {
+    height: 4,
+    backgroundColor: COLORS.neutral[200],
+    borderRadius: 2,
+    overflow: "hidden",
+    marginBottom: 4,
   },
-  otpInputError: {
-    borderColor: COLORS.error,
-    backgroundColor: COLORS.neutral[50],
+  strengthFill: {
+    height: "100%",
+    borderRadius: 2,
+  },
+  strengthText: {
+    fontFamily: FONTS.secondary,
+    fontSize: 12,
+    fontWeight: "600",
   },
   errorText: {
     fontFamily: FONTS.secondary,
     fontSize: 14,
     color: COLORS.error,
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  resendContainer: {
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  timerText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[500],
-  },
-  timerHighlight: {
-    fontWeight: "700",
-    color: COLORS.primary.DEFAULT,
-  },
-  resendText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    fontWeight: "700",
-    color: COLORS.primary.DEFAULT,
+    marginTop: 12,
   },
   helpText: {
     fontFamily: FONTS.secondary,
@@ -346,8 +332,44 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 16,
   },
-  helpLink: {
-    fontWeight: "700",
-    color: COLORS.primary.DEFAULT,
+  // Success State
+  successContainer: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  successContent: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 24,
+    padding: 32,
+    alignItems: "center",
+    shadowColor: COLORS.secondary.DEFAULT,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  successIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: COLORS.primary[50],
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  successTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 28,
+    color: COLORS.secondary[900],
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  successMessage: {
+    fontFamily: FONTS.secondary,
+    fontSize: 16,
+    color: COLORS.secondary[600],
+    textAlign: "center",
+    lineHeight: 24,
   },
 });
