@@ -53,9 +53,6 @@ export default function SignUpScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Boule décorative colorée selon le rôle */}
-      <View style={[styles.roleBlob, { backgroundColor: roleColor, opacity: 0.1 }]} />
-
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
@@ -261,15 +258,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
     position: "relative",
-  },
-  roleBlob: {
-    position: "absolute",
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    top: -100,
-    right: -100,
-    zIndex: 0,
   },
   scrollContent: {
     flexGrow: 1,
