@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -37,7 +37,13 @@ import {
 } from "lucide-react-native";
 import * as DocumentPicker from "expo-document-picker";
 
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectNextBestAction } from "@/store/selectors/workflowSelectors";
+import {
+  markFeedbackPromptDelivered,
+  runSessionLifecycleSweep,
+  submitTutorSessionNote,
+} from "@/store/slices/workflowSlice";
 
 // --- Mock Data ---
 const MY_STUDENTS = [
@@ -86,8 +92,16 @@ const MOCK_SESSIONS = [
 
 export default function TutorDashboardScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const userName = user?.name || "Tuteur";
+  const tutorNextAction = useAppSelector((state) =>
+    user?.id ? selectNextBestAction(state, "tutor", user.id) : null,
+  );
+
+  useEffect(() => {
+    dispatch(runSessionLifecycleSweep());
+  }, [dispatch]);
 
   const [isAvailable, setIsAvailable] = useState(true);
   const [showResourceModal, setShowResourceModal] = useState(false);
@@ -338,7 +352,32 @@ export default function TutorDashboardScreen() {
             {/* Planning → onglet sessions */}
             <TouchableOpacity 
               style={styles.quickAction} 
-              onPress={() => router.push("/(tabs-tutor)/sessions")}
+              onPress={() => {
+                if (
+                  tutorNextAction?.type === "submit_session_notes" &&
+                  tutorNextAction.entityId
+                ) {
+                  dispatch(
+                    submitTutorSessionNote({
+                      sessionId: tutorNextAction.entityId,
+                      note: "Notes envoyées automatiquement depuis le dashboard.",
+                    }),
+                  );
+                  dispatch(
+                    markFeedbackPromptDelivered({
+                      sessionId: tutorNextAction.entityId,
+                      role: "parent",
+                    }),
+                  );
+                  dispatch(
+                    markFeedbackPromptDelivered({
+                      sessionId: tutorNextAction.entityId,
+                      role: "child",
+                    }),
+                  );
+                }
+                router.push("/(tabs-tutor)/sessions");
+              }}
             >
               <View style={[styles.iconCircle, { backgroundColor: "#10B981" }]}>
                 <Calendar color="white" size={20}/>

@@ -73,6 +73,9 @@ export interface AIChatMessage {
   timestamp: string; // ISO string instead of Date for Redux serialization
 }
 
+// Backward-compatible alias used across legacy files
+export type Message = AIChatMessage;
+
 export interface AIContext {
   type: "child" | "subject" | "general" | null;
   childId?: string;

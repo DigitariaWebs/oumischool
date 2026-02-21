@@ -1,5 +1,5 @@
 import { UserRole } from "@/store/slices/authSlice";
-import { AIContext, Message } from "@/types";
+import { AIContext, AIChatMessage } from "@/types";
 import { Child } from "@/store/slices/childrenSlice";
 import {
   getPerformanceInsights,
@@ -17,7 +17,7 @@ interface ResponseGeneratorParams {
   userMessage: string;
   role: UserRole;
   context: AIContext;
-  messageHistory?: Message[];
+  messageHistory?: AIChatMessage[];
 }
 
 export const generateAIResponse = ({

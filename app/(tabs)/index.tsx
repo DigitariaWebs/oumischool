@@ -25,13 +25,19 @@ import {
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { approvePendingSessionByParent } from "@/store/slices/workflowSlice";
+import { selectNextBestAction } from "@/store/selectors/workflowSelectors";
 
 export default function HomeScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const children = useAppSelector((state) => state.children.children);
   const userName = user?.name || "Parent";
+  const parentNextAction = useAppSelector((state) =>
+    user?.id ? selectNextBestAction(state, "parent", user.id) : null,
+  );
 
   // Images pour les enfants (comme dans tuteur)
   const childImages = [
@@ -50,7 +56,19 @@ export default function HomeScreen() {
     {
       icon: <Calendar size={20} color="#64748B" />,
       title: "Plan",
-      onPress: () => router.push("/weekly-plan"),
+      onPress: () => {
+        if (
+          parentNextAction?.type === "approve_pending_session" &&
+          parentNextAction.entityId
+        ) {
+          dispatch(
+            approvePendingSessionByParent({
+              sessionId: parentNextAction.entityId,
+            }),
+          );
+        }
+        router.push("/weekly-plan");
+      },
     },
     {
       icon: <Sparkles size={20} color="#64748B" />,

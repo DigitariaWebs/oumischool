@@ -48,7 +48,7 @@ export default function MathAdditionGame() {
     setCorrectAnswer(answer);
 
     // Generate 4 options including the correct answer
-    const wrongOptions = [];
+    const wrongOptions: number[] = [];
     while (wrongOptions.length < 3) {
       const wrong = answer + Math.floor(Math.random() * 20) - 10;
       if (wrong !== answer && wrong > 0 && !wrongOptions.includes(wrong)) {

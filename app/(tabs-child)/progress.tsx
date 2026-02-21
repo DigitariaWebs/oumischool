@@ -60,7 +60,7 @@ export default function ChildProgressScreen() {
             </View>
             <Pressable 
               style={({ pressed }) => [styles.historyButton, pressed && styles.btnPressed]}
-              onPress={() => router.push("/progress/history")}
+              onPress={() => router.push("/progress/history" as any)}
             >
               <Text style={styles.historyButtonText}>Historique</Text>
               <ChevronRight size={16} color="#64748B" />
@@ -85,7 +85,7 @@ export default function ChildProgressScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Tes badges</Text>
-            <Pressable onPress={() => router.push("/progress/badges")}>
+            <Pressable onPress={() => router.push("/progress/badges" as any)}>
               <Text style={styles.viewAll}>Voir tout</Text>
             </Pressable>
           </View>
@@ -115,7 +115,7 @@ export default function ChildProgressScreen() {
             <AnimatedSection key={item.subject} delay={200 + index * 100}>
               <Pressable 
                 style={({ pressed }) => [styles.subjectCard, pressed && styles.btnPressed]}
-                onPress={() => router.push(`/progress/${item.subject.toLowerCase()}`)}
+                onPress={() => router.push(`/progress/${item.subject.toLowerCase()}` as any)}
               >
                 <View style={styles.subjectInfo}>
                   <View style={[styles.miniIcon, { backgroundColor: "#EEF2FF" }]}>
@@ -140,7 +140,7 @@ export default function ChildProgressScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Activités récentes</Text>
-            <Pressable onPress={() => router.push("/progress/activities")}>
+            <Pressable onPress={() => router.push("/progress/activities" as any)}>
               <Text style={styles.viewAll}>Voir tout</Text>
             </Pressable>
           </View>
@@ -165,7 +165,7 @@ export default function ChildProgressScreen() {
         {/* Bouton pour voir plus */}
         <Pressable 
           style={({ pressed }) => [styles.viewMoreButton, pressed && styles.btnPressed]}
-          onPress={() => router.push("/progress/details")}
+          onPress={() => router.push("/progress/details" as any)}
         >
           <Text style={styles.viewMoreText}>Voir toutes les statistiques</Text>
         </Pressable>

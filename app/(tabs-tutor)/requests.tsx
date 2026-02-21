@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -23,6 +23,13 @@ import {
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  acceptTutoringRequest,
+  declineTutoringRequest,
+  runRequestTimingSweep,
+  runSessionLifecycleSweep,
+} from "@/store/slices/workflowSlice";
 
 interface TutoringRequest {
   id: string;
@@ -116,23 +123,61 @@ const mockRequests: TutoringRequest[] = [
 type TabType = "pending" | "accepted" | "declined";
 
 export default function TutorRequestsScreen() {
+  const dispatch = useAppDispatch();
+  const user = useAppSelector((state) => state.auth.user);
+  const workflowRequests = useAppSelector((state) => state.workflow.requests);
   const [selectedTab, setSelectedTab] = useState<TabType>("pending");
-  const [requests, setRequests] = useState<TutoringRequest[]>(mockRequests);
+  const tutorId = user?.id ?? "tutor-1";
+
+  useEffect(() => {
+    dispatch(runRequestTimingSweep());
+    dispatch(runSessionLifecycleSweep());
+  }, [dispatch]);
+
+  const requests: TutoringRequest[] = workflowRequests
+    .filter((request) => request.tutorId === tutorId)
+    .map((request) => {
+      const createdAt = new Date(request.createdAt).getTime();
+      const now = Date.now();
+      const elapsedHours = Math.max(1, Math.floor((now - createdAt) / (60 * 60 * 1000)));
+      const requestedDate =
+        elapsedHours < 24 ? `Il y a ${elapsedHours} heure${elapsedHours > 1 ? "s" : ""}` : "Il y a 1 jour";
+      const subjectColor =
+        request.subject.toLowerCase().includes("math")
+          ? "#3B82F6"
+          : request.subject.toLowerCase().includes("fran")
+            ? "#EF4444"
+            : "#10B981";
+
+      return {
+        id: request.id,
+        parentName: request.parentId === "parent-1" ? "Fatima Zahra" : "Parent",
+        parentAvatar: "https://cdn-icons-png.flaticon.com/512/4140/4140048.png",
+        childName: request.childId === "child-2" ? "Sofia" : "Adam",
+        childAge: request.childId === "child-2" ? 6 : 8,
+        childGrade: request.childId === "child-2" ? "CP" : "CE2",
+        subject: request.subject,
+        subjectColor,
+        mode: "online",
+        preferredDay: "Lundi",
+        preferredTime: "16:00 - 17:00",
+        requestedDate,
+        status:
+          request.status === "accepted"
+            ? "accepted"
+            : request.status === "declined"
+              ? "declined"
+              : "pending",
+        pricePerHour: 150,
+      };
+    });
 
   const handleAccept = (requestId: string) => {
-    setRequests((prev) =>
-      prev.map((req) =>
-        req.id === requestId ? { ...req, status: "accepted" } : req,
-      ),
-    );
+    dispatch(acceptTutoringRequest({ requestId }));
   };
 
   const handleDecline = (requestId: string) => {
-    setRequests((prev) =>
-      prev.map((req) =>
-        req.id === requestId ? { ...req, status: "declined" } : req,
-      ),
-    );
+    dispatch(declineTutoringRequest({ requestId, reason: "Indisponible" }));
   };
 
   const filteredRequests = requests.filter((req) => req.status === selectedTab);

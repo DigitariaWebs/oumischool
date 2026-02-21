@@ -19,6 +19,10 @@ import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { useAppDispatch } from "@/store/hooks";
 import { mockLogin } from "@/store/slices/authSlice";
+import {
+  generateWeeklyDigests,
+  runWorkflowAutomation,
+} from "@/store/slices/workflowSlice";
 
 // Arrière-plan décoré avec points
 const BackgroundDecorations = () => (
@@ -53,6 +57,14 @@ export default function SignInScreen() {
       }
 
       dispatch(mockLogin(role));
+      dispatch(runWorkflowAutomation());
+      const now = new Date();
+      const day = now.getDay();
+      const diffToMonday = (day + 6) % 7;
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - diffToMonday);
+      weekStart.setHours(0, 0, 0, 0);
+      dispatch(generateWeeklyDigests({ weekStartAt: weekStart.toISOString() }));
       setIsLoading(false);
       
       if (role === "child") {

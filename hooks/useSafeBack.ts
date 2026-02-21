@@ -12,7 +12,7 @@ export function useSafeBack(fallbackRoute: string = "/(tabs)") {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace(fallbackRoute);
+      router.replace(fallbackRoute as any);
     }
   }, [router, fallbackRoute]);
 }

@@ -14,6 +14,7 @@ import Animated, {
   Extrapolation,
   interpolate,
   useAnimatedScrollHandler,
+  type SharedValue,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowRight, Sparkles, Target, Users } from "lucide-react-native";
@@ -65,7 +66,7 @@ const Slide = ({
 }: {
   item: (typeof SLIDES)[0];
   index: number;
-  scrollX: Animated.SharedValue<number>;
+  scrollX: SharedValue<number>;
 }) => {
   const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
 
@@ -115,7 +116,7 @@ const PaginationDot = ({
   color,
 }: {
   index: number;
-  scrollX: Animated.SharedValue<number>;
+  scrollX: SharedValue<number>;
   color: string;
 }) => {
   const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
@@ -129,7 +130,7 @@ const PaginationDot = ({
   return <Animated.View style={[styles.dot, animatedStyle]} />;
 };
 
-const Pagination = ({ scrollX }: { scrollX: Animated.SharedValue<number> }) => {
+const Pagination = ({ scrollX }: { scrollX: SharedValue<number> }) => {
   return (
     <View style={styles.paginationContainer}>
       {SLIDES.map((slide, index) => (

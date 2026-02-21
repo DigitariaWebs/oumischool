@@ -98,7 +98,7 @@ const QuickPrompt: React.FC<QuickPromptProps> = ({ Icon, text, onPress }) => (
 );
 
 interface MessageBubbleProps {
-  message: Message;
+  message: AIChatMessage;
   delay: number;
 }
 

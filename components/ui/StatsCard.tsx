@@ -31,10 +31,8 @@ export const StatsCard: React.FC<StatsCardProps> = ({
 }) => {
   const { colors, isDark } = useTheme();
 
-  const CardComponent = onPress ? TouchableOpacity : View;
-
   return (
-    <CardComponent
+    <TouchableOpacity
       style={[
         styles.card,
         {
@@ -43,11 +41,14 @@ export const StatsCard: React.FC<StatsCardProps> = ({
         },
         style,
       ]}
+      disabled={!onPress}
       onPress={onPress}
       activeOpacity={0.7}
     >
       <View style={[styles.iconContainer, { backgroundColor: color + "20" }]}>
-        {React.cloneElement(icon as React.ReactElement, { color })}
+        {React.cloneElement(icon as React.ReactElement<{ color?: string }>, {
+          color,
+        })}
       </View>
       <View style={styles.content}>
         <Text style={[styles.title, { color: colors.textPrimary }]}>
@@ -62,7 +63,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
           </Text>
         )}
       </View>
-    </CardComponent>
+    </TouchableOpacity>
   );
 };
 

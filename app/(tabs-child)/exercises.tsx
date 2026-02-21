@@ -4,17 +4,29 @@ import { useRouter } from "expo-router";
 import { Search, Bell, Sparkles, Clock, Play, Calculator, FileText, Globe, Brain } from "lucide-react-native";
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { markExerciseCompleted } from "@/store/slices/workflowSlice";
 import Animated, { FadeInUp, useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 
 // --- DONNÉES AVEC LES BONNES ROUTES ---
-const GAMES = [
+interface ActivityItem {
+  id: number;
+  subject: string;
+  title: string;
+  description: string;
+  Icon: any;
+  color: string;
+  route: string;
+  progress?: number;
+}
+
+const GAMES: ActivityItem[] = [
   { id: 1, subject: "Maths", title: "Jeu d'addition", description: "Additionne les nombres !", progress: 80, Icon: Calculator, color: "#0EA5E9", route: "/games/math-addition" },
   { id: 2, subject: "Français", title: "Conjugaison", description: "Conjugue les verbes", progress: 60, Icon: FileText, color: "#EC4899", route: "/games/french-conjugation" },
   { id: 3, subject: "Sciences", title: "Mémoire des planètes", description: "Trouve les paires !", progress: 45, Icon: Globe, color: "#22C55E", route: "/games/planets-memory" },
 ];
 
-const LESSONS = [
+const LESSONS: ActivityItem[] = [
   { id: 1, subject: "Maths", title: "Les fractions", description: "Apprends les fractions", Icon: Calculator, color: "#0EA5E9", route: "/lessons/math-fractions" },
   { id: 2, subject: "Français", title: "Les temps", description: "Présent, passé, futur", Icon: FileText, color: "#EC4899", route: "/lessons/french-tenses" },
   { id: 3, subject: "Sciences", title: "Le système solaire", description: "Découvre les planètes", Icon: Globe, color: "#22C55E", route: "/lessons/science-solar-system" },
@@ -41,13 +53,23 @@ function BouncyCard({ children, onPress, delay, style }: any) {
 
 export default function ChildExercisesScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const [activeTab, setActiveTab] = useState<"games" | "lessons">("games");
 
-  const data = activeTab === "games" ? GAMES : LESSONS;
+  const data: ActivityItem[] = activeTab === "games" ? GAMES : LESSONS;
 
   // Navigation sécurisée pour éviter l'erreur pathname
   const handlePress = (route: string) => {
+    if (user?.role === "child") {
+      dispatch(
+        markExerciseCompleted({
+          childId: user.id,
+          exerciseId: route,
+          title: route,
+        }),
+      );
+    }
     if (router && route) {
       router.push(route as any);
     } else {
