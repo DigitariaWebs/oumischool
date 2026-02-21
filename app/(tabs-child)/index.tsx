@@ -1,521 +1,251 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Alert } from "react-native";
 import { useRouter } from "expo-router";
-import { Search, Bell, Clock, Play, Sparkles, BookOpen, Brain, Award, Users, GraduationCap } from "lucide-react-native";
+import { Search, Bell, Sparkles, ChevronRight, Target, Clock, Brain, GraduationCap } from "lucide-react-native";
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector } from "@/store/hooks";
 import { AnimatedSection } from "@/components/ui";
 
-// Données pour les leçons (style photo)
-const TODAY_LESSONS = [
-  { 
-    id: 1, 
-    subject: "Mathématiques", 
-    title: "Les fractions", 
-    duration: "08:00", 
-    color: "#E0F2FE", 
-    accent: "#0EA5E9",
-    image: "https://cdn-icons-png.flaticon.com/512/2436/2436633.png", 
-    route: "/lessons/math-fractions" 
-  },
-  { 
-    id: 2, 
-    subject: "Sciences", 
-    title: "Cycle de l'eau", 
-    duration: "09:30", 
-    color: "#DCFCE7", 
-    accent: "#22C55E",
-    image: "https://cdn-icons-png.flaticon.com/512/4148/4148441.png", 
-    route: "/lessons/science-solar-system" 
-  },
-  { 
-    id: 3, 
-    subject: "Français", 
-    title: "Conjugaison", 
-    duration: "10:30", 
-    color: "#FEF9C3", 
-    accent: "#EAB308",
-    image: "https://cdn-icons-png.flaticon.com/512/1670/1670915.png", 
-    route: "/lessons/french-tenses" 
-  },
+// DONNÉES COMPLÈTES SEMAINE
+const ALL_LESSONS = [
+  { id: 1, day: "Lun", time: "08:30", subject: "Mathématiques", title: "Les fractions", duration: "45 min", accent: "#0EA5E9", image: "https://cdn-icons-png.flaticon.com/512/3813/3813681.png" },
+  { id: 2, day: "Lun", time: "10:00", subject: "Sciences", title: "Le cycle de l'eau", duration: "30 min", accent: "#22C55E", image: "https://cdn-icons-png.flaticon.com/512/3105/3105800.png" },
+  { id: 3, day: "Mar", time: "09:00", subject: "Histoire", title: "Le Moyen Âge", duration: "50 min", accent: "#F43F5E", image: "https://cdn-icons-png.flaticon.com/512/3533/3533039.png" },
+  { id: 4, day: "Mer", time: "10:30", subject: "Anglais", title: "The Animals", duration: "40 min", accent: "#8B5CF6", image: "https://cdn-icons-png.flaticon.com/512/3063/3063067.png" },
+  { id: 5, day: "Jeu", time: "14:00", subject: "Géographie", title: "Les continents", duration: "45 min", accent: "#F59E0B", image: "https://cdn-icons-png.flaticon.com/512/814/814513.png" },
+  { id: 6, day: "Ven", time: "11:00", subject: "Art", title: "Couleurs primaires", duration: "60 min", accent: "#EC4899", image: "https://cdn-icons-png.flaticon.com/512/2970/2970785.png" },
 ];
 
-// Données Oumi'School
 const PROGRAMME_SEMAINE = [
-  { jour: "Lun", heure: "08:00", cours: "Mathématiques", couleur: "#E0F2FE" },
-  { jour: "Mar", heure: "09:00", cours: "Français", couleur: "#FEF9C3" },
-  { jour: "Mer", heure: "10:00", cours: "Sciences", couleur: "#DCFCE7" },
-  { jour: "Jeu", heure: "11:00", cours: "Histoire", couleur: "#FFE4E6" },
-  { jour: "Ven", heure: "12:00", cours: "Géographie", couleur: "#F3E8FF" },
-  { jour: "Sam", heure: "13:00", cours: "Évaluation", couleur: "#F1F5F9" },
+  { jour: "Lun", date: "12", full: "Lundi" }, 
+  { jour: "Mar", date: "13", full: "Mardi" }, 
+  { jour: "Mer", date: "14", full: "Mercredi" },
+  { jour: "Jeu", date: "15", full: "Jeudi" }, 
+  { jour: "Ven", date: "16", full: "Vendredi" }, 
+  { jour: "Sam", date: "17", full: "Samedi" },
 ];
 
 export default function ChildDashboard() {
   const router = useRouter();
   const user = useAppSelector((state) => state.auth.user);
+  const [selectedDay, setSelectedDay] = useState("Lun");
+  const [viewMode, setViewMode] = useState<"day" | "week">("day");
+
+  const filteredLessons = useMemo(() => {
+    return viewMode === "day" 
+      ? ALL_LESSONS.filter(l => l.day === selectedDay)
+      : ALL_LESSONS; 
+  }, [selectedDay, viewMode]);
 
   return (
     <View style={styles.container}>
-      {/* HEADER STYLE PHOTO */}
+      {/* HEADER */}
       <View style={styles.header}>
         <View>
           <View style={styles.welcomeRow}>
             <Text style={styles.headerLabel}>OUMI'SCHOOL</Text>
             <Sparkles size={12} color={COLORS.primary.DEFAULT} style={{marginLeft: 4}} />
           </View>
-          <Text style={styles.subHeader}>Parental Support Platform</Text>
-          <Text style={styles.userName}>Bonjour, {user?.name || "Élève"}</Text>
+          <Text style={styles.userName}>Bonjour {user?.name || "Élève"}</Text>
         </View>
         <View style={styles.headerActions}>
-          <Pressable 
-            onPress={() => Alert.alert("Recherche", "Que veux-tu apprendre ?")} 
-            hitSlop={15}
-            style={({ pressed }) => [styles.iconBtn, pressed && styles.btnPressed]}
-          >
-            <Search size={22} color="#64748B" />
-          </Pressable>
-          <Pressable 
-            onPress={() => Alert.alert("Notifications", "Rappel : Leçon dans 30 min")}
-            hitSlop={15}
-            style={({ pressed }) => [styles.iconBtn, pressed && styles.btnPressed]}
-          >
-            <View style={styles.notifBadge} />
-            <Bell size={22} color="#64748B" />
-          </Pressable>
+          <Pressable style={styles.iconBtn}><Search size={22} color="#64748B" /></Pressable>
+          <Pressable style={styles.iconBtn}><Bell size={22} color="#64748B" /></Pressable>
         </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
         
-        {/* CARD AUJOURD'HUI - STYLE PHOTO */}
+        {/* CARD FOCUS (LIVE) - RÉTABLIE */}
         <AnimatedSection delay={100} style={styles.todayCard}>
           <View style={styles.todayContent}>
-            <Text style={styles.todayTitle}>Aujourd'hui</Text>
-            <View style={styles.liveContainer}>
+            <View style={styles.tagLive}>
               <View style={styles.liveDot} />
-              <Text style={styles.liveText}>Prochaine leçon dans 2h</Text>
+              <Text style={styles.liveText}>EN DIRECT DANS 2H</Text>
             </View>
-            <Text style={styles.classMain}>Cours : Mathématiques - Fractions</Text>
+            <Text style={styles.classMain}>Mathématiques : Fractions</Text>
             <View style={styles.batchContainer}>
-              <GraduationCap size={16} color="white" />
-              <Text style={styles.batchText}>Niveau : CM2 (Groupe A)</Text>
+              <GraduationCap size={14} color="rgba(255,255,255,0.8)" />
+              <Text style={styles.batchText}>CM2 - Groupe A</Text>
             </View>
-            <Pressable style={styles.joinButton}>
-              <Text style={styles.joinButtonText}>Commencer</Text>
+            <Pressable style={styles.joinButton} onPress={() => Alert.alert("Lancement", "Connexion à la salle...")}>
+              <Text style={styles.joinButtonText}>Rejoindre</Text>
+              <ChevronRight size={16} color="#6366F1" />
             </Pressable>
           </View>
-          <Image 
-            source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2942/2942789.png' }} 
-            style={styles.todayImage} 
-          />
+          <View style={styles.todayImageWrapper}>
+            <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/3813/3813681.png' }} style={styles.todayImage} resizeMode="contain" />
+          </View>
         </AnimatedSection>
 
-        {/* PROGRAMME DE LA SEMAINE - STYLE PHOTO */}
-        <View style={styles.scheduleSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Programme de la semaine</Text>
-            <Pressable onPress={() => router.push("/curriculum")}>
-              <Text style={styles.viewAll}>Voir tout</Text>
+        {/* PLANNER */}
+        <View style={styles.plannerWrapper}>
+            <Pressable style={styles.plannerBtn} onPress={() => Alert.alert("🎯 Mission", "C'est parti !")}>
+                <View style={styles.plannerIconBg}><Target size={20} color="white" /></View>
+                <Text style={styles.plannerText}>Organiser ma journée</Text>
+                <ChevronRight size={18} color="#6366F1" />
             </Pressable>
+        </View>
+
+        {/* CALENDRIER & MODE */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Mon emploi du temps</Text>
+            <View style={styles.toggleContainer}>
+                <Pressable onPress={() => setViewMode("day")} style={[styles.toggleBtn, viewMode === "day" && styles.toggleActive]}>
+                    <Text style={[styles.toggleText, viewMode === "day" && styles.toggleTextActive]}>Jour</Text>
+                </Pressable>
+                <Pressable onPress={() => setViewMode("week")} style={[styles.toggleBtn, viewMode === "week" && styles.toggleActive]}>
+                    <Text style={[styles.toggleText, viewMode === "week" && styles.toggleTextActive]}>Semaine</Text>
+                </Pressable>
+            </View>
           </View>
 
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false} 
-            contentContainerStyle={styles.scheduleContainer}
-          >
-            {PROGRAMME_SEMAINE.map((item, index) => (
-              <Pressable key={index} style={[styles.scheduleCard, { backgroundColor: item.couleur }]}>
-                <Text style={styles.scheduleDay}>{item.jour}</Text>
-                <Text style={styles.scheduleTime}>{item.heure}</Text>
-                <Text style={styles.scheduleCourse}>{item.cours}</Text>
-              </Pressable>
-            ))}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.calendarStrip}>
+              {PROGRAMME_SEMAINE.map((item, index) => {
+                const isActive = selectedDay === item.jour;
+                return (
+                  <Pressable key={index} onPress={() => { setSelectedDay(item.jour); setViewMode("day"); }} style={[styles.calCard, isActive && styles.calCardActive]}>
+                      <Text style={[styles.calDay, isActive && styles.calTextActive]}>{item.jour}</Text>
+                      <Text style={[styles.calDate, isActive && styles.calTextActive]}>{item.date}</Text>
+                  </Pressable>
+                );
+              })}
           </ScrollView>
         </View>
 
-        {/* ASSISTANT IA - STYLE PHOTO */}
-        <Pressable style={styles.aiCard}>
-          <View style={styles.aiContent}>
-            <View style={styles.aiIcon}>
-              <Brain size={24} color="#6366F1" />
-            </View>
-            <View style={styles.aiText}>
-              <Text style={styles.aiTitle}>Assistant pédagogique</Text>
-              <Text style={styles.aiSubtitle}>Pose-moi une question sur tes leçons</Text>
-            </View>
-          </View>
-        </Pressable>
-
-        {/* MES LEÇONS - STYLE PHOTO (CARTES COLORÉES) */}
-        <View style={styles.lessonsSection}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>Mes leçons</Text>
-              <Text style={styles.sectionSubtitle}>Programme personnalisé</Text>
-            </View>
-            <Pressable onPress={() => router.push("/exercises")}>
-              <Text style={styles.viewAll}>Tout voir</Text>
-            </Pressable>
-          </View>
-
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false} 
-            contentContainerStyle={styles.lessonsContainer}
-          >
-            {TODAY_LESSONS.map((lesson) => (
-              <Pressable 
-                key={lesson.id}
-                onPress={() => router.push(lesson.route as any)}
-                style={({ pressed }) => [
-                  styles.lessonCard, 
-                  { backgroundColor: lesson.color },
-                  pressed && { transform: [{ scale: 0.96 }] }
-                ]}
-              >
-                <View style={styles.lessonHeader}>
-                  <View style={[styles.lessonTime, { backgroundColor: 'rgba(255,255,255,0.9)' }]}>
-                    <Clock size={12} color={lesson.accent} />
-                    <Text style={[styles.lessonTimeText, { color: lesson.accent }]}>{lesson.duration}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.lessonIconContainer}>
-                  <Image source={{ uri: lesson.image }} style={styles.lessonIcon} />
-                </View>
-
-                <View style={styles.lessonFooter}>
-                  <View>
-                    <Text style={styles.lessonSubject}>{lesson.subject}</Text>
-                    <Text style={styles.lessonTitle} numberOfLines={1}>{lesson.title}</Text>
-                  </View>
-                  <View style={[styles.playButton, { backgroundColor: lesson.accent }]}>
-                    <Play size={14} color="white" fill="white" />
-                  </View>
-                </View>
-              </Pressable>
-            ))}
-          </ScrollView>
+        {/* TIMELINE AVEC SÉPARATEURS SEMAINE */}
+        <View style={styles.timelineSection}>
+            {filteredLessons.length > 0 ? (
+                filteredLessons.map((lesson, index) => {
+                    const isNewDay = viewMode === "week" && (index === 0 || filteredLessons[index-1].day !== lesson.day);
+                    return (
+                        <View key={lesson.id}>
+                            {isNewDay && (
+                                <View style={styles.dayHeader}>
+                                    <View style={[styles.dayBadge, {backgroundColor: lesson.accent}]}>
+                                        <Text style={styles.dayBadgeText}>{PROGRAMME_SEMAINE.find(d => d.jour === lesson.day)?.full}</Text>
+                                    </View>
+                                </View>
+                            )}
+                            <View style={styles.timelineItem}>
+                                <View style={styles.timelineLeft}>
+                                    <Text style={styles.timeLabel}>{lesson.time}</Text>
+                                    <View style={styles.lineWrapper}>
+                                        <View style={[styles.dot, { backgroundColor: lesson.accent }]} />
+                                        <View style={styles.verticalLine} />
+                                    </View>
+                                </View>
+                                <Pressable style={styles.lessonCard} onPress={() => Alert.alert("Cours", lesson.title)}>
+                                    <View style={[styles.lessonColorBar, { backgroundColor: lesson.accent }]} />
+                                    <View style={styles.lessonContent}>
+                                        <View style={{flex: 1}}>
+                                            <Text style={[styles.subjectTag, { color: lesson.accent }]}>{lesson.subject}</Text>
+                                            <Text style={styles.lessonTitle}>{lesson.title}</Text>
+                                            <View style={styles.durationRow}><Clock size={12} color="#94A3B8" /><Text style={styles.durationText}>{lesson.duration}</Text></View>
+                                        </View>
+                                        <Image source={{ uri: lesson.image }} style={styles.lessonThumb} />
+                                    </View>
+                                </Pressable>
+                            </View>
+                        </View>
+                    );
+                })
+            ) : (
+                <View style={styles.emptyState}><Text style={styles.emptyText}>Rien de prévu</Text></View>
+            )}
         </View>
 
-        {/* TUTORAT OPTIONNEL - BOUTON STYLE PHOTO */}
-        <Pressable style={styles.tutorButton}>
-          <Users size={20} color="#6366F1" />
-          <Text style={styles.tutorButtonText}>Besoin d'un tuteur ? (Optionnel)</Text>
-        </Pressable>
+        {/* ASSISTANT IA */}
+        <View style={styles.aiWrapper}>
+            <Pressable style={styles.aiCard} onPress={() => Alert.alert("Oumi IA", "Pose-moi une question !")}>
+                <View style={styles.aiIcon}><Brain size={22} color="white" /></View>
+                <View style={{flex: 1}}>
+                    <Text style={styles.aiTitle}>Une question difficile ?</Text>
+                    <Text style={styles.aiSubtitle}>L'assistant Oumi est là pour toi</Text>
+                </View>
+                <ChevronRight size={18} color="#6366F1" />
+            </Pressable>
+        </View>
 
-       
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFFFFF" },
-  header: { 
-    flexDirection: "row", 
-    justifyContent: "space-between", 
-    alignItems: "flex-start", 
-    paddingHorizontal: 24, 
-    paddingTop: 60, 
-    paddingBottom: 20 
-  },
-  welcomeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
-  headerLabel: { fontFamily: FONTS.secondary, fontSize: 14, color: "#6366F1", letterSpacing: 1.2, fontWeight: "800" },
-  subHeader: { fontSize: 12, color: "#94A3B8", marginBottom: 4 },
-  userName: { fontFamily: FONTS.fredoka, fontSize: 24, color: "#1E293B" },
-  headerActions: { flexDirection: "row", gap: 12 },
-  iconBtn: { 
-    width: 44, 
-    height: 44, 
-    borderRadius: 14, 
-    backgroundColor: "#F8FAFC", 
-    borderWidth: 1, 
-    borderColor: "#F1F5F9", 
-    justifyContent: "center", 
-    alignItems: "center" 
-  },
-  btnPressed: { backgroundColor: '#F1F5F9', transform: [{scale: 0.95}] },
-  notifBadge: { 
-    position: 'absolute', 
-    top: 10, 
-    right: 10, 
-    width: 8, 
-    height: 8, 
-    borderRadius: 4, 
-    backgroundColor: '#EF4444', 
-    zIndex: 1,
-    borderWidth: 2,
-    borderColor: '#F8FAFC'
-  },
+  container: { flex: 1, backgroundColor: "#F8FAFC" },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 24, paddingTop: 60, paddingBottom: 20 },
+  welcomeRow: { flexDirection: 'row', alignItems: 'center' },
+  headerLabel: { fontFamily: FONTS.secondary, fontSize: 11, color: "#6366F1", letterSpacing: 1.5, fontWeight: "800" },
+  userName: { fontFamily: FONTS.fredoka, fontSize: 22, color: "#1E293B", marginTop: 4 },
+  headerActions: { flexDirection: "row", gap: 10 },
+  iconBtn: { width: 42, height: 42, borderRadius: 12, backgroundColor: "white", justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: "#E2E8F0" },
   scrollBody: { paddingBottom: 100 },
+  
+  // Rétablissement du style Today Card
+  todayCard: { backgroundColor: "#6366F1", marginHorizontal: 24, borderRadius: 28, padding: 24, marginBottom: 20, flexDirection: 'row', alignItems: 'center', overflow: 'hidden' },
+  todayContent: { flex: 1.2, zIndex: 2 },
+  todayImageWrapper: { flex: 0.8, alignItems: 'flex-end' },
+  todayImage: { width: 90, height: 90 },
+  tagLive: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, alignSelf: 'flex-start', gap: 6, marginBottom: 12 },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#4ADE80' },
+  liveText: { color: 'white', fontSize: 10, fontWeight: '800' },
+  classMain: { color: 'white', fontSize: 22, fontFamily: FONTS.fredoka, marginBottom: 6 },
+  batchContainer: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 18 },
+  batchText: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
+  joinButton: { backgroundColor: 'white', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 14, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 8 },
+  joinButtonText: { color: '#6366F1', fontSize: 14, fontWeight: '800' },
 
-  // Today Card
-  todayCard: {
-    backgroundColor: "#6366F1",
-    marginHorizontal: 24,
-    borderRadius: 30,
-    padding: 20,
-    marginBottom: 25,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  todayContent: {
-    flex: 1,
-    gap: 8,
-  },
-  todayTitle: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  liveContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#EF4444',
-  },
-  liveText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  classMain: {
-    color: 'white',
-    fontSize: 18,
-    fontFamily: FONTS.fredoka,
-    marginTop: 4,
-  },
-  batchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  batchText: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 13,
-  },
-  joinButton: {
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
-    marginTop: 8,
-  },
-  joinButtonText: {
-    color: '#6366F1',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  todayImage: {
-    width: 80,
-    height: 80,
-  },
+  plannerWrapper: { paddingHorizontal: 24, marginBottom: 25 },
+  plannerBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', padding: 12, borderRadius: 20, borderWidth: 1, borderColor: '#E2E8F0', elevation: 2 },
+  plannerIconBg: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#6366F1', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  plannerText: { flex: 1, fontFamily: FONTS.fredoka, fontSize: 16, color: '#1E293B' },
 
-  // Schedule
-  scheduleSection: {
-    marginBottom: 25,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: "#1E293B",
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    color: "#64748B",
-    marginTop: 2,
-  },
-  viewAll: {
-    color: "#6366F1",
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  scheduleContainer: {
-    paddingLeft: 24,
-    paddingRight: 24,
-    gap: 12,
-  },
-  scheduleCard: {
-    padding: 14,
-    borderRadius: 18,
-    width: 100,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-  },
-  scheduleDay: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 16,
-    color: "#1E293B",
-    marginBottom: 4,
-  },
-  scheduleTime: {
-    fontSize: 13,
-    color: "#64748B",
-    marginBottom: 4,
-  },
-  scheduleCourse: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: "#1E293B",
-  },
+  sectionContainer: { marginBottom: 20 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, marginBottom: 15 },
+  sectionTitle: { fontFamily: FONTS.fredoka, fontSize: 18, color: "#1E293B" },
+  toggleContainer: { flexDirection: 'row', backgroundColor: '#E2E8F0', borderRadius: 10, padding: 3 },
+  toggleBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  toggleActive: { backgroundColor: 'white', elevation: 2 },
+  toggleText: { fontSize: 12, fontWeight: '700', color: '#64748B' },
+  toggleTextActive: { color: '#6366F1' },
 
-  // AI Card
-  aiCard: {
-    marginHorizontal: 24,
-    marginBottom: 25,
-    backgroundColor: "#F8FAFC",
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
-  aiContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  aiIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#EEF2FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  aiText: {
-    flex: 1,
-  },
-  aiTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 16,
-    color: "#1E293B",
-    marginBottom: 2,
-  },
-  aiSubtitle: {
-    fontSize: 13,
-    color: "#64748B",
-  },
+  calendarStrip: { paddingLeft: 24, paddingRight: 24, gap: 10 },
+  calCard: { width: 55, paddingVertical: 15, backgroundColor: "white", borderRadius: 18, alignItems: 'center', borderWidth: 1, borderColor: "#E2E8F0" },
+  calCardActive: { backgroundColor: "#6366F1", borderColor: "#6366F1" },
+  calDay: { fontSize: 10, color: "#94A3B8", fontWeight: "700", textTransform: 'uppercase' },
+  calDate: { fontSize: 18, fontWeight: "800", color: "#1E293B", marginTop: 4 },
+  calTextActive: { color: "white" },
 
-  // Lessons Section
-  lessonsSection: {
-    marginBottom: 25,
-  },
-  lessonsContainer: {
-    paddingLeft: 24,
-    paddingRight: 24,
-    gap: 16,
-  },
-  lessonCard: {
-    width: 170,
-    height: 200,
-    borderRadius: 30,
-    padding: 16,
-    justifyContent: 'space-between',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  lessonHeader: {
-    flexDirection: 'row',
-  },
-  lessonTime: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  lessonTimeText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  lessonIconContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  lessonIcon: {
-    width: 50,
-    height: 50,
-  },
-  lessonFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  lessonSubject: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 16,
-    color: "#1E293B",
-  },
-  lessonTitle: {
-    fontSize: 12,
-    color: "#64748B",
-    width: 90,
-  },
-  playButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  timelineSection: { paddingHorizontal: 24 },
+  dayHeader: { marginTop: 15, marginBottom: 12, alignItems: 'flex-start' },
+  dayBadge: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10 },
+  dayBadgeText: { color: 'white', fontWeight: '800', fontSize: 11, fontFamily: FONTS.fredoka, textTransform: 'uppercase' },
+  
+  timelineItem: { flexDirection: 'row' },
+  timelineLeft: { width: 55, alignItems: 'center' },
+  timeLabel: { fontSize: 13, fontWeight: '700', color: '#64748B' },
+  lineWrapper: { flex: 1, alignItems: 'center', marginTop: 8 },
+  dot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: 'white', elevation: 3 },
+  verticalLine: { width: 2, flex: 1, backgroundColor: '#E2E8F0', marginVertical: 4 },
 
-  // Tutor Button
-  tutorButton: {
-    marginHorizontal: 24,
-    marginBottom: 15,
-    backgroundColor: '#EEF2FF',
-    paddingVertical: 14,
-    borderRadius: 25,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#6366F1',
-    borderStyle: 'dashed',
-  },
-  tutorButtonText: {
-    color: '#6366F1',
-    fontSize: 15,
-    fontWeight: '600',
-  },
+  lessonCard: { flex: 1, backgroundColor: 'white', marginLeft: 10, marginBottom: 20, borderRadius: 20, flexDirection: 'row', overflow: 'hidden', borderWidth: 1, borderColor: '#F1F5F9', elevation: 1 },
+  lessonColorBar: { width: 6 },
+  lessonContent: { flex: 1, padding: 15, flexDirection: 'row', alignItems: 'center' },
+  subjectTag: { fontSize: 10, fontWeight: '800', marginBottom: 4, textTransform: 'uppercase' },
+  lessonTitle: { fontFamily: FONTS.fredoka, fontSize: 15, color: '#1E293B' },
+  durationRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
+  durationText: { fontSize: 11, color: '#94A3B8', fontWeight: '600' },
+  lessonThumb: { width: 45, height: 45, borderRadius: 10 },
+  
+  emptyState: { padding: 40, alignItems: 'center' },
+  emptyText: { color: '#94A3B8', fontFamily: FONTS.secondary },
 
-  // Source Button
-  sourceButton: {
-    marginHorizontal: 24,
-    marginBottom: 20,
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 14,
-    borderRadius: 25,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  sourceButtonText: {
-    color: '#64748B',
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  aiWrapper: { paddingHorizontal: 24, marginTop: 10, paddingBottom: 40 },
+  aiCard: { backgroundColor: "#F5F3FF", borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#DDD6FE' },
+  aiIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: "#6366F1", justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+  aiTitle: { fontSize: 16, fontWeight: "800", color: "#1E293B" },
+  aiSubtitle: { fontSize: 12, color: "#64748B", marginTop: 2 },
 });

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -18,21 +18,13 @@ import {
   CheckCircle2,
   ChevronDown,
   Save,
-  Info,
+  Sparkles,
 } from "lucide-react-native";
-import Animated, {
-  FadeInDown,
-  useAnimatedStyle,
-  withTiming,
-  useSharedValue,
-} from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
-import { useTheme } from "@/hooks/use-theme";
 
-// Mock data - in real app, this would come from user state/API
 const mockCurriculums = [
   {
     id: "1",
@@ -70,67 +62,8 @@ const mockSubjects = [
   { id: "chemistry", name: "Chimie", color: "#F59E0B", icon: "🧪" },
 ];
 
-interface ExpandableSectionProps {
-  title: string;
-  subtitle?: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  defaultExpanded?: boolean;
-  colors: import("@/constants/theme").ThemeColors;
-  isDark: boolean;
-}
-
-const ExpandableSection: React.FC<ExpandableSectionProps> = ({
-  title,
-  subtitle,
-  icon,
-  children,
-  defaultExpanded = false,
-  colors,
-  isDark,
-}) => {
-  const [expanded, setExpanded] = useState(defaultExpanded);
-  const rotation = useSharedValue(defaultExpanded ? 180 : 0);
-
-  const animatedChevronStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation.value}deg` }],
-  }));
-
-  const handleToggle = () => {
-    setExpanded(!expanded);
-    rotation.value = withTiming(expanded ? 0 : 180, { duration: 300 });
-  };
-
-  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
-
-  return (
-    <View style={styles.sectionCard}>
-      <TouchableOpacity
-        style={styles.sectionHeader}
-        onPress={handleToggle}
-        activeOpacity={0.7}
-      >
-        <View style={styles.sectionHeaderLeft}>
-          <View style={styles.sectionIcon}>{icon}</View>
-          <View style={styles.sectionHeaderText}>
-            <Text style={styles.sectionTitle}>{title}</Text>
-            {subtitle && <Text style={styles.sectionSubtitle}>{subtitle}</Text>}
-          </View>
-        </View>
-        <Animated.View style={animatedChevronStyle}>
-          <ChevronDown size={24} color={colors.textSecondary} />
-        </Animated.View>
-      </TouchableOpacity>
-      {expanded && <View style={styles.sectionContent}>{children}</View>}
-    </View>
-  );
-};
-
 export default function PublicProfileSettings() {
   const router = useRouter();
-  const { colors, isDark } = useTheme();
-
-  // State for profile settings
   const [profileActive, setProfileActive] = useState(true);
   const [showBio, setShowBio] = useState(true);
   const [showMethodology, setShowMethodology] = useState(true);
@@ -145,8 +78,9 @@ export default function PublicProfileSettings() {
     "1",
     "2",
   ]);
-
-  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
+  const [expandedSection, setExpandedSection] = useState<string | null>(
+    "profile",
+  );
 
   const toggleSubject = (subjectId: string) => {
     setSelectedSubjects((prev) =>
@@ -165,7 +99,6 @@ export default function PublicProfileSettings() {
   };
 
   const handleSave = () => {
-    // In real app, save to backend/Redux
     console.log("Saving profile settings:", {
       profileActive,
       showBio,
@@ -175,215 +108,177 @@ export default function PublicProfileSettings() {
       selectedSubjects,
       selectedCurriculums,
     });
-    // Show success feedback and navigate back
     router.back();
-  };
-
-  const handlePreview = () => {
-    // Navigate to tutor profile view (using user's own ID)
-    router.push("/tutor/1"); // Replace with actual user ID
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Boule violette décorative */}
+      <View style={styles.purpleBlob} />
+
       {/* Header */}
       <View style={styles.header}>
-        <LinearGradient
-          colors={["#8B5CF6", "#6366F1"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerGradient}
-        >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <ArrowLeft size={24} color={COLORS.neutral.white} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Profil Public</Text>
-          <TouchableOpacity
-            style={styles.previewButton}
-            onPress={handlePreview}
-          >
-            <Eye size={20} color={COLORS.neutral.white} />
-          </TouchableOpacity>
-        </LinearGradient>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <ArrowLeft size={22} color="#1E293B" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Profil public</Text>
+        <TouchableOpacity style={styles.previewButton} onPress={() => router.push("/tutor/1")}>
+          <Eye size={18} color="#6366F1" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
-        {/* Info Banner */}
-        <Animated.View
-          entering={FadeInDown.delay(100).duration(400)}
-          style={styles.infoBanner}
-        >
-          <Info size={20} color={isDark ? "#FCD34D" : "#F59E0B"} />
-          <Text style={styles.infoBannerText}>
-            Personnalisez ce que les parents et élèves voient sur votre profil
-            public
+        {/* Info banner */}
+        <View style={styles.infoBanner}>
+          <Sparkles size={16} color="#6366F1" />
+          <Text style={styles.infoText}>
+            Personnalisez ce que les parents voient sur votre profil
           </Text>
-        </Animated.View>
+        </View>
 
-        {/* Master Toggle */}
-        <Animated.View
-          entering={FadeInDown.delay(150).duration(400)}
-          style={styles.masterCard}
-        >
-          <View style={styles.masterCardContent}>
-            <View style={styles.masterCardLeft}>
+        {/* Activation du profil */}
+        <View style={styles.section}>
+          <View style={styles.activationCard}>
+            <View style={styles.activationLeft}>
               {profileActive ? (
-                <View style={styles.statusIconActive}>
-                  <Eye size={24} color="#10B981" />
+                <View style={[styles.statusIcon, { backgroundColor: "#D1FAE5" }]}>
+                  <Eye size={18} color="#10B981" />
                 </View>
               ) : (
-                <View style={styles.statusIconInactive}>
-                  <EyeOff size={24} color={colors.textSecondary} />
+                <View style={[styles.statusIcon, { backgroundColor: "#F1F5F9" }]}>
+                  <EyeOff size={18} color="#64748B" />
                 </View>
               )}
-              <View style={styles.masterCardText}>
-                <Text style={styles.masterCardTitle}>
-                  Profil Public {profileActive ? "Actif" : "Désactivé"}
+              <View>
+                <Text style={styles.activationTitle}>
+                  Profil {profileActive ? "actif" : "inactif"}
                 </Text>
-                <Text style={styles.masterCardSubtitle}>
+                <Text style={styles.activationSubtitle}>
                   {profileActive
-                    ? "Votre profil est visible par tous"
-                    : "Votre profil est caché"}
+                    ? "Visible par tous les parents"
+                    : "Caché des recherches"}
                 </Text>
               </View>
             </View>
             <Switch
               value={profileActive}
               onValueChange={setProfileActive}
-              trackColor={{
-                false: isDark ? COLORS.neutral[700] : COLORS.neutral[300],
-                true: "#10B981",
-              }}
-              thumbColor={COLORS.neutral.white}
+              trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
+              thumbColor="white"
             />
           </View>
-        </Animated.View>
+        </View>
 
-        {/* Profile Sections Visibility */}
-        <Animated.View entering={FadeInDown.delay(200).duration(400)}>
-          <ExpandableSection
-            title="Sections du Profil"
-            subtitle="Choisir les sections à afficher"
-            icon={<BookOpen size={20} color="#8B5CF6" />}
-            defaultExpanded={true}
-            colors={colors}
-            isDark={isDark}
+        {/* Sections du profil */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.sectionHeader}
+            onPress={() => setExpandedSection(expandedSection === "sections" ? null : "sections")}
           >
-            <View style={styles.toggleList}>
+            <View style={styles.sectionHeaderLeft}>
+              <BookOpen size={16} color="#6366F1" />
+              <Text style={styles.sectionTitle}>Sections à afficher</Text>
+            </View>
+            <ChevronDown
+              size={16}
+              color="#64748B"
+              style={{ transform: [{ rotate: expandedSection === "sections" ? "180deg" : "0deg" }] }}
+            />
+          </TouchableOpacity>
+
+          {expandedSection === "sections" && (
+            <View style={styles.sectionContent}>
               {[
                 { label: "Biographie", value: showBio, setter: setShowBio },
-                {
-                  label: "Méthodologie",
-                  value: showMethodology,
-                  setter: setShowMethodology,
-                },
-                {
-                  label: "Avis et Notes",
-                  value: showReviews,
-                  setter: setShowReviews,
-                },
-                {
-                  label: "Disponibilités",
-                  value: showAvailability,
-                  setter: setShowAvailability,
-                },
+                { label: "Méthodologie", value: showMethodology, setter: setShowMethodology },
+                { label: "Avis et notes", value: showReviews, setter: setShowReviews },
+                { label: "Disponibilités", value: showAvailability, setter: setShowAvailability },
               ].map((item, index) => (
-                <View key={index} style={styles.toggleItem}>
+                <View key={index} style={styles.toggleRow}>
                   <Text style={styles.toggleLabel}>{item.label}</Text>
                   <Switch
                     value={item.value}
                     onValueChange={item.setter}
                     disabled={!profileActive}
-                    trackColor={{
-                      false: isDark ? COLORS.neutral[700] : COLORS.neutral[300],
-                      true: COLORS.secondary.DEFAULT,
-                    }}
-                    thumbColor={COLORS.neutral.white}
+                    trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
+                    thumbColor="white"
                   />
                 </View>
               ))}
             </View>
-          </ExpandableSection>
-        </Animated.View>
+          )}
+        </View>
 
-        {/* Subjects Selection */}
-        <Animated.View entering={FadeInDown.delay(250).duration(400)}>
-          <ExpandableSection
-            title="Matières à Mettre en Avant"
-            subtitle={`${selectedSubjects.length} sur ${mockSubjects.length} sélectionnées`}
-            icon={<GraduationCap size={20} color="#3B82F6" />}
-            defaultExpanded={true}
-            colors={colors}
-            isDark={isDark}
+        {/* Matières */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.sectionHeader}
+            onPress={() => setExpandedSection(expandedSection === "subjects" ? null : "subjects")}
           >
-            <View style={styles.subjectsGrid}>
-              {mockSubjects.map((subject) => {
-                const isSelected = selectedSubjects.includes(subject.id);
-                return (
-                  <TouchableOpacity
-                    key={subject.id}
-                    style={[
-                      styles.subjectCard,
-                      isSelected && {
-                        ...styles.subjectCardSelected,
-                        borderColor: subject.color,
-                      },
-                      !profileActive && styles.subjectCardDisabled,
-                    ]}
-                    onPress={() => toggleSubject(subject.id)}
-                    disabled={!profileActive}
-                    activeOpacity={0.7}
-                  >
-                    <View
-                      style={[
-                        styles.subjectCardIcon,
-                        { backgroundColor: subject.color + "20" },
-                      ]}
-                    >
-                      <Text style={styles.subjectEmoji}>{subject.icon}</Text>
-                    </View>
-                    <Text
-                      style={[
-                        styles.subjectCardName,
-                        !profileActive && styles.textDisabled,
-                      ]}
-                    >
-                      {subject.name}
-                    </Text>
-                    {isSelected && (
-                      <View style={styles.checkmark}>
-                        <CheckCircle2
-                          size={20}
-                          color={subject.color}
-                          fill={subject.color}
-                        />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
+            <View style={styles.sectionHeaderLeft}>
+              <GraduationCap size={16} color="#6366F1" />
+              <Text style={styles.sectionTitle}>Matières</Text>
             </View>
-          </ExpandableSection>
-        </Animated.View>
+            <ChevronDown
+              size={16}
+              color="#64748B"
+              style={{ transform: [{ rotate: expandedSection === "subjects" ? "180deg" : "0deg" }] }}
+            />
+          </TouchableOpacity>
 
-        {/* Lesson Portfolio */}
-        <Animated.View entering={FadeInDown.delay(300).duration(400)}>
-          <ExpandableSection
-            title="Cours à Proposer"
-            subtitle={`${selectedCurriculums.length} sur ${mockCurriculums.length} cours affichés`}
-            icon={<BookOpen size={20} color="#10B981" />}
-            defaultExpanded={true}
-            colors={colors}
-            isDark={isDark}
+          {expandedSection === "subjects" && (
+            <View style={styles.sectionContent}>
+              <View style={styles.subjectsGrid}>
+                {mockSubjects.map((subject) => {
+                  const isSelected = selectedSubjects.includes(subject.id);
+                  return (
+                    <TouchableOpacity
+                      key={subject.id}
+                      style={[
+                        styles.subjectCard,
+                        isSelected && { borderColor: subject.color, backgroundColor: subject.color + "10" },
+                        !profileActive && styles.disabled,
+                      ]}
+                      onPress={() => toggleSubject(subject.id)}
+                      disabled={!profileActive}
+                    >
+                      <View style={[styles.subjectIcon, { backgroundColor: subject.color + "15" }]}>
+                        <Text style={styles.subjectEmoji}>{subject.icon}</Text>
+                      </View>
+                      <Text style={styles.subjectName}>{subject.name}</Text>
+                      {isSelected && (
+                        <CheckCircle2 size={14} color={subject.color} style={styles.subjectCheck} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Programmes */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.sectionHeader}
+            onPress={() => setExpandedSection(expandedSection === "curriculums" ? null : "curriculums")}
           >
-            <View style={styles.curriculumsList}>
+            <View style={styles.sectionHeaderLeft}>
+              <BookOpen size={16} color="#6366F1" />
+              <Text style={styles.sectionTitle}>Programmes</Text>
+            </View>
+            <ChevronDown
+              size={16}
+              color="#64748B"
+              style={{ transform: [{ rotate: expandedSection === "curriculums" ? "180deg" : "0deg" }] }}
+            />
+          </TouchableOpacity>
+
+          {expandedSection === "curriculums" && (
+            <View style={styles.sectionContent}>
               {mockCurriculums.map((curriculum) => {
                 const isSelected = selectedCurriculums.includes(curriculum.id);
                 return (
@@ -391,440 +286,292 @@ export default function PublicProfileSettings() {
                     key={curriculum.id}
                     style={[
                       styles.curriculumCard,
-                      isSelected && {
-                        ...styles.curriculumCardSelected,
-                        borderColor: isDark
-                          ? curriculum.subjectColor + "60"
-                          : curriculum.subjectColor + "40",
-                      },
-                      !profileActive && styles.curriculumCardDisabled,
+                      isSelected && { borderColor: curriculum.subjectColor },
+                      !profileActive && styles.disabled,
                     ]}
                     onPress={() => toggleCurriculum(curriculum.id)}
                     disabled={!profileActive}
-                    activeOpacity={0.7}
                   >
-                    <View style={styles.curriculumCardLeft}>
-                      <View
-                        style={[
-                          styles.curriculumIcon,
-                          {
-                            backgroundColor: curriculum.subjectColor + "20",
-                          },
-                        ]}
-                      >
-                        <Text style={styles.curriculumEmoji}>
-                          {curriculum.icon}
-                        </Text>
+                    <View style={styles.curriculumLeft}>
+                      <View style={[styles.curriculumIcon, { backgroundColor: curriculum.subjectColor + "15" }]}>
+                        <Text style={styles.curriculumEmoji}>{curriculum.icon}</Text>
                       </View>
-                      <View style={styles.curriculumInfo}>
-                        <Text
-                          style={[
-                            styles.curriculumTitle,
-                            !profileActive && styles.textDisabled,
-                          ]}
-                        >
-                          {curriculum.title}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.curriculumMeta,
-                            !profileActive && styles.textDisabled,
-                          ]}
-                        >
+                      <View>
+                        <Text style={styles.curriculumTitle}>{curriculum.title}</Text>
+                        <Text style={styles.curriculumMeta}>
                           {curriculum.lessonsCount} leçons • {curriculum.level}
                         </Text>
                       </View>
                     </View>
-                    <View
-                      style={[
-                        styles.checkbox,
-                        isSelected && {
-                          backgroundColor: curriculum.subjectColor,
-                          borderColor: curriculum.subjectColor,
-                        },
-                      ]}
-                    >
-                      {isSelected && (
-                        <CheckCircle2
-                          size={18}
-                          color={COLORS.neutral.white}
-                          fill={COLORS.neutral.white}
-                        />
-                      )}
+                    <View style={[styles.curriculumCheck, isSelected && { backgroundColor: curriculum.subjectColor }]}>
+                      {isSelected && <CheckCircle2 size={12} color="white" />}
                     </View>
                   </TouchableOpacity>
                 );
               })}
             </View>
-          </ExpandableSection>
-        </Animated.View>
-
-        {/* Bottom Spacing */}
-        <View style={styles.bottomSpacer} />
+          )}
+        </View>
       </ScrollView>
 
-      {/* Save Button */}
+      {/* Bouton de sauvegarde */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={styles.saveButton}
-          onPress={handleSave}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={["#8B5CF6", "#6366F1"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.saveButtonGradient}
-          >
-            <Save size={20} color={COLORS.neutral.white} />
-            <Text style={styles.saveButtonText}>
-              Enregistrer les modifications
-            </Text>
-          </LinearGradient>
+        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+          <Save size={18} color="white" />
+          <Text style={styles.saveButtonText}>Enregistrer</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
-const createStyles = (
-  colors: import("@/constants/theme").ThemeColors,
-  isDark: boolean,
-) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    header: {
-      shadowColor: isDark ? COLORS.neutral.black : COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: isDark ? 0.3 : 0.1,
-      shadowRadius: 12,
-      elevation: 8,
-    },
-    headerGradient: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-    },
-    backButton: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: "rgba(255,255,255,0.25)",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    headerTitle: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 22,
-      color: COLORS.neutral.white,
-      fontWeight: "600",
-    },
-    previewButton: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: "rgba(255,255,255,0.25)",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    scrollView: {
-      flex: 1,
-    },
-    scrollContent: {
-      padding: 16,
-    },
-    infoBanner: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-      backgroundColor: colors.infoCardBg,
-      borderRadius: 16,
-      padding: 16,
-      marginBottom: 20,
-      borderLeftWidth: 4,
-      borderLeftColor: colors.infoCardBorder,
-    },
-    infoBannerText: {
-      flex: 1,
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      color: colors.infoCardText,
-      lineHeight: 20,
-    },
-    masterCard: {
-      backgroundColor: colors.cardElevated,
-      borderRadius: 20,
-      padding: 20,
-      marginBottom: 20,
-      shadowColor: isDark ? COLORS.neutral.black : COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: isDark ? 0.4 : 0.1,
-      shadowRadius: 16,
-      elevation: 6,
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-    },
-    masterCardContent: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-    masterCardLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 16,
-      flex: 1,
-    },
-    statusIconActive: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: "#10B98120",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    statusIconInactive: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: colors.input,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    masterCardText: {
-      flex: 1,
-    },
-    masterCardTitle: {
-      fontFamily: FONTS.fredoka,
-      fontSize: 18,
-      color: colors.textPrimary,
-      fontWeight: "600",
-      marginBottom: 4,
-    },
-    masterCardSubtitle: {
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      color: colors.textSecondary,
-    },
-    sectionCard: {
-      backgroundColor: colors.cardElevated,
-      borderRadius: 20,
-      marginBottom: 16,
-      shadowColor: isDark ? COLORS.neutral.black : COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.3 : 0.06,
-      shadowRadius: 12,
-      elevation: 4,
-      overflow: "hidden",
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-    },
-    sectionHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: 20,
-    },
-    sectionHeaderLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 14,
-      flex: 1,
-    },
-    sectionIcon: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: isDark ? colors.input : colors.buttonSecondary,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    sectionHeaderText: {
-      flex: 1,
-    },
-    sectionTitle: {
-      fontFamily: FONTS.secondary,
-      fontSize: 17,
-      color: colors.textPrimary,
-      fontWeight: "600",
-      marginBottom: 4,
-    },
-    sectionSubtitle: {
-      fontFamily: FONTS.secondary,
-      fontSize: 13,
-      color: colors.textSecondary,
-    },
-    sectionContent: {
-      paddingHorizontal: 20,
-      paddingBottom: 20,
-    },
-    toggleList: {
-      gap: 10,
-    },
-    toggleItem: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingVertical: 14,
-      paddingHorizontal: 16,
-      backgroundColor: isDark ? colors.input : colors.buttonSecondary,
-      borderRadius: 14,
-    },
-    toggleLabel: {
-      fontFamily: FONTS.secondary,
-      fontSize: 15,
-      color: colors.textPrimary,
-      fontWeight: "500",
-    },
-    subjectsGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 12,
-    },
-    subjectCard: {
-      flex: 1,
-      minWidth: "45%",
-      backgroundColor: isDark ? colors.input : colors.buttonSecondary,
-      borderRadius: 18,
-      padding: 18,
-      alignItems: "center",
-      borderWidth: 2,
-      borderColor: "transparent",
-      position: "relative",
-    },
-    subjectCardSelected: {
-      backgroundColor: colors.card,
-      borderWidth: 2,
-    },
-    subjectCardDisabled: {
-      opacity: 0.5,
-    },
-    subjectCardIcon: {
-      width: 64,
-      height: 64,
-      borderRadius: 32,
-      justifyContent: "center",
-      alignItems: "center",
-      marginBottom: 12,
-    },
-    subjectEmoji: {
-      fontSize: 32,
-    },
-    subjectCardName: {
-      fontFamily: FONTS.secondary,
-      fontSize: 14,
-      color: colors.textPrimary,
-      fontWeight: "600",
-      textAlign: "center",
-    },
-    checkmark: {
-      position: "absolute",
-      top: 10,
-      right: 10,
-    },
-    curriculumsList: {
-      gap: 12,
-    },
-    curriculumCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: 16,
-      backgroundColor: isDark ? colors.input : colors.buttonSecondary,
-      borderRadius: 16,
-      borderWidth: 2,
-      borderColor: "transparent",
-    },
-    curriculumCardSelected: {
-      backgroundColor: colors.card,
-    },
-    curriculumCardDisabled: {
-      opacity: 0.5,
-    },
-    curriculumCardLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 14,
-      flex: 1,
-    },
-    curriculumIcon: {
-      width: 52,
-      height: 52,
-      borderRadius: 26,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    curriculumEmoji: {
-      fontSize: 26,
-    },
-    curriculumInfo: {
-      flex: 1,
-    },
-    curriculumTitle: {
-      fontFamily: FONTS.secondary,
-      fontSize: 16,
-      color: colors.textPrimary,
-      fontWeight: "600",
-      marginBottom: 4,
-    },
-    curriculumMeta: {
-      fontFamily: FONTS.secondary,
-      fontSize: 13,
-      color: colors.textSecondary,
-    },
-    checkbox: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      borderWidth: 2,
-      borderColor: isDark ? colors.border : colors.inputBorder,
-      justifyContent: "center",
-      alignItems: "center",
-      backgroundColor: colors.card,
-    },
-    textDisabled: {
-      color: colors.textMuted,
-    },
-    bottomSpacer: {
-      height: 100,
-    },
-    bottomBar: {
-      padding: 16,
-      paddingBottom: 24,
-      backgroundColor: colors.card,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-      shadowColor: isDark ? COLORS.neutral.black : COLORS.secondary.DEFAULT,
-      shadowOffset: { width: 0, height: -4 },
-      shadowOpacity: isDark ? 0.3 : 0.1,
-      shadowRadius: 16,
-      elevation: 12,
-    },
-    saveButton: {
-      borderRadius: 18,
-      overflow: "hidden",
-      shadowColor: "#8B5CF6",
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.3,
-      shadowRadius: 12,
-      elevation: 6,
-    },
-    saveButtonGradient: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 10,
-      paddingVertical: 18,
-    },
-    saveButtonText: {
-      fontFamily: FONTS.secondary,
-      fontSize: 16,
-      color: COLORS.neutral.white,
-      fontWeight: "600",
-    },
-  });
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    position: "relative",
+  },
+  purpleBlob: {
+    position: "absolute",
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: "#6366F1",
+    top: -100,
+    right: -100,
+    opacity: 0.1,
+    zIndex: 0,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    zIndex: 1,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  headerTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 20,
+    color: "#1E293B",
+  },
+  previewButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#EEF2FF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 100,
+    zIndex: 1,
+  },
+  infoBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#64748B",
+    lineHeight: 18,
+  },
+  section: {
+    marginBottom: 16,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    overflow: "hidden",
+  },
+  activationCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+  },
+  activationLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  statusIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  activationTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1E293B",
+    marginBottom: 2,
+  },
+  activationSubtitle: {
+    fontSize: 12,
+    color: "#64748B",
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+  },
+  sectionHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1E293B",
+  },
+  sectionContent: {
+    padding: 16,
+    paddingTop: 0,
+  },
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+  },
+  toggleLabel: {
+    fontSize: 14,
+    color: "#1E293B",
+  },
+  subjectsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  subjectCard: {
+    width: "48%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 14,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    position: "relative",
+  },
+  subjectIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  subjectEmoji: {
+    fontSize: 20,
+  },
+  subjectName: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#1E293B",
+    textAlign: "center",
+  },
+  subjectCheck: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+  },
+  disabled: {
+    opacity: 0.5,
+  },
+  curriculumCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  curriculumLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  curriculumIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  curriculumEmoji: {
+    fontSize: 20,
+  },
+  curriculumTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1E293B",
+    marginBottom: 2,
+  },
+  curriculumMeta: {
+    fontSize: 11,
+    color: "#64748B",
+  },
+  curriculumCheck: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  bottomBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "#FFFFFF",
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    zIndex: 2,
+  },
+  saveButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#6366F1",
+    borderRadius: 30,
+    paddingVertical: 14,
+  },
+  saveButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "white",
+  },
+});
