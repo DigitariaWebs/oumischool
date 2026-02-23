@@ -25,6 +25,7 @@ import {
 } from "@/store/slices/themeSlice";
 import { useAppSelector } from "@/store/hooks";
 import { MessagingSocketProvider } from "@/components/providers/MessagingSocketProvider";
+import { PushNotificationsProvider } from "@/components/providers/PushNotificationsProvider";
 
 // Dynamically load StripeProvider so the app degrades gracefully in Expo Go
 // (native modules are only available in dev builds / production builds)
@@ -88,7 +89,9 @@ export default function RootLayout() {
           urlScheme="oumischool"
         >
           <MessagingSocketProvider>
-            <RootLayoutWithTheme />
+            <PushNotificationsProvider>
+              <RootLayoutWithTheme />
+            </PushNotificationsProvider>
           </MessagingSocketProvider>
         </StripeProvider>
       </QueryClientProvider>

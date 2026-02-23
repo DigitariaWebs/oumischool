@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -16,9 +17,15 @@ import { SPACING } from "@/constants/tokens";
 import { PlanCard } from "@/components/payment/PlanCard";
 import { Card, Badge } from "@/components/ui";
 import { usePayment } from "@/hooks/usePayment";
+import {
+  useSubscriptionPlans,
+  useCurrentSubscription,
+} from "@/hooks/api/subscriptions";
+import type { SubscriptionPlan } from "@/hooks/api/subscriptions";
 
 interface PricingPlan {
-  id: string;
+  id: string;         // display-only ID
+  serverPlanId: string; // real DB plan ID used for payment
   name: string;
   price: number;
   billingPeriod: "month" | "year";
@@ -27,133 +34,51 @@ interface PricingPlan {
   isPopular?: boolean;
 }
 
-const monthlyPlans: PricingPlan[] = [
-  {
-    id: "starter-monthly",
-    name: "Starter",
-    price: 29,
-    billingPeriod: "month",
-    description: "Idéal pour commencer l'apprentissage",
-    features: [
-      "Accès à 1 enfant",
-      "5 heures de cours par mois",
-      "Chat avec les tuteurs",
-      "Ressources pédagogiques de base",
-      "Suivi de progression",
-    ],
-  },
-  {
-    id: "famille-monthly",
-    name: "Famille",
-    price: 69,
-    billingPeriod: "month",
-    description: "Pour toute la famille",
-    features: [
-      "Accès jusqu'à 3 enfants",
-      "15 heures de cours par mois",
-      "Chat et appels vidéo",
-      "Toutes les ressources pédagogiques",
-      "Suivi détaillé et rapports",
-      "Planning personnalisé",
-      "Support prioritaire",
-    ],
-    isPopular: true,
-  },
-  {
-    id: "premium-monthly",
-    name: "Premium",
-    price: 129,
-    billingPeriod: "month",
-    description: "L'expérience complète",
-    features: [
-      "Enfants illimités",
-      "30 heures de cours par mois",
-      "Sessions vidéo illimitées",
-      "Accès à tous les tuteurs premium",
-      "Contenu exclusif et exercices avancés",
-      "Coach IA dédié",
-      "Rapports mensuels détaillés",
-      "Support prioritaire 24/7",
-      "Accès anticipé aux nouvelles fonctionnalités",
-    ],
-  },
-];
-
-const yearlyPlans: PricingPlan[] = [
-  {
-    id: "starter-yearly",
-    name: "Starter",
-    price: 290,
-    billingPeriod: "year",
-    description: "Idéal pour commencer l'apprentissage",
-    features: [
-      "Accès à 1 enfant",
-      "5 heures de cours par mois",
-      "Chat avec les tuteurs",
-      "Ressources pédagogiques de base",
-      "Suivi de progression",
-      "2 mois gratuits",
-    ],
-  },
-  {
-    id: "famille-yearly",
-    name: "Famille",
-    price: 690,
-    billingPeriod: "year",
-    description: "Pour toute la famille",
-    features: [
-      "Accès jusqu'à 3 enfants",
-      "15 heures de cours par mois",
-      "Chat et appels vidéo",
-      "Toutes les ressources pédagogiques",
-      "Suivi détaillé et rapports",
-      "Planning personnalisé",
-      "Support prioritaire",
-      "2 mois gratuits",
-    ],
-    isPopular: true,
-  },
-  {
-    id: "premium-yearly",
-    name: "Premium",
-    price: 1290,
-    billingPeriod: "year",
-    description: "L'expérience complète",
-    features: [
-      "Enfants illimités",
-      "30 heures de cours par mois",
-      "Sessions vidéo illimitées",
-      "Accès à tous les tuteurs premium",
-      "Contenu exclusif et exercices avancés",
-      "Coach IA dédié",
-      "Rapports mensuels détaillés",
-      "Support prioritaire 24/7",
-      "Accès anticipé aux nouvelles fonctionnalités",
-      "2 mois gratuits",
-    ],
-  },
-];
+/**
+ * Derive display plans from server plans.
+ * Server stores only the monthly price; yearly is shown as ~10 months (≈ −17%).
+ */
+function buildDisplayPlans(
+  serverPlans: SubscriptionPlan[],
+  billingCycle: "monthly" | "yearly"
+): PricingPlan[] {
+  return serverPlans.map((plan, index) => {
+    const isYearly = billingCycle === "yearly";
+    const price = isYearly ? Math.round(plan.price * 10) : plan.price;
+    const yearlyFeature = isYearly ? ["2 mois gratuits"] : [];
+    return {
+      id: `${plan.id}-${billingCycle}`,
+      serverPlanId: plan.id,
+      name: plan.name,
+      price,
+      billingPeriod: isYearly ? "year" : "month",
+      description: "",
+      features: [...plan.features, ...yearlyFeature],
+      // Middle plan is popular when there are 3+ plans
+      isPopular: serverPlans.length >= 3 && index === 1,
+    };
+  });
+}
 
 export default function PricingScreen() {
   const router = useRouter();
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
     "monthly",
   );
-  const [currentPlanId, setCurrentPlanId] = useState<string | null>(
-    "famille-monthly",
-  );
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
   const { payForSubscription } = usePayment();
 
-  const plans = billingCycle === "monthly" ? monthlyPlans : yearlyPlans;
+  const { data: serverPlans = [], isLoading } = useSubscriptionPlans();
+  const { data: currentSubscription } = useCurrentSubscription();
+
+  const plans = buildDisplayPlans(serverPlans, billingCycle);
   const savingsPercentage = 17; // ~2 months free on yearly
 
-  const handleSelectPlan = async (planId: string) => {
-    setProcessingPlanId(planId);
+  const handleSelectPlan = async (serverPlanId: string) => {
+    setProcessingPlanId(serverPlanId);
     try {
-      const { success } = await payForSubscription(planId);
+      const { success } = await payForSubscription(serverPlanId);
       if (success) {
-        setCurrentPlanId(planId);
         Alert.alert(
           "Abonnement activé!",
           "Votre abonnement a été activé avec succès.",
@@ -250,21 +175,29 @@ export default function PricingScreen() {
 
         {/* Plans */}
         <View style={styles.plansContainer}>
-          {plans.map((plan, index) => (
-            <PlanCard
-              key={plan.id}
-              id={plan.id}
-              name={plan.name}
-              price={plan.price}
-              billingPeriod={plan.billingPeriod}
-              description={plan.description}
-              features={plan.features}
-              isPopular={plan.isPopular}
-              isCurrent={currentPlanId === plan.id}
-              onSelect={handleSelectPlan}
-              delay={index * 100}
+          {isLoading ? (
+            <ActivityIndicator
+              size="large"
+              color={COLORS.primary.DEFAULT}
+              style={styles.loader}
             />
-          ))}
+          ) : (
+            plans.map((plan, index) => (
+              <PlanCard
+                key={plan.id}
+                id={plan.serverPlanId}
+                name={plan.name}
+                price={plan.price}
+                billingPeriod={plan.billingPeriod}
+                description={plan.description}
+                features={plan.features}
+                isPopular={plan.isPopular}
+                isCurrent={currentSubscription?.planId === plan.serverPlanId}
+                onSelect={handleSelectPlan}
+                delay={index * 100}
+              />
+            ))
+          )}
         </View>
 
         {/* Info Card */}
@@ -396,6 +329,9 @@ const styles = StyleSheet.create({
   },
   plansContainer: {
     marginBottom: SPACING.lg,
+  },
+  loader: {
+    paddingVertical: SPACING.xl * 2,
   },
   infoCard: {
     backgroundColor: COLORS.info + "10",

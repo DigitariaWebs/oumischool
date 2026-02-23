@@ -10,3 +10,6 @@ export * from "./subscriptions";
 export * from "./payments";
 export * from "./resources";
 export * from "./reviews";
+export * from "./subjects";
+export * from "./payment-methods";
+export * from "./lessons";

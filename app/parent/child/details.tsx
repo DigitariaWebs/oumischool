@@ -42,6 +42,8 @@ import { updateChild } from "@/store/slices/childrenSlice";
 import AssignLessonModal from "@/components/AssignLessonModal";
 import { useChild } from "@/hooks/api/parent";
 import { useSessions } from "@/hooks/api/sessions";
+import { useActivities } from "@/hooks/api/performance";
+import type { PerformanceRecord } from "@/hooks/api/performance";
 
 interface LessonDetails {
   progressHistory: { date: string; progress: number }[];
@@ -141,50 +143,44 @@ interface StudyDay {
   }[];
 }
 
-const generateStudyStreak = (): StudyDay[] => {
-  const days: StudyDay[] = [];
+function buildStudyDaysFromActivities(
+  records: PerformanceRecord[]
+): StudyDay[] {
   const today = new Date();
+  const days: StudyDay[] = [];
   for (let i = 29; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
+    const dateStr = date.toISOString().split("T")[0];
     const dayOfWeek = date.getDay();
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    const hasActivity = Math.random() > (isWeekend ? 0.6 : 0.3);
-    const timeSpent = hasActivity ? Math.floor(Math.random() * 120) + 15 : 0;
-    const lessonsCompleted = hasActivity
-      ? Math.floor(Math.random() * 3) + 1
-      : 0;
 
-    const activities = [];
-    if (hasActivity) {
-      const subjects = ["Mathématiques", "Français", "Sciences"];
-      const lessons = [
-        "Les fractions",
-        "Le passé composé",
-        "Le système solaire",
-      ];
-      for (let j = 0; j < lessonsCompleted; j++) {
-        activities.push({
-          lessonTitle: lessons[Math.floor(Math.random() * lessons.length)],
-          subject: subjects[Math.floor(Math.random() * subjects.length)],
-          duration: Math.floor(Math.random() * 45) + 15,
-          completedAt: `${9 + j}:00`,
-        });
-      }
-    }
+    const dayRecords = records.filter(
+      (r) => r.recordedAt.split("T")[0] === dateStr
+    );
+    const lessonsCompleted = dayRecords.length;
+    // Estimate 30 min per activity as a reasonable proxy
+    const timeSpent = lessonsCompleted * 30;
 
     days.push({
-      date: date.toISOString().split("T")[0],
+      date: dateStr,
       day: date.getDate(),
       dayName: ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"][dayOfWeek],
       timeSpent,
       isToday: i === 0,
       lessonsCompleted,
-      activities,
+      activities: dayRecords.map((r) => ({
+        lessonTitle: r.title ?? r.activityType,
+        subject: r.subject?.name ?? "",
+        duration: 0,
+        completedAt: new Date(r.recordedAt).toLocaleTimeString("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      })),
     });
   }
   return days;
-};
+}
 
 const calculateAge = (dateOfBirth: string): number => {
   const today = new Date();
@@ -299,7 +295,11 @@ export default function ChildDetailsScreen() {
   const [expandedLesson, setExpandedLesson] = useState<string | null>(null);
   const [assignModalVisible, setAssignModalVisible] = useState(false);
   const [selectedDay, setSelectedDay] = useState<StudyDay | null>(null);
-  const studyStreakDays = useMemo(() => generateStudyStreak(), []);
+  const { data: recentActivities = [] } = useActivities(childId, 30);
+  const studyStreakDays = useMemo(
+    () => buildStudyDaysFromActivities(recentActivities),
+    [recentActivities]
+  );
 
   useEffect(() => {
     if (!child) return;
