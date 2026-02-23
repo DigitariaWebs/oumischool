@@ -10,6 +10,7 @@ import {
   Dimensions,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { usePayment } from "@/hooks/usePayment";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ArrowLeft,
@@ -55,11 +56,16 @@ export default function CheckoutScreen() {
     tutorId: params.tutorId as string,
     tutorName: params.tutorName as string,
     children: JSON.parse((params.children as string) || "[]"),
-    mode: params.mode as string,
+    mode: (params.mode as "online" | "presential") ?? "online",
     day: params.day as string,
     timeSlot: params.timeSlot as string,
+    startTime: params.startTime as string,
+    endTime: params.endTime as string,
+    subjectId: params.subjectId as string | undefined,
     totalPrice: parseFloat(params.totalPrice as string) || 0,
   };
+
+  const { payForSession } = usePayment();
 
   const [cardNumber, setCardNumber] = useState("");
   const [cardHolder, setCardHolder] = useState("");
@@ -103,45 +109,38 @@ export default function CheckoutScreen() {
   };
 
   const handlePayment = async () => {
-    if (paymentMethod === "new") {
-      if (!cardNumber || cardNumber.replace(/\s/g, "").length !== 16) {
-        Alert.alert("Erreur", "Numéro de carte invalide");
-        return;
-      }
-      if (!cardHolder) {
-        Alert.alert("Erreur", "Veuillez entrer le nom du titulaire");
-        return;
-      }
-      if (!expiryDate || expiryDate.length !== 5) {
-        Alert.alert("Erreur", "Date d'expiration invalide");
-        return;
-      }
-      if (!billingAddress) {
-        Alert.alert("Erreur", "Veuillez entrer l'adresse de facturation");
-        return;
-      }
-    }
-
-    if (!cvv || cvv.length !== 3) {
-      Alert.alert("Erreur", "CVV invalide");
+    if (!bookingDetails.startTime || !bookingDetails.endTime) {
+      Alert.alert(
+        "Erreur",
+        "Informations de réservation incomplètes. Veuillez recommencer."
+      );
       return;
     }
 
     setIsProcessing(true);
+    try {
+      const childIds = bookingDetails.children.map((c: { id: string }) => c.id);
+      const { success } = await payForSession({
+        tutorId: bookingDetails.tutorId,
+        childId: childIds[0],
+        childrenIds: childIds.length > 1 ? childIds : undefined,
+        startTime: bookingDetails.startTime,
+        endTime: bookingDetails.endTime,
+        subjectId: bookingDetails.subjectId,
+        mode: bookingDetails.mode,
+        type: childIds.length > 1 ? "group" : "individual",
+      });
 
-    setTimeout(() => {
+      if (success) {
+        Alert.alert(
+          "Paiement réussi! 🎉",
+          "Votre réservation a été confirmée. Le tuteur sera notifié.",
+          [{ text: "OK", onPress: () => router.push("/(tabs)") }]
+        );
+      }
+    } finally {
       setIsProcessing(false);
-      Alert.alert(
-        "Paiement réussi! 🎉",
-        "Votre réservation a été confirmée. Le tuteur sera notifié.",
-        [
-          {
-            text: "OK",
-            onPress: () => router.push("/(tabs)"),
-          },
-        ],
-      );
-    }, 2000);
+    }
   };
 
   const detailItems = [

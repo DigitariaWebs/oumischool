@@ -22,12 +22,14 @@ import {
   ArrowLeft,
   Share2,
   CheckCircle2,
+  Lock,
 } from "lucide-react-native";
 import {
   resolveResourceUrl,
   useResources,
   useTrackResourceDownload,
 } from "@/hooks/api/resources";
+import { usePayment } from "@/hooks/usePayment";
 
 // --- Configuration & Design ---
 const COLORS = {
@@ -55,11 +57,15 @@ interface Resource {
   content: string;
   summary: string[];
   url?: string;
+  isPaid: boolean;
+  price: number | null; // in cents
+  hasEntitlement: boolean;
 }
 
 export default function LibraryScreen() {
   const { data: apiResources = [] } = useResources();
   const trackDownloadMutation = useTrackResourceDownload();
+  const { payForResource } = usePayment();
   const [selectedSubject] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedResource, setSelectedResource] = useState<Resource | null>(
@@ -82,7 +88,7 @@ export default function LibraryScreen() {
                 : ("PDF" as const),
           level: "Tous niveaux",
           pages: 1,
-          downloads: resource.downloads.toString(),
+          downloads: resource.downloads?.toString() ?? "0",
           rating: 5,
           color: "#6366F1",
           image:
@@ -94,6 +100,9 @@ export default function LibraryScreen() {
             resource.description ??
             "Ouvrez ou téléchargez ce document pour consulter son contenu.",
           url: resolveResourceUrl(resource.fileUrl),
+          isPaid: resource.isPaid ?? false,
+          price: resource.price ?? null,
+          hasEntitlement: resource.hasEntitlement ?? !resource.isPaid,
         }))
         .filter((resource) => Boolean(resource.url)),
     [apiResources],
@@ -104,6 +113,34 @@ export default function LibraryScreen() {
       Alert.alert("Indisponible", "Aucun fichier associé à cette ressource.");
       return;
     }
+
+    // Paywall gate: paid resource without entitlement
+    if (resource.isPaid && !resource.hasEntitlement) {
+      const priceLabel = resource.price
+        ? `${(resource.price / 100).toFixed(2)} $`
+        : "Payant";
+      Alert.alert(
+        "Ressource payante",
+        `Cette ressource coûte ${priceLabel}. Souhaitez-vous l'acheter?`,
+        [
+          { text: "Annuler", style: "cancel" },
+          {
+            text: "Acheter",
+            onPress: async () => {
+              const { success } = await payForResource(resource.id);
+              if (success) {
+                Alert.alert(
+                  "Achat réussi!",
+                  "La ressource est maintenant accessible."
+                );
+              }
+            },
+          },
+        ]
+      );
+      return;
+    }
+
     try {
       await trackDownloadMutation.mutateAsync(resource.id);
     } catch {

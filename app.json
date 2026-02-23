@@ -28,7 +28,15 @@
       "favicon": "./assets/images/favicon.png"
     },
    "plugins": [
+  "expo-dev-client",
   "expo-router",
+  [
+    "@stripe/stripe-react-native",
+    {
+      "merchantIdentifier": "merchant.com.achrefdev.oumischool",
+      "enableGooglePay": false
+    }
+  ],
   [
     "expo-splash-screen",
     {

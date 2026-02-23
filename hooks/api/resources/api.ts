@@ -10,6 +10,11 @@ export interface Resource {
   fileSize: string | null;
   tags: string[];
   status: string;
+  isPaid: boolean;
+  price: number | null; // in cents
+  hasEntitlement?: boolean; // set when fetching a single resource as authenticated parent
+  downloads: number;
+  views: number;
   createdAt: string;
   uploader?: { id: string; email: string } | null;
 }
@@ -51,4 +56,6 @@ export const resourcesApi = {
   trackView: (id: string) => apiClient.post<void>(`/resources/${id}/view`),
   trackDownload: (id: string) =>
     apiClient.post<void>(`/resources/${id}/download`),
+  getSecureDownloadUrl: (id: string) =>
+    resolveResourceUrl(`/resources/${id}/download-secure`),
 };

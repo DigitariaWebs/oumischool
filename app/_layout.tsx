@@ -26,6 +26,20 @@ import {
 import { useAppSelector } from "@/store/hooks";
 import { MessagingSocketProvider } from "@/components/providers/MessagingSocketProvider";
 
+// Dynamically load StripeProvider so the app degrades gracefully in Expo Go
+// (native modules are only available in dev builds / production builds)
+let StripeProvider: React.ComponentType<{
+  publishableKey: string;
+  urlScheme?: string;
+  children: React.ReactNode;
+}> = ({ children }) => <>{children}</>;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  StripeProvider = require("@stripe/stripe-react-native").StripeProvider;
+} catch {
+  // Expo Go — Stripe native modules unavailable, payment screens will not work
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -65,13 +79,20 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Provider store={store}>
-        <MessagingSocketProvider>
-          <RootLayoutWithTheme />
-        </MessagingSocketProvider>
-      </Provider>
-    </QueryClientProvider>
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <StripeProvider
+          publishableKey={
+            process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ""
+          }
+          urlScheme="oumischool"
+        >
+          <MessagingSocketProvider>
+            <RootLayoutWithTheme />
+          </MessagingSocketProvider>
+        </StripeProvider>
+      </QueryClientProvider>
+    </Provider>
   );
 }
 

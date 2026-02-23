@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -14,6 +15,7 @@ import { FONTS } from "@/config/fonts";
 import { SPACING } from "@/constants/tokens";
 import { PlanCard } from "@/components/payment/PlanCard";
 import { Card, Badge } from "@/components/ui";
+import { usePayment } from "@/hooks/usePayment";
 
 interface PricingPlan {
   id: string;
@@ -140,15 +142,27 @@ export default function PricingScreen() {
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(
     "famille-monthly",
   );
+  const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
+  const { payForSubscription } = usePayment();
 
   const plans = billingCycle === "monthly" ? monthlyPlans : yearlyPlans;
   const savingsPercentage = 17; // ~2 months free on yearly
 
-  const handleSelectPlan = (planId: string) => {
-    console.log("Selected plan:", planId);
-    // Navigate to payment confirmation - placeholder until route exists
-    // router.push(`/payment/checkout?planId=${planId}`);
-    console.log("Navigate to checkout with plan:", planId);
+  const handleSelectPlan = async (planId: string) => {
+    setProcessingPlanId(planId);
+    try {
+      const { success } = await payForSubscription(planId);
+      if (success) {
+        setCurrentPlanId(planId);
+        Alert.alert(
+          "Abonnement activé!",
+          "Votre abonnement a été activé avec succès.",
+          [{ text: "OK", onPress: () => router.back() }]
+        );
+      }
+    } finally {
+      setProcessingPlanId(null);
+    }
   };
 
   return (
