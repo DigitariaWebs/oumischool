@@ -26,26 +26,61 @@ import { FONTS } from "@/config/fonts";
 import { ASSETS } from "@/config/assets";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
+import { useRegister } from "@/hooks/api/auth";
+import { useAppDispatch } from "@/store/hooks";
+import { loginSuccess } from "@/store/slices/authSlice";
 
 export default function SignUpScreen() {
   const router = useRouter();
-  const [role, setRole] = useState("parent");
-  
+  const dispatch = useAppDispatch();
+  const registerMutation = useRegister();
+  const [role, setRole] = useState<"parent" | "tutor">("parent");
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSignUp = () => {
-    setIsLoading(true);
-    console.log("Inscription en tant que :", role);
-    
-    setTimeout(() => {
-      setIsLoading(false);
-      // Redirection directe vers la page de connexion
-      router.push("/sign-in");
-    }, 1500);
+  const handleSignUp = async () => {
+    if (!name || !email || !password) return;
+    if (password !== confirmPassword) {
+      setError("Les mots de passe ne correspondent pas");
+      return;
+    }
+    setError(null);
+    const parts = name.trim().split(" ");
+    const firstName = parts[0];
+    const lastName = parts.slice(1).join(" ") || parts[0];
+    try {
+      const data = await registerMutation.mutateAsync({
+        email,
+        password,
+        role: role.toUpperCase() as "PARENT" | "TUTOR",
+        firstName,
+        lastName,
+      });
+      const appRole: "parent" | "tutor" =
+        data.user.role.toUpperCase() === "TUTOR" ? "tutor" : "parent";
+      dispatch(
+        loginSuccess({
+          user: {
+            id: data.user.id,
+            email: data.user.email,
+            name,
+            role: appRole,
+          },
+          token: data.tokens.accessToken,
+        })
+      );
+      if (appRole === "tutor") {
+        router.replace("/(tabs-tutor)");
+      } else {
+        router.replace("/(tabs)");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Inscription échouée");
+    }
   };
 
   const roleColor = role === "parent" ? "#6366F1" : "#10B981";
@@ -223,10 +258,16 @@ export default function SignUpScreen() {
               </View>
             )}
 
+            {error && (
+              <Text style={{ color: "#EF4444", fontSize: 13, marginBottom: 12, textAlign: "center" }}>
+                {error}
+              </Text>
+            )}
+
             <Button
               title="S'inscrire"
               onPress={handleSignUp}
-              isLoading={isLoading}
+              isLoading={registerMutation.isPending}
               fullWidth
               style={[styles.signUpButton, { backgroundColor: roleColor }]}
             />

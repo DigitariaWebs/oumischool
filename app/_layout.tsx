@@ -8,6 +8,7 @@ import {
   Fredoka_400Regular,
   Fredoka_700Bold,
 } from "@expo-google-fonts/fredoka";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -15,7 +16,6 @@ import { useEffect, useState } from "react";
 import { BackHandler, Platform } from "react-native";
 import "react-native-reanimated";
 import { Provider, useDispatch } from "react-redux";
-
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { store } from "../store/store";
 import { AnimatedSplashScreen } from "@/components/AnimatedSplashScreen";
@@ -24,6 +24,16 @@ import {
   setSystemColorScheme,
 } from "@/store/slices/themeSlice";
 import { useAppSelector } from "@/store/hooks";
+import { MessagingSocketProvider } from "@/components/providers/MessagingSocketProvider";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      retry: 1,
+    },
+  },
+});
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -55,9 +65,13 @@ export default function RootLayout() {
   }
 
   return (
-    <Provider store={store}>
-      <RootLayoutWithTheme />
-    </Provider>
+    <QueryClientProvider client={queryClient}>
+      <Provider store={store}>
+        <MessagingSocketProvider>
+          <RootLayoutWithTheme />
+        </MessagingSocketProvider>
+      </Provider>
+    </QueryClientProvider>
   );
 }
 

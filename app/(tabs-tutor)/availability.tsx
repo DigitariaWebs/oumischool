@@ -202,7 +202,13 @@ export default function TutorStudentsScreen() {
                     <TouchableOpacity
                       style={[styles.actionBtn, { backgroundColor: "#EEF2FF" }]}
                       onPress={() => {
-                        router.push("/(tabs-tutor)/sessions");
+                        router.push({
+                          pathname: "/(tabs-tutor)/sessions",
+                          params: {
+                            studentId: String(student.id),
+                            studentName: student.fullName,
+                          },
+                        });
                       }}
                     >
                       <Calendar size={15} color="#6366F1" />

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -27,7 +27,6 @@ import {
   Clock,
   ChevronDown,
   Star,
-  Target,
   Zap,
   Trophy,
   ChevronRight,
@@ -36,13 +35,13 @@ import {
   Cake,
   GraduationCap,
 } from "lucide-react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { updateChild } from "@/store/slices/childrenSlice";
 import AssignLessonModal from "@/components/AssignLessonModal";
+import { useChild } from "@/hooks/api/parent";
+import { useSessions } from "@/hooks/api/sessions";
 
 interface LessonDetails {
   progressHistory: { date: string; progress: number }[];
@@ -108,99 +107,24 @@ const childImages = [
   "https://cdn-icons-png.flaticon.com/512/4140/4140051.png",
 ];
 
-const mockActivities: Activity[] = [
-  {
-    id: "1",
-    type: "lesson_completed",
-    title: "Leçon terminée",
-    description: "A complété 'Les fractions décimales'",
-    timestamp: "Il y a 2h",
-    color: "#10B981",
-  },
-  {
-    id: "2",
-    type: "achievement",
-    title: "Nouveau succès",
-    description: "A débloqué le badge 'Maître des Maths'",
-    timestamp: "Il y a 3h",
-    color: "#F59E0B",
-  },
-  {
-    id: "3",
-    type: "time_spent",
-    title: "Temps d'apprentissage",
-    description: "45 minutes d'apprentissage aujourd'hui",
-    timestamp: "Il y a 5h",
-    color: "#3B82F6",
-  },
-  {
-    id: "4",
-    type: "streak",
-    title: "Série maintenue",
-    description: "7 jours d'affilée !",
-    timestamp: "Hier",
-    color: "#8B5CF6",
-  },
-];
+function formatRelativeLabel(input: string): string {
+  const date = new Date(input);
+  if (Number.isNaN(date.getTime())) return "Récemment";
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.max(1, Math.floor(diffMs / 60000));
+  if (diffMin < 60) return `Il y a ${diffMin}m`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `Il y a ${diffHours}h`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `Il y a ${diffDays}j`;
+}
 
-const mockLessons: Lesson[] = [
-  {
-    id: "1",
-    title: "Les fractions décimales",
-    subject: "Mathématiques",
-    status: "completed",
-    progress: 100,
-    duration: 30,
-    completedAt: "Il y a 2h",
-    details: {
-      progressHistory: [
-        { date: "Lun", progress: 20 },
-        { date: "Mar", progress: 45 },
-        { date: "Mer", progress: 70 },
-        { date: "Jeu", progress: 100 },
-      ],
-      interestLevel: 4,
-      performance: {
-        accuracy: 92,
-        timeSpent: 120,
-        attempts: 3,
-        strengths: ["Conversion", "Comparaison"],
-        weaknesses: ["Opérations complexes"],
-      },
-    },
-  },
-  {
-    id: "2",
-    title: "Le passé composé",
-    subject: "Français",
-    status: "in-progress",
-    progress: 65,
-    duration: 45,
-    details: {
-      progressHistory: [
-        { date: "Lun", progress: 15 },
-        { date: "Mar", progress: 35 },
-        { date: "Mer", progress: 65 },
-      ],
-      interestLevel: 3,
-      performance: {
-        accuracy: 78,
-        timeSpent: 85,
-        attempts: 5,
-        strengths: ["Verbes du 1er groupe"],
-        weaknesses: ["Verbes irréguliers", "Accord du participe"],
-      },
-    },
-  },
-  {
-    id: "3",
-    title: "Le système solaire",
-    subject: "Sciences",
-    status: "not-started",
-    progress: 0,
-    duration: 40,
-  },
-];
+function lessonStatusFromSession(status: string): Lesson["status"] {
+  const key = status.toUpperCase();
+  if (key === "COMPLETED") return "completed";
+  if (key === "PENDING" || key === "REQUESTED") return "not-started";
+  return "in-progress";
+}
 
 interface StudyDay {
   date: string;
@@ -227,12 +151,18 @@ const generateStudyStreak = (): StudyDay[] => {
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
     const hasActivity = Math.random() > (isWeekend ? 0.6 : 0.3);
     const timeSpent = hasActivity ? Math.floor(Math.random() * 120) + 15 : 0;
-    const lessonsCompleted = hasActivity ? Math.floor(Math.random() * 3) + 1 : 0;
+    const lessonsCompleted = hasActivity
+      ? Math.floor(Math.random() * 3) + 1
+      : 0;
 
     const activities = [];
     if (hasActivity) {
       const subjects = ["Mathématiques", "Français", "Sciences"];
-      const lessons = ["Les fractions", "Le passé composé", "Le système solaire"];
+      const lessons = [
+        "Les fractions",
+        "Le passé composé",
+        "Le système solaire",
+      ];
       for (let j = 0; j < lessonsCompleted; j++) {
         activities.push({
           lessonTitle: lessons[Math.floor(Math.random() * lessons.length)],
@@ -261,7 +191,10 @@ const calculateAge = (dateOfBirth: string): number => {
   const birthDate = new Date(dateOfBirth);
   let age = today.getFullYear() - birthDate.getFullYear();
   const monthDiff = today.getMonth() - birthDate.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birthDate.getDate())
+  ) {
     age--;
   }
   return age;
@@ -272,12 +205,85 @@ export default function ChildDetailsScreen() {
   const dispatch = useAppDispatch();
   const params = useLocalSearchParams();
   const childId = params.id as string;
+  const { data: apiChild, isLoading: isChildLoading } = useChild(childId);
+  const { data: sessionsData = [] } = useSessions();
 
-  const child = useAppSelector((state) =>
+  const localChild = useAppSelector((state) =>
     state.children.children.find((c) => c.id === childId),
   );
+  const child = useMemo(() => {
+    if (localChild) return localChild;
+    if (!apiChild) return undefined;
+    return {
+      id: apiChild.id,
+      name: apiChild.name,
+      dateOfBirth:
+        apiChild.dateOfBirth ?? new Date().toISOString().split("T")[0],
+      grade: apiChild.grade,
+      color: "#6366F1",
+    };
+  }, [apiChild, localChild]);
 
   const childColor = child?.color || "#6366F1";
+  const liveLessons = useMemo((): Lesson[] => {
+    const rows = Array.isArray(sessionsData) ? sessionsData : [];
+    return rows
+      .filter(
+        (session: any) =>
+          !childId ||
+          session?.childId === childId ||
+          session?.child?.id === childId,
+      )
+      .map((session: any) => {
+        const start = new Date(session?.startTime ?? Date.now());
+        const end = new Date(session?.endTime ?? Date.now());
+        const duration = Math.max(
+          30,
+          Math.round((end.getTime() - start.getTime()) / 60000),
+        );
+        const status = lessonStatusFromSession(String(session?.status ?? ""));
+        return {
+          id: String(session?.id ?? `session-${Math.random()}`),
+          title: String(session?.subjectId ?? "Cours"),
+          subject: String(session?.subjectId ?? "Cours"),
+          status,
+          progress:
+            status === "completed" ? 100 : status === "in-progress" ? 50 : 0,
+          duration,
+          completedAt:
+            status === "completed"
+              ? formatRelativeLabel(
+                  String(session?.endTime ?? session?.startTime ?? ""),
+                )
+              : undefined,
+        } satisfies Lesson;
+      });
+  }, [childId, sessionsData]);
+  const activities = useMemo((): Activity[] => {
+    return liveLessons.slice(0, 6).map((lesson, index) => ({
+      id: `${lesson.id}-${index}`,
+      type:
+        lesson.status === "completed"
+          ? "lesson_completed"
+          : lesson.status === "in-progress"
+            ? "time_spent"
+            : "achievement",
+      title:
+        lesson.status === "completed"
+          ? "Leçon terminée"
+          : lesson.status === "in-progress"
+            ? "Apprentissage en cours"
+            : "Leçon assignée",
+      description: `${lesson.title} • ${lesson.subject}`,
+      timestamp: lesson.completedAt ?? "Récemment",
+      color:
+        lesson.status === "completed"
+          ? "#10B981"
+          : lesson.status === "in-progress"
+            ? "#3B82F6"
+            : "#F59E0B",
+    }));
+  }, [liveLessons]);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(child?.name || "");
@@ -286,13 +292,29 @@ export default function ChildDetailsScreen() {
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [editedGrade, setEditedGrade] = useState(child?.grade || "");
-  const [editedColor, setEditedColor] = useState(child?.color || AVATAR_COLORS[0]);
-  const [lessons, setLessons] = useState<Lesson[]>(mockLessons);
-  const [activities] = useState<Activity[]>(mockActivities);
+  const [editedColor, setEditedColor] = useState(
+    child?.color || AVATAR_COLORS[0],
+  );
+  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [expandedLesson, setExpandedLesson] = useState<string | null>(null);
   const [assignModalVisible, setAssignModalVisible] = useState(false);
   const [selectedDay, setSelectedDay] = useState<StudyDay | null>(null);
   const studyStreakDays = useMemo(() => generateStudyStreak(), []);
+
+  useEffect(() => {
+    if (!child) return;
+    setEditedName(child.name);
+    setEditedDateOfBirth(child.dateOfBirth);
+    setEditedGrade(child.grade);
+    setEditedColor(child.color);
+  }, [child]);
+
+  useEffect(() => {
+    setLessons((prev) => {
+      const manual = prev.filter((lesson) => lesson.id.startsWith("manual-"));
+      return [...liveLessons, ...manual];
+    });
+  }, [liveLessons]);
 
   const assignedLessonIds = lessons.map((lesson) => lesson.id);
 
@@ -317,15 +339,23 @@ export default function ChildDetailsScreen() {
   }, [studyStreakDays]);
 
   const streakRecord = 12;
-  const totalTimeSpent = 245;
-  const totalSessions = 8;
+  const totalTimeSpent = lessons.reduce(
+    (acc, lesson) => acc + lesson.duration,
+    0,
+  );
+  const totalSessions = lessons.length;
 
   if (!child) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Enfant non trouvé</Text>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.errorText}>
+            {isChildLoading ? "Chargement..." : "Enfant non trouvé"}
+          </Text>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
             <Text style={styles.backButtonText}>Retour</Text>
           </TouchableOpacity>
         </View>
@@ -373,7 +403,7 @@ export default function ChildDetailsScreen() {
 
   const handleAssignLessons = (lessonIds: string[]) => {
     const newLessons: Lesson[] = lessonIds.map((id) => ({
-      id,
+      id: `manual-${id}-${Date.now()}`,
       title: `Leçon ${id}`,
       subject: "Nouveau",
       status: "not-started",
@@ -385,34 +415,47 @@ export default function ChildDetailsScreen() {
 
   const getStatusColor = (status: Lesson["status"]) => {
     switch (status) {
-      case "completed": return "#10B981";
-      case "in-progress": return "#F59E0B";
-      case "not-started": return "#94A3B8";
+      case "completed":
+        return "#10B981";
+      case "in-progress":
+        return "#F59E0B";
+      case "not-started":
+        return "#94A3B8";
     }
   };
 
   const getStatusIcon = (status: Lesson["status"]) => {
     switch (status) {
-      case "completed": return <CheckCircle2 size={18} color="#10B981" />;
-      case "in-progress": return <Clock size={18} color="#F59E0B" />;
-      case "not-started": return <BookOpen size={18} color="#94A3B8" />;
+      case "completed":
+        return <CheckCircle2 size={18} color="#10B981" />;
+      case "in-progress":
+        return <Clock size={18} color="#F59E0B" />;
+      case "not-started":
+        return <BookOpen size={18} color="#94A3B8" />;
     }
   };
 
   const getStatusText = (status: Lesson["status"]) => {
     switch (status) {
-      case "completed": return "Terminé";
-      case "in-progress": return "En cours";
-      case "not-started": return "Non commencé";
+      case "completed":
+        return "Terminé";
+      case "in-progress":
+        return "En cours";
+      case "not-started":
+        return "Non commencé";
     }
   };
 
   const getActivityIcon = (type: Activity["type"]) => {
     switch (type) {
-      case "lesson_completed": return <CheckCircle2 size={16} color="white" />;
-      case "achievement": return <Trophy size={16} color="white" />;
-      case "streak": return <Zap size={16} color="white" />;
-      case "time_spent": return <Clock size={16} color="white" />;
+      case "lesson_completed":
+        return <CheckCircle2 size={16} color="white" />;
+      case "achievement":
+        return <Trophy size={16} color="white" />;
+      case "streak":
+        return <Zap size={16} color="white" />;
+      case "time_spent":
+        return <Clock size={16} color="white" />;
     }
   };
 
@@ -440,39 +483,52 @@ export default function ChildDetailsScreen() {
   };
 
   const overallProgress = Math.round(
-    lessons.reduce((acc, lesson) => acc + lesson.progress, 0) / lessons.length || 0,
+    lessons.reduce((acc, lesson) => acc + lesson.progress, 0) /
+      lessons.length || 0,
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Bouton retour */}
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
           <ChevronLeft size={22} color="#1E293B" />
         </TouchableOpacity>
 
         {/* Carte profil */}
         <View style={styles.profileCard}>
           {!isEditing ? (
-            <TouchableOpacity style={styles.editButton} onPress={() => setIsEditing(true)}>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => setIsEditing(true)}
+            >
               <Edit size={18} color={childColor} />
             </TouchableOpacity>
           ) : (
             <View style={styles.editActions}>
-              <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleCancel}
+              >
                 <X size={18} color="#64748B" />
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.saveButton, { backgroundColor: childColor }]} onPress={handleSave}>
+              <TouchableOpacity
+                style={[styles.saveButton, { backgroundColor: childColor }]}
+                onPress={handleSave}
+              >
                 <Save size={18} color="white" />
               </TouchableOpacity>
             </View>
           )}
 
           <View style={styles.profileHeader}>
-            <Image
-              source={{ uri: childImages[0] }}
-              style={styles.avatar}
-            />
+            <Image source={{ uri: childImages[0] }} style={styles.avatar} />
             {!isEditing ? (
               <View style={styles.profileInfo}>
                 <Text style={styles.profileName}>{child.name}</Text>
@@ -503,7 +559,10 @@ export default function ChildDetailsScreen() {
                     <Cake size={14} color="#64748B" />
                     <Text style={styles.inputLabelText}>Date de naissance</Text>
                   </View>
-                  <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
+                  <TouchableOpacity
+                    style={styles.dateButton}
+                    onPress={() => setShowDatePicker(true)}
+                  >
                     <Text style={styles.dateButtonText}>
                       {new Date(editedDateOfBirth).toLocaleDateString("fr-FR")}
                     </Text>
@@ -517,7 +576,11 @@ export default function ChildDetailsScreen() {
                     <GraduationCap size={14} color="#64748B" />
                     <Text style={styles.inputLabelText}>Classe</Text>
                   </View>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.gradeScroll}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.gradeScroll}
+                  >
                     <View style={styles.gradeContainer}>
                       {GRADES.map((grade) => (
                         <TouchableOpacity
@@ -575,7 +638,7 @@ export default function ChildDetailsScreen() {
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleContainer}>
               <Flame size={18} color={childColor} />
-              <Text style={styles.sectionTitle}>Série d'étude</Text>
+              <Text style={styles.sectionTitle}>Série d&apos;étude</Text>
             </View>
           </View>
 
@@ -647,7 +710,12 @@ export default function ChildDetailsScreen() {
                   </View>
                   {selectedDay.activities.map((activity, idx) => (
                     <View key={idx} style={styles.dayActivity}>
-                      <View style={[styles.dayActivityDot, { backgroundColor: childColor }]} />
+                      <View
+                        style={[
+                          styles.dayActivityDot,
+                          { backgroundColor: childColor },
+                        ]}
+                      />
                       <Text style={styles.dayActivityText}>
                         {activity.lessonTitle} • {activity.subject}
                       </Text>
@@ -667,7 +735,12 @@ export default function ChildDetailsScreen() {
           onPress={() => router.push(`/parent/child/schedule?id=${childId}`)}
         >
           <View style={styles.scheduleLeft}>
-            <View style={[styles.scheduleIcon, { backgroundColor: childColor + "15" }]}>
+            <View
+              style={[
+                styles.scheduleIcon,
+                { backgroundColor: childColor + "15" },
+              ]}
+            >
               <Calendar size={20} color={childColor} />
             </View>
             <View>
@@ -683,12 +756,19 @@ export default function ChildDetailsScreen() {
           <Text style={styles.sectionTitle}>Activité récente</Text>
           {activities.map((activity, index) => (
             <View key={activity.id} style={styles.activityItem}>
-              <View style={[styles.activityIcon, { backgroundColor: activity.color }]}>
+              <View
+                style={[
+                  styles.activityIcon,
+                  { backgroundColor: activity.color },
+                ]}
+              >
                 {getActivityIcon(activity.type)}
               </View>
               <View style={styles.activityContent}>
                 <Text style={styles.activityTitle}>{activity.title}</Text>
-                <Text style={styles.activityDescription}>{activity.description}</Text>
+                <Text style={styles.activityDescription}>
+                  {activity.description}
+                </Text>
                 <Text style={styles.activityTime}>{activity.timestamp}</Text>
               </View>
             </View>
@@ -704,7 +784,9 @@ export default function ChildDetailsScreen() {
               onPress={() => setAssignModalVisible(true)}
             >
               <Plus size={14} color={childColor} />
-              <Text style={[styles.addButtonText, { color: childColor }]}>Assigner</Text>
+              <Text style={[styles.addButtonText, { color: childColor }]}>
+                Assigner
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -723,8 +805,18 @@ export default function ChildDetailsScreen() {
                   </View>
                 </View>
                 <View style={styles.lessonRight}>
-                  <View style={[styles.lessonStatus, { backgroundColor: getStatusColor(lesson.status) + "15" }]}>
-                    <Text style={[styles.lessonStatusText, { color: getStatusColor(lesson.status) }]}>
+                  <View
+                    style={[
+                      styles.lessonStatus,
+                      { backgroundColor: getStatusColor(lesson.status) + "15" },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.lessonStatusText,
+                        { color: getStatusColor(lesson.status) },
+                      ]}
+                    >
                       {getStatusText(lesson.status)}
                     </Text>
                   </View>
@@ -732,7 +824,14 @@ export default function ChildDetailsScreen() {
                     <ChevronDown
                       size={16}
                       color="#94A3B8"
-                      style={{ transform: [{ rotate: expandedLesson === lesson.id ? "180deg" : "0deg" }] }}
+                      style={{
+                        transform: [
+                          {
+                            rotate:
+                              expandedLesson === lesson.id ? "180deg" : "0deg",
+                          },
+                        ],
+                      }}
                     />
                   )}
                 </View>
@@ -744,7 +843,10 @@ export default function ChildDetailsScreen() {
                     <View
                       style={[
                         styles.progressFill,
-                        { width: `${lesson.progress}%`, backgroundColor: getStatusColor(lesson.status) },
+                        {
+                          width: `${lesson.progress}%`,
+                          backgroundColor: getStatusColor(lesson.status),
+                        },
                       ]}
                     />
                   </View>
@@ -763,15 +865,21 @@ export default function ChildDetailsScreen() {
                     <Text style={styles.expandedSectionTitle}>Performance</Text>
                     <View style={styles.metricsRow}>
                       <View style={styles.metric}>
-                        <Text style={styles.metricValue}>{lesson.details.performance.accuracy}%</Text>
+                        <Text style={styles.metricValue}>
+                          {lesson.details.performance.accuracy}%
+                        </Text>
                         <Text style={styles.metricLabel}>Précision</Text>
                       </View>
                       <View style={styles.metric}>
-                        <Text style={styles.metricValue}>{lesson.details.performance.timeSpent}m</Text>
+                        <Text style={styles.metricValue}>
+                          {lesson.details.performance.timeSpent}m
+                        </Text>
                         <Text style={styles.metricLabel}>Temps</Text>
                       </View>
                       <View style={styles.metric}>
-                        <Text style={styles.metricValue}>{lesson.details.performance.attempts}</Text>
+                        <Text style={styles.metricValue}>
+                          {lesson.details.performance.attempts}
+                        </Text>
                         <Text style={styles.metricLabel}>Tentatives</Text>
                       </View>
                     </View>
@@ -782,7 +890,9 @@ export default function ChildDetailsScreen() {
                       <Text style={styles.strengthTitle}>Points forts</Text>
                       {lesson.details.performance.strengths.map((s, idx) => (
                         <View key={idx} style={styles.strengthItem}>
-                          <View style={[styles.dot, { backgroundColor: "#10B981" }]} />
+                          <View
+                            style={[styles.dot, { backgroundColor: "#10B981" }]}
+                          />
                           <Text style={styles.strengthText}>{s}</Text>
                         </View>
                       ))}
@@ -791,7 +901,9 @@ export default function ChildDetailsScreen() {
                       <Text style={styles.weaknessTitle}>À améliorer</Text>
                       {lesson.details.performance.weaknesses.map((w, idx) => (
                         <View key={idx} style={styles.weaknessItem}>
-                          <View style={[styles.dot, { backgroundColor: "#EF4444" }]} />
+                          <View
+                            style={[styles.dot, { backgroundColor: "#EF4444" }]}
+                          />
                           <Text style={styles.weaknessText}>{w}</Text>
                         </View>
                       ))}
@@ -832,11 +944,15 @@ export default function ChildDetailsScreen() {
                 <View style={styles.modalContent}>
                   <View style={styles.modalHeader}>
                     <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                      <Text style={[styles.modalButton, { color: childColor }]}>Annuler</Text>
+                      <Text style={[styles.modalButton, { color: childColor }]}>
+                        Annuler
+                      </Text>
                     </TouchableOpacity>
                     <Text style={styles.modalTitle}>Date de naissance</Text>
                     <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                      <Text style={[styles.modalButton, { color: childColor }]}>OK</Text>
+                      <Text style={[styles.modalButton, { color: childColor }]}>
+                        OK
+                      </Text>
                     </TouchableOpacity>
                   </View>
                   <DateTimePicker

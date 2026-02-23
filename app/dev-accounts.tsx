@@ -8,13 +8,19 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronLeft, User, Users, GraduationCap, Sparkles } from "lucide-react-native";
+import {
+  ChevronLeft,
+  User,
+  Users,
+  GraduationCap,
+  Sparkles,
+} from "lucide-react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppDispatch } from "@/store/hooks";
-import { mockLogin, MOCK_ACCOUNTS } from "@/store/slices/authSlice";
+import { loginSuccess } from "@/store/slices/authSlice";
+import { useLogin } from "@/hooks/api/auth";
 
 interface AccountCardProps {
   title: string;
@@ -24,6 +30,7 @@ interface AccountCardProps {
   color: string;
   onPress: () => void;
   delay: number;
+  password: string;
 }
 
 const AccountCard: React.FC<AccountCardProps> = ({
@@ -34,6 +41,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
   color,
   onPress,
   delay,
+  password,
 }) => (
   <Animated.View entering={FadeInDown.delay(delay).duration(400)}>
     <TouchableOpacity
@@ -48,23 +56,80 @@ const AccountCard: React.FC<AccountCardProps> = ({
         <Text style={styles.accountTitle}>{title}</Text>
         <Text style={styles.accountSubtitle}>{subtitle}</Text>
         <Text style={styles.accountEmail}>{email}</Text>
+        <Text style={styles.accountPassword}>Mot de passe: {password}</Text>
       </View>
     </TouchableOpacity>
   </Animated.View>
 );
 
+const DEV_ACCOUNTS = [
+  {
+    title: "Parent (seed)",
+    subtitle: "Compte parent réel",
+    email: "parent@email.com",
+    password: "password123",
+    icon: <User size={22} color="#6366F1" />,
+    color: "#6366F1",
+  },
+  {
+    title: "Élève (seed)",
+    subtitle: "Compte child réel",
+    email: "student@email.com",
+    password: "password123",
+    icon: <Users size={22} color="#3B82F6" />,
+    color: "#3B82F6",
+  },
+  {
+    title: "Tuteur (seed)",
+    subtitle: "Compte tuteur réel",
+    email: "tutor@email.com",
+    password: "password123",
+    icon: <GraduationCap size={22} color="#8B5CF6" />,
+    color: "#8B5CF6",
+  },
+];
+
 export default function DevAccountsScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const loginMutation = useLogin();
 
-  const handleLogin = (role: "parent" | "child" | "tutor") => {
-    dispatch(mockLogin(role));
-    if (role === "child") {
-      router.replace("/(tabs-child)");
-    } else if (role === "tutor") {
-      router.replace("/(tabs-tutor)");
-    } else {
-      router.replace("/(tabs)");
+  const handleLogin = async (email: string, password: string) => {
+    try {
+      const data = await loginMutation.mutateAsync({ email, password });
+      const rawRole = data.user.role.toUpperCase();
+      let appRole: "parent" | "child" | "tutor";
+      if (rawRole === "TUTOR") {
+        appRole = "tutor";
+      } else if (rawRole === "CHILD") {
+        appRole = "child";
+      } else if (rawRole === "PARENT") {
+        appRole = "parent";
+      } else {
+        return;
+      }
+
+      dispatch(
+        loginSuccess({
+          user: {
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.email,
+            role: appRole,
+          },
+          token: data.tokens.accessToken,
+        }),
+      );
+
+      if (appRole === "child") {
+        router.replace("/(tabs-child)");
+      } else if (appRole === "tutor") {
+        router.replace("/(tabs-tutor)");
+      } else {
+        router.replace("/(tabs)");
+      }
+    } catch {
+      // Keep UI simple for dev flow
     }
   };
 
@@ -72,7 +137,10 @@ export default function DevAccountsScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header simple */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
           <ChevronLeft size={22} color="#1E293B" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Comptes de test</Text>
@@ -89,7 +157,8 @@ export default function DevAccountsScreen() {
           <View style={styles.infoTextContainer}>
             <Text style={styles.infoTitle}>Mode développement</Text>
             <Text style={styles.infoText}>
-              Connectez-vous avec différents types de comptes pour tester l'application.
+              Connectez-vous avec différents types de comptes pour tester
+              l&apos;application.
             </Text>
           </View>
         </View>
@@ -98,46 +167,34 @@ export default function DevAccountsScreen() {
         <View style={styles.accountsSection}>
           <Text style={styles.sectionTitle}>Sélectionnez un compte</Text>
 
-          <AccountCard
-            title="Fatima (Parent)"
-            subtitle="Compte parent avec 2 enfants"
-            email={MOCK_ACCOUNTS.parent.email}
-            icon={<User size={22} color="#6366F1" />}
-            color="#6366F1"
-            onPress={() => handleLogin("parent")}
-            delay={200}
-          />
-
-          <AccountCard
-            title="Adam (Enfant)"
-            subtitle="8 ans • CE2"
-            email={MOCK_ACCOUNTS.child1.email}
-            icon={<Users size={22} color="#3B82F6" />}
-            color="#3B82F6"
-            onPress={() => handleLogin("child")}
-            delay={300}
-          />
-
-          <AccountCard
-            title="Mohamed (Tuteur)"
-            subtitle="Tuteur • Maths & Sciences"
-            email={MOCK_ACCOUNTS.tutor.email}
-            icon={<GraduationCap size={22} color="#8B5CF6" />}
-            color="#8B5CF6"
-            onPress={() => handleLogin("tutor")}
-            delay={400}
-          />
+          {DEV_ACCOUNTS.map((account, index) => (
+            <AccountCard
+              key={account.email}
+              title={account.title}
+              subtitle={account.subtitle}
+              email={account.email}
+              password={account.password}
+              icon={account.icon}
+              color={account.color}
+              onPress={() => handleLogin(account.email, account.password)}
+              delay={200 + index * 100}
+            />
+          ))}
         </View>
 
         {/* Astuce */}
         <View style={styles.tipCard}>
           <Text style={styles.tipText}>
-            <Text style={styles.tipBold}>Astuce :</Text> Vous pouvez aussi vous connecter via l'écran de connexion avec les emails contenant "adam", "sofia", "tutor" ou "mohamed".
+            <Text style={styles.tipBold}>Astuce :</Text> Ces comptes doivent
+            exister dans la base via la seed backend.
           </Text>
         </View>
 
         {/* Bouton retour */}
-        <TouchableOpacity style={styles.backToSignIn} onPress={() => router.push("/sign-in")}>
+        <TouchableOpacity
+          style={styles.backToSignIn}
+          onPress={() => router.push("/sign-in")}
+        >
           <Text style={styles.backToSignInText}>Retour à la connexion</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -255,6 +312,11 @@ const styles = StyleSheet.create({
   accountEmail: {
     fontSize: 12,
     color: "#94A3B8",
+  },
+  accountPassword: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 2,
   },
 
   // Tip Card

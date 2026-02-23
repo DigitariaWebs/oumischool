@@ -23,8 +23,9 @@ import {
 } from "lucide-react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
+import { useChild } from "@/hooks/api/parent";
+import { useSessions } from "@/hooks/api/sessions";
 import { useAppSelector } from "@/store/hooks";
 
 interface Session {
@@ -36,6 +37,7 @@ interface Session {
   time: string;
   duration: number;
   mode: "online" | "inPerson";
+  startAt: Date;
   location?: string;
 }
 
@@ -54,39 +56,20 @@ const tutorImages = [
   "https://cdn-icons-png.flaticon.com/512/4140/4140051.png",
 ];
 
-const mockSessions: Session[] = [
-  {
-    id: "1",
-    tutorName: "Marie Dupont",
-    tutorAvatar: tutorImages[0],
-    subject: "Maths",
-    subjectColor: "#3B82F6",
-    time: "14:00",
-    duration: 60,
-    mode: "online",
-  },
-  {
-    id: "2",
-    tutorName: "Jean Martin",
-    tutorAvatar: tutorImages[1],
-    subject: "Français",
-    subjectColor: "#EF4444",
-    time: "16:00",
-    duration: 60,
-    mode: "inPerson",
-    location: "Casablanca",
-  },
-  {
-    id: "3",
-    tutorName: "Sophie Leroy",
-    tutorAvatar: tutorImages[2],
-    subject: "Sciences",
-    subjectColor: "#10B981",
-    time: "10:00",
-    duration: 60,
-    mode: "online",
-  },
-];
+function avatarFor(id: string): string {
+  let sum = 0;
+  for (let i = 0; i < id.length; i += 1) sum += id.charCodeAt(i);
+  return tutorImages[sum % tutorImages.length];
+}
+
+function colorForSubject(subject: string): string {
+  const key = subject.toLowerCase();
+  if (key.includes("math")) return "#3B82F6";
+  if (key.includes("fr")) return "#EF4444";
+  if (key.includes("science")) return "#10B981";
+  if (key.includes("english")) return "#6366F1";
+  return "#6366F1";
+}
 
 const getDayName = (date: Date): string => {
   const days = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
@@ -94,19 +77,45 @@ const getDayName = (date: Date): string => {
 };
 
 const getFullDayName = (date: Date): string => {
-  const days = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+  const days = [
+    "Dimanche",
+    "Lundi",
+    "Mardi",
+    "Mercredi",
+    "Jeudi",
+    "Vendredi",
+    "Samedi",
+  ];
   return days[date.getDay()];
 };
 
 const getMonthName = (date: Date): string => {
   const months = [
-    "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-    "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
+    "Janvier",
+    "Février",
+    "Mars",
+    "Avril",
+    "Mai",
+    "Juin",
+    "Juillet",
+    "Août",
+    "Septembre",
+    "Octobre",
+    "Novembre",
+    "Décembre",
   ];
   return months[date.getMonth()];
 };
 
-const getWeekDates = (currentDate: Date): DaySchedule[] => {
+const isSameDate = (a: Date, b: Date): boolean =>
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
+
+const getWeekDates = (
+  currentDate: Date,
+  allSessions: Session[],
+): DaySchedule[] => {
   const week: DaySchedule[] = [];
   const startOfWeek = new Date(currentDate);
   const day = startOfWeek.getDay();
@@ -117,11 +126,9 @@ const getWeekDates = (currentDate: Date): DaySchedule[] => {
     const date = new Date(startOfWeek);
     date.setDate(startOfWeek.getDate() + i);
 
-    let sessions: Session[] = [];
-    const dayOfWeek = date.getDay();
-    if (dayOfWeek === 1) sessions = [mockSessions[0]];
-    else if (dayOfWeek === 3) sessions = [mockSessions[1], mockSessions[2]];
-    else if (dayOfWeek === 5) sessions = [mockSessions[0]];
+    const sessions = allSessions.filter((session) =>
+      isSameDate(session.startAt, date),
+    );
 
     week.push({
       date,
@@ -137,36 +144,76 @@ export default function ChildScheduleScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const childId = params.id as string;
+  const { data: sessionsData = [] } = useSessions();
+  const { data: apiChild, isLoading: isChildLoading } = useChild(childId);
 
-  const child = useAppSelector((state) =>
+  const localChild = useAppSelector((state) =>
     state.children.children.find((c) => c.id === childId),
   );
+  const child = localChild
+    ? localChild
+    : apiChild
+      ? {
+          id: apiChild.id,
+          name: apiChild.name,
+          dateOfBirth:
+            apiChild.dateOfBirth ?? new Date().toISOString().split("T")[0],
+          grade: apiChild.grade,
+          color: "#6366F1",
+        }
+      : undefined;
 
   const childColor = child?.color || "#6366F1";
 
+  const liveSessions: Session[] = useMemo(
+    () =>
+      sessionsData
+        .filter((session) => !childId || session.childId === childId)
+        .map((session) => {
+          const start = new Date(session.startTime);
+          const end = new Date(session.endTime);
+          const duration = Math.max(
+            30,
+            Math.round((end.getTime() - start.getTime()) / 60000),
+          );
+          return {
+            id: session.id,
+            tutorName: `Tuteur ${session.tutorId.slice(0, 6)}`,
+            tutorAvatar: avatarFor(session.tutorId),
+            subject: session.subjectId ?? "Cours",
+            subjectColor: colorForSubject(session.subjectId ?? "general"),
+            time: `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`,
+            duration,
+            mode: session.mode === "presential" ? "inPerson" : "online",
+            startAt: start,
+          };
+        }),
+    [childId, sessionsData],
+  );
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [weekDates, setWeekDates] = useState<DaySchedule[]>(getWeekDates(new Date()));
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
   const [selectedDay, setSelectedDay] = useState<DaySchedule | null>(null);
+
+  const weekDates = useMemo(
+    () => getWeekDates(currentDate, liveSessions),
+    [currentDate, liveSessions],
+  );
 
   const goToPreviousWeek = () => {
     const newDate = new Date(currentDate);
     newDate.setDate(currentDate.getDate() - 7);
     setCurrentDate(newDate);
-    setWeekDates(getWeekDates(newDate));
   };
 
   const goToNextWeek = () => {
     const newDate = new Date(currentDate);
     newDate.setDate(currentDate.getDate() + 7);
     setCurrentDate(newDate);
-    setWeekDates(getWeekDates(newDate));
   };
 
   const goToToday = () => {
     const today = new Date();
     setCurrentDate(today);
-    setWeekDates(getWeekDates(today));
   };
 
   const isToday = (date: Date): boolean => {
@@ -178,9 +225,17 @@ export default function ChildScheduleScreen() {
     );
   };
 
-  const totalSessions = weekDates.reduce((acc, day) => acc + day.sessions.length, 0);
-
-  const getMonthDates = (): DaySchedule[] => {
+  const totalSessions = weekDates.reduce(
+    (acc, day) => acc + day.sessions.length,
+    0,
+  );
+  const totalTutors = useMemo(
+    () =>
+      new Set(weekDates.flatMap((day) => day.sessions.map((s) => s.tutorName)))
+        .size,
+    [weekDates],
+  );
+  const monthDates = useMemo((): DaySchedule[] => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const firstDay = new Date(year, month, 1);
@@ -192,23 +247,29 @@ export default function ChildScheduleScreen() {
 
     for (let i = 0; i < startOffset; i++) {
       const date = new Date(year, month, 1 - (startOffset - i));
-      dates.push({ date, dayName: getDayName(date), dayNumber: date.getDate(), sessions: [] });
+      dates.push({
+        date,
+        dayName: getDayName(date),
+        dayNumber: date.getDate(),
+        sessions: [],
+      });
     }
 
     for (let day = 1; day <= lastDay.getDate(); day++) {
       const date = new Date(year, month, day);
-      const dayOfWeek = date.getDay();
-      let sessions: Session[] = [];
-      if (dayOfWeek === 1) sessions = [mockSessions[0]];
-      else if (dayOfWeek === 3) sessions = [mockSessions[1], mockSessions[2]];
-      else if (dayOfWeek === 5) sessions = [mockSessions[0]];
-      dates.push({ date, dayName: getDayName(date), dayNumber: date.getDate(), sessions });
+      const sessions = liveSessions.filter((session) => {
+        return isSameDate(session.startAt, date);
+      });
+      dates.push({
+        date,
+        dayName: getDayName(date),
+        dayNumber: date.getDate(),
+        sessions,
+      });
     }
 
     return dates;
-  };
-
-  const monthDates = useMemo(() => getMonthDates(), [currentDate]);
+  }, [currentDate, liveSessions]);
 
   const goToPreviousMonth = () => {
     const newDate = new Date(currentDate);
@@ -226,8 +287,13 @@ export default function ChildScheduleScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Enfant non trouvé</Text>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.errorText}>
+            {isChildLoading ? "Chargement..." : "Enfant non trouvé"}
+          </Text>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
             <Text style={styles.backButtonText}>Retour</Text>
           </TouchableOpacity>
         </View>
@@ -239,7 +305,10 @@ export default function ChildScheduleScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
           <ChevronLeft size={22} color="#1E293B" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
@@ -247,7 +316,10 @@ export default function ChildScheduleScreen() {
           <Text style={styles.headerSubtitle}>{child.name}</Text>
         </View>
         <TouchableOpacity
-          style={[styles.viewModeButton, { backgroundColor: childColor + "15" }]}
+          style={[
+            styles.viewModeButton,
+            { backgroundColor: childColor + "15" },
+          ]}
           onPress={() => setViewMode(viewMode === "week" ? "month" : "week")}
         >
           {viewMode === "week" ? (
@@ -258,10 +330,16 @@ export default function ChildScheduleScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Navigation */}
         <View style={styles.navigation}>
-          <TouchableOpacity style={styles.navButton} onPress={viewMode === "week" ? goToPreviousWeek : goToPreviousMonth}>
+          <TouchableOpacity
+            style={styles.navButton}
+            onPress={viewMode === "week" ? goToPreviousWeek : goToPreviousMonth}
+          >
             <ChevronLeft size={18} color={childColor} />
           </TouchableOpacity>
 
@@ -279,10 +357,15 @@ export default function ChildScheduleScreen() {
           </View>
 
           <TouchableOpacity style={styles.todayButton} onPress={goToToday}>
-            <Text style={[styles.todayButtonText, { color: childColor }]}>Aujourd'hui</Text>
+            <Text style={[styles.todayButtonText, { color: childColor }]}>
+              Aujourd&apos;hui
+            </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.navButton} onPress={viewMode === "week" ? goToNextWeek : goToNextMonth}>
+          <TouchableOpacity
+            style={styles.navButton}
+            onPress={viewMode === "week" ? goToNextWeek : goToNextMonth}
+          >
             <ChevronRight size={18} color={childColor} />
           </TouchableOpacity>
         </View>
@@ -298,7 +381,7 @@ export default function ChildScheduleScreen() {
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
               <Clock size={16} color="#64748B" />
-              <Text style={styles.summaryValue}>3</Text>
+              <Text style={styles.summaryValue}>{totalTutors}</Text>
               <Text style={styles.summaryLabel}>Tuteurs</Text>
             </View>
           </View>
@@ -316,11 +399,23 @@ export default function ChildScheduleScreen() {
                   style={[styles.dayCard, today && styles.dayCardToday]}
                 >
                   <View style={styles.dayHeader}>
-                    <Text style={[styles.dayName, today && { color: childColor }]}>
+                    <Text
+                      style={[styles.dayName, today && { color: childColor }]}
+                    >
                       {day.dayName}
                     </Text>
-                    <View style={[styles.dayNumber, today && { backgroundColor: childColor }]}>
-                      <Text style={[styles.dayNumberText, today && { color: "white" }]}>
+                    <View
+                      style={[
+                        styles.dayNumber,
+                        today && { backgroundColor: childColor },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.dayNumberText,
+                          today && { color: "white" },
+                        ]}
+                      >
                         {day.dayNumber}
                       </Text>
                     </View>
@@ -335,8 +430,20 @@ export default function ChildScheduleScreen() {
                           onPress={() => setSelectedDay(day)}
                         >
                           <View style={styles.sessionHeader}>
-                            <View style={[styles.sessionTime, { backgroundColor: session.subjectColor + "15" }]}>
-                              <Text style={[styles.sessionTimeText, { color: session.subjectColor }]}>
+                            <View
+                              style={[
+                                styles.sessionTime,
+                                {
+                                  backgroundColor: session.subjectColor + "15",
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.sessionTimeText,
+                                  { color: session.subjectColor },
+                                ]}
+                              >
                                 {session.time}
                               </Text>
                             </View>
@@ -350,10 +457,17 @@ export default function ChildScheduleScreen() {
                           </View>
 
                           <View style={styles.sessionContent}>
-                            <Text style={styles.sessionSubject}>{session.subject}</Text>
+                            <Text style={styles.sessionSubject}>
+                              {session.subject}
+                            </Text>
                             <View style={styles.sessionTutor}>
-                              <Image source={{ uri: session.tutorAvatar }} style={styles.tutorAvatar} />
-                              <Text style={styles.tutorName}>{session.tutorName}</Text>
+                              <Image
+                                source={{ uri: session.tutorAvatar }}
+                                style={styles.tutorAvatar}
+                              />
+                              <Text style={styles.tutorName}>
+                                {session.tutorName}
+                              </Text>
                             </View>
                           </View>
                         </TouchableOpacity>
@@ -372,15 +486,20 @@ export default function ChildScheduleScreen() {
           // Vue mois
           <View style={styles.monthContainer}>
             <View style={styles.weekdays}>
-              {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((day, idx) => (
-                <Text key={idx} style={styles.weekdayText}>{day}</Text>
-              ))}
+              {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map(
+                (day, idx) => (
+                  <Text key={idx} style={styles.weekdayText}>
+                    {day}
+                  </Text>
+                ),
+              )}
             </View>
 
             <View style={styles.monthGrid}>
               {monthDates.map((day, index) => {
                 const today = isToday(day.date);
-                const isCurrentMonth = day.date.getMonth() === currentDate.getMonth();
+                const isCurrentMonth =
+                  day.date.getMonth() === currentDate.getMonth();
                 return (
                   <TouchableOpacity
                     key={index}
@@ -405,7 +524,10 @@ export default function ChildScheduleScreen() {
                         {day.sessions.map((session, idx) => (
                           <View
                             key={idx}
-                            style={[styles.monthDayDot, { backgroundColor: session.subjectColor }]}
+                            style={[
+                              styles.monthDayDot,
+                              { backgroundColor: session.subjectColor },
+                            ]}
                           />
                         ))}
                       </View>
@@ -445,13 +567,17 @@ export default function ChildScheduleScreen() {
             <View style={styles.modalHeader}>
               <View>
                 <Text style={styles.modalDate}>
-                  {selectedDay && getFullDayName(selectedDay.date)} {selectedDay?.dayNumber}
+                  {selectedDay && getFullDayName(selectedDay.date)}{" "}
+                  {selectedDay?.dayNumber}
                 </Text>
                 <Text style={styles.modalMonth}>
                   {selectedDay && getMonthName(selectedDay.date)}
                 </Text>
               </View>
-              <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedDay(null)}>
+              <TouchableOpacity
+                style={styles.modalClose}
+                onPress={() => setSelectedDay(null)}
+              >
                 <X size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
@@ -461,8 +587,18 @@ export default function ChildScheduleScreen() {
                 {selectedDay.sessions.map((session) => (
                   <View key={session.id} style={styles.modalSessionCard}>
                     <View style={styles.modalSessionHeader}>
-                      <View style={[styles.modalSessionTime, { backgroundColor: session.subjectColor + "15" }]}>
-                        <Text style={[styles.modalSessionTimeText, { color: session.subjectColor }]}>
+                      <View
+                        style={[
+                          styles.modalSessionTime,
+                          { backgroundColor: session.subjectColor + "15" },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.modalSessionTimeText,
+                            { color: session.subjectColor },
+                          ]}
+                        >
                           {session.time}
                         </Text>
                       </View>
@@ -470,24 +606,37 @@ export default function ChildScheduleScreen() {
                         {session.mode === "online" ? (
                           <>
                             <Video size={12} color="#6366F1" />
-                            <Text style={styles.modalSessionModeText}>En ligne</Text>
+                            <Text style={styles.modalSessionModeText}>
+                              En ligne
+                            </Text>
                           </>
                         ) : (
                           <>
                             <MapPin size={12} color="#6366F1" />
-                            <Text style={styles.modalSessionModeText}>{session.location}</Text>
+                            <Text style={styles.modalSessionModeText}>
+                              {session.location}
+                            </Text>
                           </>
                         )}
                       </View>
                     </View>
 
                     <View style={styles.modalSessionBody}>
-                      <Text style={styles.modalSessionSubject}>{session.subject}</Text>
+                      <Text style={styles.modalSessionSubject}>
+                        {session.subject}
+                      </Text>
                       <View style={styles.modalSessionTutor}>
-                        <Image source={{ uri: session.tutorAvatar }} style={styles.modalTutorAvatar} />
+                        <Image
+                          source={{ uri: session.tutorAvatar }}
+                          style={styles.modalTutorAvatar}
+                        />
                         <View>
-                          <Text style={styles.modalTutorName}>{session.tutorName}</Text>
-                          <Text style={styles.modalTutorDuration}>{session.duration} minutes</Text>
+                          <Text style={styles.modalTutorName}>
+                            {session.tutorName}
+                          </Text>
+                          <Text style={styles.modalTutorDuration}>
+                            {session.duration} minutes
+                          </Text>
                         </View>
                       </View>
                     </View>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -25,13 +25,13 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
-import { useAppSelector } from "@/store/hooks";
+import { useChangePassword } from "@/hooks/api/auth";
 import { useTheme } from "@/hooks/use-theme";
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const user = useAppSelector((state) => state.auth.user);
   const { isDark, setTheme } = useTheme();
+  const changePasswordMutation = useChangePassword();
 
   const [notifications, setNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -43,13 +43,42 @@ export default function SettingsScreen() {
   const [newPassword, setNewPassword] = useState("");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
-  const handleSavePassword = () => {
-    // TODO: Implement password change logic
-    console.log("Changing password...");
-    setIsEditingPassword(false);
-    setCurrentPassword("");
-    setNewPassword("");
+  const handleSavePassword = async () => {
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (!currentPassword || !newPassword) {
+      setPasswordError("Veuillez remplir les deux champs.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordError(
+        "Le nouveau mot de passe doit contenir au moins 8 caractères.",
+      );
+      return;
+    }
+
+    try {
+      await changePasswordMutation.mutateAsync({
+        currentPassword,
+        newPassword,
+      });
+      setPasswordSuccess("Mot de passe mis à jour.");
+      setIsEditingPassword(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+    } catch (error) {
+      setPasswordError(
+        error instanceof Error
+          ? error.message
+          : "Impossible de modifier le mot de passe.",
+      );
+    }
   };
 
   return (
@@ -246,14 +275,32 @@ export default function SettingsScreen() {
                   </View>
 
                   <TouchableOpacity
-                    style={styles.savePasswordButton}
+                    style={[
+                      styles.savePasswordButton,
+                      changePasswordMutation.isPending &&
+                        styles.savePasswordButtonDisabled,
+                    ]}
                     onPress={handleSavePassword}
                     activeOpacity={0.7}
+                    disabled={changePasswordMutation.isPending}
                   >
                     <Text style={styles.savePasswordText}>
-                      Enregistrer le mot de passe
+                      {changePasswordMutation.isPending
+                        ? "Mise à jour..."
+                        : "Enregistrer le mot de passe"}
                     </Text>
                   </TouchableOpacity>
+
+                  {passwordError ? (
+                    <Text style={styles.passwordErrorText}>
+                      {passwordError}
+                    </Text>
+                  ) : null}
+                  {passwordSuccess ? (
+                    <Text style={styles.passwordSuccessText}>
+                      {passwordSuccess}
+                    </Text>
+                  ) : null}
                 </View>
               )}
             </View>
@@ -309,9 +356,9 @@ export default function SettingsScreen() {
                   <HelpCircle size={20} color={COLORS.secondary[700]} />
                 </View>
                 <View style={styles.settingText}>
-                  <Text style={styles.settingTitle}>Centre d'aide</Text>
+                  <Text style={styles.settingTitle}>Centre d&apos;aide</Text>
                   <Text style={styles.settingSubtitle}>
-                    FAQ et guide d'utilisation
+                    FAQ et guide d&apos;utilisation
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -457,5 +504,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: COLORS.neutral.white,
+  },
+  savePasswordButtonDisabled: {
+    opacity: 0.65,
+  },
+  passwordErrorText: {
+    marginTop: 10,
+    fontFamily: FONTS.secondary,
+    fontSize: 13,
+    color: COLORS.error,
+  },
+  passwordSuccessText: {
+    marginTop: 10,
+    fontFamily: FONTS.secondary,
+    fontSize: 13,
+    color: COLORS.success,
   },
 });

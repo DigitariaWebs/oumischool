@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   Image,
   Alert,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ChevronLeft,
@@ -16,71 +16,280 @@ import {
   Clock,
   Calendar,
   User,
-  Plus,
   Trash2,
-  BookOpen,
 } from "lucide-react-native";
-
-// ── Même données que le dashboard ──
-const MY_STUDENTS = [
-  {
-    id: 1,
-    name: "Adam B.",
-    grade: "CE2",
-    subject: "Maths",
-    subjectColor: "#3B82F6",
-    image: "https://cdn-icons-png.flaticon.com/512/4140/4140048.png",
-  },
-  {
-    id: 2,
-    name: "Sofia M.",
-    grade: "CP",
-    subject: "Français",
-    subjectColor: "#EF4444",
-    image: "https://cdn-icons-png.flaticon.com/512/4140/4140049.png",
-  },
-];
+import { useMySessions, useMyStudents } from "@/hooks/api/tutors";
+import { subjectLabelFromId } from "@/utils/subjects";
 
 const DAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 const HOURS = [
-  "08:00", "09:00", "10:00", "11:00", "12:00",
-  "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00",
+  "08:00",
+  "09:00",
+  "10:00",
+  "11:00",
+  "12:00",
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+  "17:00",
+  "18:00",
+  "19:00",
+  "20:00",
 ];
 const DURATIONS = ["30 min", "45 min", "60 min", "90 min", "120 min"];
 
 type Session = {
-  id: number;
-  studentId: number;
+  id: string;
+  studentId: string;
   day: string;
   hour: string;
   duration: string;
 };
 
-// Sessions déjà planifiées (mock)
-const INITIAL_SESSIONS: Session[] = [
-  { id: 1, studentId: 1, day: "Lun", hour: "14:00", duration: "60 min" },
-  { id: 2, studentId: 2, day: "Mer", hour: "16:00", duration: "45 min" },
-];
+type Student = {
+  id: string;
+  name: string;
+  grade: string;
+  subject: string;
+  subjectColor: string;
+  image: string;
+};
 
-// ── Helper : couleur de l'élève ──
-const studentColor = (id: number) =>
-  MY_STUDENTS.find((s) => s.id === id)?.subjectColor ?? "#6366F1";
-const studentName = (id: number) =>
-  MY_STUDENTS.find((s) => s.id === id)?.name ?? "—";
+type SessionRouteParams = {
+  studentId?: string;
+  studentName?: string;
+};
+
+function asNonEmptyString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function asDisplayString(value: unknown): string | null {
+  if (typeof value === "string") return asNonEmptyString(value);
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return null;
+}
+
+function looksLikeStudentIdentifier(value: string, studentId?: string | null) {
+  const normalized = value.trim();
+  if (!normalized) return true;
+  if (studentId && normalized === studentId) return true;
+  if (
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      normalized,
+    )
+  ) {
+    return true;
+  }
+  if (/^[a-f0-9]{24}$/i.test(normalized)) return true;
+  if (/^(child|student|user)[_-]?[0-9a-z-]+$/i.test(normalized)) return true;
+  if (normalized.length > 20 && !/\s/.test(normalized)) return true;
+  return false;
+}
+
+function looksLikeOpaqueIdentifier(value: string): boolean {
+  const normalized = value.trim();
+  if (!normalized) return true;
+  if (
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      normalized,
+    )
+  ) {
+    return true;
+  }
+  if (/^[a-f0-9]{24}$/i.test(normalized)) return true;
+  if (
+    /^(child|student|user|subject|course|matiere)[_-]?[0-9a-z-]+$/i.test(
+      normalized,
+    )
+  ) {
+    return true;
+  }
+  if (normalized.length > 24 && !/\s/.test(normalized)) return true;
+  return false;
+}
+
+function resolveStudentDisplayName(item: any, studentId: string): string {
+  const userFirstName = asNonEmptyString(item?.child?.user?.firstName);
+  const userLastName = asNonEmptyString(item?.child?.user?.lastName);
+  const composedUserName = [userFirstName ?? "", userLastName ?? ""]
+    .join(" ")
+    .trim();
+  const emailPrefix = asNonEmptyString(item?.child?.user?.email)?.split("@")[0];
+  const candidates = [
+    asNonEmptyString(composedUserName),
+    asNonEmptyString(item?.child?.fullName),
+    asNonEmptyString(item?.child?.name),
+    asNonEmptyString(item?.childName),
+    asNonEmptyString(item?.studentName),
+    asNonEmptyString(emailPrefix),
+    asNonEmptyString(item?.name),
+  ].filter((value): value is string => Boolean(value));
+
+  const valid = candidates.find(
+    (candidate) =>
+      !looksLikeStudentIdentifier(candidate, studentId) &&
+      !candidate.includes("@"),
+  );
+  return valid ?? "Élève";
+}
+
+function resolveStudentGrade(item: any, studentId: string): string {
+  const candidates = [
+    asDisplayString(item?.child?.grade),
+    asDisplayString(item?.child?.level),
+    asDisplayString(item?.grade),
+    asDisplayString(item?.gradeLevel),
+    asDisplayString(item?.classLevel),
+    asDisplayString(item?.className),
+  ].filter((value): value is string => Boolean(value));
+
+  const valid = candidates.find(
+    (candidate) => !looksLikeStudentIdentifier(candidate, studentId),
+  );
+  return valid ?? "—";
+}
+
+function resolveSubjectLabel(item: any): string {
+  const subjectNameCandidate =
+    asDisplayString(item?.subject?.name) ??
+    asDisplayString(item?.subjectName) ??
+    asDisplayString(item?.subjectLabel) ??
+    asDisplayString(item?.subjectTitle);
+
+  if (
+    subjectNameCandidate &&
+    !looksLikeOpaqueIdentifier(subjectNameCandidate)
+  ) {
+    return subjectNameCandidate;
+  }
+
+  const subjectIdCandidate = asDisplayString(item?.subjectId);
+  if (subjectIdCandidate && !looksLikeOpaqueIdentifier(subjectIdCandidate)) {
+    return subjectLabelFromId(subjectIdCandidate, "Matière");
+  }
+
+  return "Matière";
+}
+
+const DAY_LABEL: Record<number, string> = {
+  0: "Dim",
+  1: "Lun",
+  2: "Mar",
+  3: "Mer",
+  4: "Jeu",
+  5: "Ven",
+  6: "Sam",
+};
 
 export default function TutorAvailabilityScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<SessionRouteParams>();
+  const { data: myStudentsData = [] } = useMyStudents();
+  const { data: mySessionsData = [] } = useMySessions();
+  const students = useMemo<Student[]>(
+    () =>
+      (Array.isArray(myStudentsData) ? myStudentsData : []).map(
+        (item: any, index: number) => {
+          const childId =
+            asNonEmptyString(item?.child?.id) ??
+            asNonEmptyString(item?.childId) ??
+            `student-${index}`;
+          return {
+            id: childId,
+            name: resolveStudentDisplayName(item, childId),
+            grade: resolveStudentGrade(item, childId),
+            subject: resolveSubjectLabel(item),
+            subjectColor: "#6366F1",
+            image:
+              item?.child?.avatar ??
+              "https://cdn-icons-png.flaticon.com/512/4140/4140048.png",
+          };
+        },
+      ),
+    [myStudentsData],
+  );
+  const initialSessions = useMemo(
+    () =>
+      (Array.isArray(mySessionsData) ? mySessionsData : []).map(
+        (session: any, index: number) => {
+          const start = new Date(session?.startTime ?? Date.now());
+          const end = new Date(session?.endTime ?? Date.now());
+          const studentId =
+            asNonEmptyString(session?.child?.id) ??
+            asNonEmptyString(session?.childId) ??
+            `session-child-${index}`;
+          const durationMinutes = Math.max(
+            30,
+            Math.round((end.getTime() - start.getTime()) / 60000),
+          );
+          return {
+            id: asNonEmptyString(session?.id) ?? `session-${index}`,
+            studentId,
+            day: DAY_LABEL[start.getDay()] ?? "Lun",
+            hour: `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`,
+            duration: `${durationMinutes} min`,
+          } as Session;
+        },
+      ),
+    [mySessionsData],
+  );
 
-  const [sessions, setSessions] = useState<Session[]>(INITIAL_SESSIONS);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  useEffect(() => {
+    setSessions(initialSessions);
+  }, [initialSessions]);
 
   // ── Formulaire ──
-  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
+    null,
+  );
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedHour, setSelectedHour] = useState<string | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<string>("60 min");
 
   // Étape courante du formulaire (1 = élève, 2 = jour, 3 = heure, 4 = durée)
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+
+  useEffect(() => {
+    const routeStudentId = asNonEmptyString(params.studentId);
+    const routeStudentName = asNonEmptyString(params.studentName);
+
+    if (routeStudentId) {
+      const match = students.find((student) => student.id === routeStudentId);
+      if (match) {
+        setSelectedStudentId(match.id);
+        setStep((prev) => (prev < 2 ? 2 : prev));
+        return;
+      }
+    }
+
+    if (routeStudentName) {
+      const normalizedTarget = routeStudentName.toLowerCase();
+      const match = students.find(
+        (student) => student.name.toLowerCase() === normalizedTarget,
+      );
+      if (match) {
+        setSelectedStudentId(match.id);
+        setStep((prev) => (prev < 2 ? 2 : prev));
+      }
+    }
+  }, [params.studentId, params.studentName, students]);
+
+  const routeStudentName = asNonEmptyString(params.studentName);
+  const selectedStudent = students.find((s) => s.id === selectedStudentId);
+  const selectedStudentName =
+    selectedStudent?.name &&
+    !looksLikeStudentIdentifier(selectedStudent.name, selectedStudentId)
+      ? selectedStudent.name
+      : routeStudentName && !looksLikeStudentIdentifier(routeStudentName, null)
+        ? routeStudentName
+        : "Élève";
 
   const resetForm = () => {
     setSelectedStudentId(null);
@@ -95,7 +304,10 @@ export default function TutorAvailabilityScreen() {
 
     // Vérifie doublon
     const conflict = sessions.find(
-      (s) => s.studentId === selectedStudentId && s.day === selectedDay && s.hour === selectedHour
+      (s) =>
+        s.studentId === selectedStudentId &&
+        s.day === selectedDay &&
+        s.hour === selectedHour,
     );
     if (conflict) {
       Alert.alert("Conflit", "Ce créneau est déjà réservé pour cet élève.");
@@ -103,7 +315,7 @@ export default function TutorAvailabilityScreen() {
     }
 
     const newSession: Session = {
-      id: Date.now(),
+      id: `local-${Date.now()}`,
       studentId: selectedStudentId,
       day: selectedDay,
       hour: selectedHour,
@@ -113,12 +325,12 @@ export default function TutorAvailabilityScreen() {
     setSessions((prev) => [...prev, newSession]);
     Alert.alert(
       "✅ Créneau ajouté",
-      `${selectedDay} à ${selectedHour} avec ${studentName(selectedStudentId)} (${selectedDuration})`,
-      [{ text: "Super !", onPress: resetForm }]
+      `${selectedDay} à ${selectedHour} avec ${selectedStudentName} (${selectedDuration})`,
+      [{ text: "Super !", onPress: resetForm }],
     );
   };
 
-  const handleDeleteSession = (id: number) => {
+  const handleDeleteSession = (id: string) => {
     Alert.alert("Supprimer", "Voulez-vous supprimer ce créneau ?", [
       { text: "Annuler", style: "cancel" },
       {
@@ -139,7 +351,7 @@ export default function TutorAvailabilityScreen() {
   // Labels d'étapes
   const stepLabel = ["Élève", "Jour", "Heure", "Durée"];
 
-  const canConfirm = selectedStudentId && selectedDay && selectedHour;
+  const canConfirm = Boolean(selectedStudentId && selectedDay && selectedHour);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -152,8 +364,10 @@ export default function TutorAvailabilityScreen() {
         <View style={{ width: 38 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+      >
         {/* ── STEPPER ── */}
         <View style={styles.stepper}>
           {stepLabel.map((label, i) => {
@@ -207,40 +421,65 @@ export default function TutorAvailabilityScreen() {
           })}
         </View>
 
-        {/* ── ÉTAPE 1 : CHOISIR L'ÉLÈVE ── */}
+        {/* Step 1: Choose student */}
         {step === 1 && (
           <View style={styles.card}>
             <View style={styles.cardTitleRow}>
               <User size={18} color="#6366F1" />
-              <Text style={styles.cardTitle}>Choisir l'élève</Text>
+              <Text style={styles.cardTitle}>Choisir l&apos;eleve</Text>
             </View>
-            {MY_STUDENTS.map((s) => (
-              <TouchableOpacity
-                key={s.id}
-                style={[
-                  styles.studentRow,
-                  selectedStudentId === s.id && styles.studentRowActive,
-                ]}
-                onPress={() => {
-                  setSelectedStudentId(s.id);
-                  setTimeout(() => setStep(2), 200);
-                }}
-              >
-                <Image source={{ uri: s.image }} style={styles.avatar} />
-                <View style={styles.studentInfo}>
-                  <Text style={styles.studentName}>{s.name}</Text>
-                  <Text style={styles.studentGrade}>{s.grade}</Text>
-                </View>
-                <View style={[styles.subjectBadge, { backgroundColor: s.subjectColor + "20" }]}>
-                  <Text style={[styles.subjectText, { color: s.subjectColor }]}>{s.subject}</Text>
-                </View>
-                {selectedStudentId === s.id && (
-                  <View style={styles.checkCircle}>
-                    <Check size={12} color="white" />
+            {students.map((s) => {
+              const displayName =
+                typeof s?.name === "string" && s.name.trim() ? s.name : "Eleve";
+              const displayGrade =
+                typeof s?.grade === "string" && s.grade.trim() ? s.grade : "—";
+              const displaySubject =
+                typeof s?.subject === "string" && s.subject.trim()
+                  ? s.subject
+                  : "Matiere";
+              const subjectColor =
+                typeof s?.subjectColor === "string" && s.subjectColor.trim()
+                  ? s.subjectColor
+                  : "#6366F1";
+              const avatarUri =
+                typeof s?.image === "string" && s.image.trim()
+                  ? s.image
+                  : "https://cdn-icons-png.flaticon.com/512/4140/4140048.png";
+              return (
+                <TouchableOpacity
+                  key={String(s.id)}
+                  style={[
+                    styles.studentRow,
+                    selectedStudentId === s.id && styles.studentRowActive,
+                  ]}
+                  onPress={() => {
+                    setSelectedStudentId(s.id);
+                    setTimeout(() => setStep(2), 200);
+                  }}
+                >
+                  <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                  <View style={styles.studentInfo}>
+                    <Text style={styles.studentName}>{displayName}</Text>
+                    <Text style={styles.studentGrade}>{displayGrade}</Text>
                   </View>
-                )}
-              </TouchableOpacity>
-            ))}
+                  <View
+                    style={[
+                      styles.subjectBadge,
+                      { backgroundColor: subjectColor + "20" },
+                    ]}
+                  >
+                    <Text style={[styles.subjectText, { color: subjectColor }]}>
+                      {displaySubject}
+                    </Text>
+                  </View>
+                  {selectedStudentId === s.id && (
+                    <View style={styles.checkCircle}>
+                      <Check size={12} color="white" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
 
@@ -254,7 +493,7 @@ export default function TutorAvailabilityScreen() {
             <View style={styles.daysGrid}>
               {DAYS.map((day) => {
                 const busy = sessions.some(
-                  (s) => s.studentId === selectedStudentId && s.day === day
+                  (s) => s.studentId === selectedStudentId && s.day === day,
                 );
                 const isSelected = selectedDay === day;
                 return (
@@ -279,14 +518,15 @@ export default function TutorAvailabilityScreen() {
                     >
                       {day}
                     </Text>
-                    {busy && !isSelected && (
-                      <View style={styles.busyDot} />
-                    )}
+                    {busy && !isSelected && <View style={styles.busyDot} />}
                   </TouchableOpacity>
                 );
               })}
             </View>
-            <TouchableOpacity style={styles.backStep} onPress={() => setStep(1)}>
+            <TouchableOpacity
+              style={styles.backStep}
+              onPress={() => setStep(1)}
+            >
               <ChevronLeft size={14} color="#6366F1" />
               <Text style={styles.backStepText}>Retour</Text>
             </TouchableOpacity>
@@ -298,7 +538,7 @@ export default function TutorAvailabilityScreen() {
           <View style={styles.card}>
             <View style={styles.cardTitleRow}>
               <Clock size={18} color="#6366F1" />
-              <Text style={styles.cardTitle}>Choisir l'heure</Text>
+              <Text style={styles.cardTitle}>Choisir l&apos;heure</Text>
             </View>
             <View style={styles.hoursGrid}>
               {HOURS.map((hour) => {
@@ -306,7 +546,7 @@ export default function TutorAvailabilityScreen() {
                   (s) =>
                     s.studentId === selectedStudentId &&
                     s.day === selectedDay &&
-                    s.hour === hour
+                    s.hour === hour,
                 );
                 const isSelected = selectedHour === hour;
                 return (
@@ -336,7 +576,10 @@ export default function TutorAvailabilityScreen() {
                 );
               })}
             </View>
-            <TouchableOpacity style={styles.backStep} onPress={() => setStep(2)}>
+            <TouchableOpacity
+              style={styles.backStep}
+              onPress={() => setStep(2)}
+            >
               <ChevronLeft size={14} color="#6366F1" />
               <Text style={styles.backStepText}>Retour</Text>
             </TouchableOpacity>
@@ -379,13 +622,13 @@ export default function TutorAvailabilityScreen() {
                 <View style={styles.recapRow}>
                   <Image
                     source={{
-                      uri: MY_STUDENTS.find((s) => s.id === selectedStudentId)?.image,
+                      uri: selectedStudent?.image,
                     }}
                     style={styles.recapAvatar}
                   />
                   <View>
                     <Text style={styles.recapStudent}>
-                      {studentName(selectedStudentId!)}
+                      {selectedStudentName}
                     </Text>
                     <Text style={styles.recapDetail}>
                       {selectedDay} · {selectedHour} · {selectedDuration}
@@ -396,7 +639,10 @@ export default function TutorAvailabilityScreen() {
             )}
 
             <TouchableOpacity
-              style={[styles.confirmBtn, !canConfirm && styles.confirmBtnDisabled]}
+              style={[
+                styles.confirmBtn,
+                !canConfirm && styles.confirmBtnDisabled,
+              ]}
               disabled={!canConfirm}
               onPress={handleAddSession}
             >
@@ -404,7 +650,10 @@ export default function TutorAvailabilityScreen() {
               <Text style={styles.confirmBtnText}>Confirmer le créneau</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.backStep} onPress={() => setStep(3)}>
+            <TouchableOpacity
+              style={styles.backStep}
+              onPress={() => setStep(3)}
+            >
               <ChevronLeft size={14} color="#6366F1" />
               <Text style={styles.backStepText}>Retour</Text>
             </TouchableOpacity>
@@ -418,14 +667,18 @@ export default function TutorAvailabilityScreen() {
           {Object.keys(sessionsByDay).length === 0 ? (
             <View style={styles.emptyBox}>
               <Calendar size={32} color="#CBD5E1" />
-              <Text style={styles.emptyText}>Aucun créneau pour l'instant</Text>
+              <Text style={styles.emptyText}>
+                Aucun créneau pour l&apos;instant
+              </Text>
             </View>
           ) : (
             Object.entries(sessionsByDay).map(([day, list]) => (
               <View key={day} style={styles.dayGroup}>
                 <Text style={styles.dayGroupLabel}>{day}</Text>
                 {list.map((session) => {
-                  const color = studentColor(session.studentId);
+                  const color =
+                    students.find((s) => s.id === session.studentId)
+                      ?.subjectColor ?? "#6366F1";
                   return (
                     <View
                       key={session.id}
@@ -434,13 +687,16 @@ export default function TutorAvailabilityScreen() {
                       <View style={styles.sessionCardLeft}>
                         <Image
                           source={{
-                            uri: MY_STUDENTS.find((s) => s.id === session.studentId)?.image,
+                            uri: students.find(
+                              (s) => s.id === session.studentId,
+                            )?.image,
                           }}
                           style={styles.sessionAvatar}
                         />
                         <View>
                           <Text style={styles.sessionCardName}>
-                            {studentName(session.studentId)}
+                            {students.find((s) => s.id === session.studentId)
+                              ?.name ?? "—"}
                           </Text>
                           <Text style={styles.sessionCardDetail}>
                             {session.hour} · {session.duration}
@@ -482,22 +738,34 @@ const styles = StyleSheet.create({
     borderBottomColor: "#F1F5F9",
   },
   backBtn: {
-    width: 38, height: 38, borderRadius: 12,
-    backgroundColor: "#F8FAFC", justifyContent: "center", alignItems: "center",
-    borderWidth: 1, borderColor: "#F1F5F9",
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#1E293B" },
 
   // Stepper
   stepper: {
-    flexDirection: "row", alignItems: "center",
-    paddingHorizontal: 24, paddingVertical: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 20,
   },
   stepItem: { alignItems: "center", gap: 4 },
   stepCircle: {
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: "#F1F5F9", borderWidth: 2, borderColor: "#E2E8F0",
-    justifyContent: "center", alignItems: "center",
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#F1F5F9",
+    borderWidth: 2,
+    borderColor: "#E2E8F0",
+    justifyContent: "center",
+    alignItems: "center",
   },
   stepCircleActive: { borderColor: "#6366F1", backgroundColor: "#EEF2FF" },
   stepCircleDone: { borderColor: "#6366F1", backgroundColor: "#6366F1" },
@@ -505,24 +773,42 @@ const styles = StyleSheet.create({
   stepNumActive: { color: "#6366F1" },
   stepLabel: { fontSize: 10, color: "#94A3B8", fontWeight: "600" },
   stepLabelActive: { color: "#6366F1" },
-  stepLine: { flex: 1, height: 2, backgroundColor: "#E2E8F0", marginBottom: 14 },
+  stepLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: "#E2E8F0",
+    marginBottom: 14,
+  },
   stepLineDone: { backgroundColor: "#6366F1" },
 
   // Card
   card: {
-    marginHorizontal: 20, backgroundColor: "#FAFBFF",
-    borderRadius: 20, padding: 20,
-    borderWidth: 1, borderColor: "#E0E7FF",
+    marginHorizontal: 20,
+    backgroundColor: "#FAFBFF",
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
     marginBottom: 24,
   },
-  cardTitleRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 18 },
+  cardTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 18,
+  },
   cardTitle: { fontSize: 16, fontWeight: "700", color: "#1E293B" },
 
   // Étape 1 – Élèves
   studentRow: {
-    flexDirection: "row", alignItems: "center",
-    padding: 14, borderRadius: 14, marginBottom: 10,
-    backgroundColor: "white", borderWidth: 1.5, borderColor: "#E2E8F0",
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 14,
+    marginBottom: 10,
+    backgroundColor: "white",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
     gap: 12,
   },
   studentRowActive: { borderColor: "#6366F1", backgroundColor: "#F0F4FF" },
@@ -533,18 +819,30 @@ const styles = StyleSheet.create({
   subjectBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   subjectText: { fontSize: 11, fontWeight: "700" },
   checkCircle: {
-    width: 22, height: 22, borderRadius: 11,
-    backgroundColor: "#6366F1", justifyContent: "center", alignItems: "center",
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#6366F1",
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   // Étape 2 – Jours
   daysGrid: {
-    flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 16,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 16,
   },
   dayChip: {
-    width: 56, height: 56, borderRadius: 14,
-    backgroundColor: "white", borderWidth: 1.5, borderColor: "#E2E8F0",
-    justifyContent: "center", alignItems: "center",
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: "white",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    justifyContent: "center",
+    alignItems: "center",
   },
   dayChipSelected: { backgroundColor: "#6366F1", borderColor: "#6366F1" },
   dayChipBusy: { backgroundColor: "#FFF7ED", borderColor: "#FED7AA" },
@@ -552,31 +850,53 @@ const styles = StyleSheet.create({
   dayTextSelected: { color: "white" },
   dayTextBusy: { color: "#F97316" },
   busyDot: {
-    width: 5, height: 5, borderRadius: 3,
-    backgroundColor: "#F97316", position: "absolute", bottom: 8,
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "#F97316",
+    position: "absolute",
+    bottom: 8,
   },
 
   // Étape 3 – Heures
   hoursGrid: {
-    flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
   },
   hourChip: {
-    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10,
-    backgroundColor: "white", borderWidth: 1.5, borderColor: "#E2E8F0",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: "white",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
   },
   hourChipSelected: { backgroundColor: "#6366F1", borderColor: "#6366F1" },
-  hourChipBusy: { backgroundColor: "#F8FAFC", borderColor: "#E2E8F0", opacity: 0.4 },
+  hourChipBusy: {
+    backgroundColor: "#F8FAFC",
+    borderColor: "#E2E8F0",
+    opacity: 0.4,
+  },
   hourText: { fontSize: 13, fontWeight: "600", color: "#475569" },
   hourTextSelected: { color: "white" },
   hourTextBusy: { color: "#94A3B8" },
 
   // Étape 4 – Durée
   durationGrid: {
-    flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 20,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 20,
   },
   durationChip: {
-    paddingHorizontal: 16, paddingVertical: 11, borderRadius: 12,
-    backgroundColor: "white", borderWidth: 1.5, borderColor: "#E2E8F0",
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    borderRadius: 12,
+    backgroundColor: "white",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
   },
   durationChipSelected: { backgroundColor: "#10B981", borderColor: "#10B981" },
   durationText: { fontSize: 13, fontWeight: "600", color: "#475569" },
@@ -584,10 +904,20 @@ const styles = StyleSheet.create({
 
   // Récap
   recap: {
-    backgroundColor: "#F0FDF4", borderRadius: 14, padding: 14,
-    marginBottom: 16, borderWidth: 1, borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
   },
-  recapTitle: { fontSize: 11, fontWeight: "700", color: "#10B981", marginBottom: 10, letterSpacing: 0.8 },
+  recapTitle: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#10B981",
+    marginBottom: 10,
+    letterSpacing: 0.8,
+  },
   recapRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   recapAvatar: { width: 36, height: 36, borderRadius: 18 },
   recapStudent: { fontSize: 14, fontWeight: "700", color: "#1E293B" },
@@ -595,38 +925,64 @@ const styles = StyleSheet.create({
 
   // Bouton confirmer
   confirmBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-    backgroundColor: "#6366F1", padding: 16, borderRadius: 14, marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#6366F1",
+    padding: 16,
+    borderRadius: 14,
+    marginBottom: 12,
   },
   confirmBtnDisabled: { backgroundColor: "#C7D2FE" },
   confirmBtnText: { color: "white", fontSize: 15, fontWeight: "700" },
 
   // Retour
   backStep: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    justifyContent: "center", paddingVertical: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    justifyContent: "center",
+    paddingVertical: 4,
   },
   backStepText: { fontSize: 13, color: "#6366F1", fontWeight: "600" },
 
   // Créneaux existants
   existingSection: { paddingHorizontal: 20 },
-  existingTitle: { fontSize: 18, fontWeight: "700", color: "#1E293B", marginBottom: 16 },
+  existingTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: 16,
+  },
   emptyBox: {
-    alignItems: "center", padding: 32,
-    backgroundColor: "#F8FAFC", borderRadius: 16,
-    borderWidth: 1, borderColor: "#F1F5F9",
+    alignItems: "center",
+    padding: 32,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
   emptyText: { fontSize: 14, color: "#94A3B8", marginTop: 10 },
 
   dayGroup: { marginBottom: 16 },
   dayGroupLabel: {
-    fontSize: 12, fontWeight: "700", color: "#6366F1",
-    letterSpacing: 1, marginBottom: 8,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#6366F1",
+    letterSpacing: 1,
+    marginBottom: 8,
   },
   sessionCard: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    backgroundColor: "#F8FAFC", borderRadius: 14, padding: 12,
-    borderLeftWidth: 4, borderWidth: 1, borderColor: "#F1F5F9",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 14,
+    padding: 12,
+    borderLeftWidth: 4,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
     marginBottom: 8,
   },
   sessionCardLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
@@ -634,7 +990,11 @@ const styles = StyleSheet.create({
   sessionCardName: { fontSize: 14, fontWeight: "600", color: "#1E293B" },
   sessionCardDetail: { fontSize: 12, color: "#64748B", marginTop: 1 },
   deleteBtn: {
-    width: 32, height: 32, borderRadius: 10,
-    backgroundColor: "#FEF2F2", justifyContent: "center", alignItems: "center",
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: "#FEF2F2",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

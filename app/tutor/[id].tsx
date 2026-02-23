@@ -9,7 +9,7 @@ import {
   Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Star,
   MapPin,
@@ -27,16 +27,14 @@ import {
   MessageSquare,
   ArrowLeft,
   Heart,
-  Sparkles,
 } from "lucide-react-native";
 
-import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+import { useTutorAvailability, useTutorDetail } from "@/hooks/api/tutors";
+import { useAppSelector } from "@/store/hooks";
 
 // Mock data
-const mockTutor = {
+const fallbackTutor = {
   id: "1",
   name: "Marie Dupont",
   avatar: "https://cdn-icons-png.flaticon.com/512/4140/4140048.png",
@@ -78,7 +76,8 @@ const mockTutor = {
       title: "Programme Maths - Niveau CE2",
       subject: "Maths",
       subjectColor: "#3B82F6",
-      description: "Programme complet pour maîtriser les bases des mathématiques",
+      description:
+        "Programme complet pour maîtriser les bases des mathématiques",
       lessonsCount: 12,
       duration: "3 mois",
       level: "CE2",
@@ -100,7 +99,7 @@ const mockTutor = {
   ],
 };
 
-const mockChildren = [
+const fallbackChildren = [
   { id: "child1", name: "Emma", age: 8, grade: "CE2" },
   { id: "child2", name: "Lucas", age: 10, grade: "CM1" },
 ];
@@ -117,24 +116,90 @@ const daysOfWeek = [
 
 export default function TutorProfileScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ id?: string | string[] }>();
+  const tutorId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const { data: tutorData } = useTutorDetail(tutorId ?? "");
+  const { data: availabilityData = [] } = useTutorAvailability(tutorId ?? "");
+  const childrenFromStore = useAppSelector((state) => state.children.children);
   const [bookingModalVisible, setBookingModalVisible] = useState(false);
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
-  const [selectedMode, setSelectedMode] = useState<"online" | "inPerson">("online");
+  const [selectedMode, setSelectedMode] = useState<"online" | "inPerson">(
+    "online",
+  );
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
-  const [expandedCurriculum, setExpandedCurriculum] = useState<string | null>(null);
+  const [expandedCurriculum, setExpandedCurriculum] = useState<string | null>(
+    null,
+  );
   const [isFavorite, setIsFavorite] = useState(false);
 
-  const tutor = mockTutor;
+  const bookingChildren =
+    childrenFromStore.length > 0
+      ? childrenFromStore.map((child) => ({
+          id: child.id,
+          name: child.name,
+          age: 0,
+          grade: child.grade,
+        }))
+      : fallbackChildren;
+
+  const tutor = useMemo(() => {
+    if (!tutorData) return fallbackTutor;
+    const availability = {
+      monday: [] as string[],
+      tuesday: [] as string[],
+      wednesday: [] as string[],
+      thursday: [] as string[],
+      friday: [] as string[],
+      saturday: [] as string[],
+      sunday: [] as string[],
+    };
+    availabilityData.forEach((slot) => {
+      const value = `${slot.startTime}-${slot.endTime}`;
+      if (slot.dayOfWeek === 1) availability.monday.push(value);
+      if (slot.dayOfWeek === 2) availability.tuesday.push(value);
+      if (slot.dayOfWeek === 3) availability.wednesday.push(value);
+      if (slot.dayOfWeek === 4) availability.thursday.push(value);
+      if (slot.dayOfWeek === 5) availability.friday.push(value);
+      if (slot.dayOfWeek === 6) availability.saturday.push(value);
+      if (slot.dayOfWeek === 0) availability.sunday.push(value);
+    });
+    return {
+      ...fallbackTutor,
+      id: tutorData.id,
+      name:
+        `${tutorData.user.firstName ?? ""} ${tutorData.user.lastName ?? ""}`.trim() ||
+        tutorData.user.email.split("@")[0],
+      rating: tutorData.rating ?? 0,
+      reviewsCount: tutorData.reviewsCount ?? 0,
+      bio: tutorData.bio ?? fallbackTutor.bio,
+      hourlyRate: tutorData.hourlyRate ?? fallbackTutor.hourlyRate,
+      inPersonRate: tutorData.hourlyRate ?? fallbackTutor.inPersonRate,
+      region: tutorData.location ?? fallbackTutor.region,
+      subjects:
+        tutorData.subjects.length > 0
+          ? tutorData.subjects.map((subjectId, index) => ({
+              id: subjectId,
+              name: subjectId.charAt(0).toUpperCase() + subjectId.slice(1),
+              icon: "book-open",
+              color: ["#3B82F6", "#EF4444", "#10B981", "#6366F1"][index % 4],
+            }))
+          : fallbackTutor.subjects,
+      availability,
+    };
+  }, [availabilityData, tutorData]);
 
   const toggleChildSelection = (childId: string) => {
     setSelectedChildren((prev) =>
-      prev.includes(childId) ? prev.filter((id) => id !== childId) : [...prev, childId]
+      prev.includes(childId)
+        ? prev.filter((id) => id !== childId)
+        : [...prev, childId],
     );
   };
 
   const calculateTotalPrice = () => {
-    const rate = selectedMode === "online" ? tutor.hourlyRate : tutor.inPersonRate!;
+    const rate =
+      selectedMode === "online" ? tutor.hourlyRate : tutor.inPersonRate!;
     return rate * selectedChildren.length;
   };
 
@@ -143,21 +208,31 @@ export default function TutorProfileScreen() {
     return tutor.availability[dayKey] || [];
   };
 
-  const canBook = selectedChildren.length > 0 && selectedDay && selectedTimeSlot;
+  const canBook =
+    selectedChildren.length > 0 && selectedDay && selectedTimeSlot;
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
           <ArrowLeft size={20} color="#1E293B" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.favoriteButton} onPress={() => setIsFavorite(!isFavorite)}>
+        <TouchableOpacity
+          style={styles.favoriteButton}
+          onPress={() => setIsFavorite(!isFavorite)}
+        >
           <Heart size={20} color={isFavorite ? "#EF4444" : "#64748B"} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.profileHeader}>
@@ -167,7 +242,9 @@ export default function TutorProfileScreen() {
               <View style={styles.ratingRow}>
                 <Star size={14} color="#F59E0B" fill="#F59E0B" />
                 <Text style={styles.ratingText}>{tutor.rating}</Text>
-                <Text style={styles.reviewCount}>({tutor.reviewsCount} avis)</Text>
+                <Text style={styles.reviewCount}>
+                  ({tutor.reviewsCount} avis)
+                </Text>
               </View>
               <View style={styles.locationRow}>
                 <MapPin size={12} color="#64748B" />
@@ -219,11 +296,23 @@ export default function TutorProfileScreen() {
           <Text style={styles.sectionTitle}>Matières</Text>
           <View style={styles.subjectsContainer}>
             {tutor.subjects.map((subject) => (
-              <View key={subject.id} style={[styles.subjectCard, { borderLeftColor: subject.color }]}>
+              <View
+                key={subject.id}
+                style={[styles.subjectCard, { borderLeftColor: subject.color }]}
+              >
                 <BookOpen size={16} color={subject.color} />
                 <Text style={styles.subjectName}>{subject.name}</Text>
-                <View style={[styles.subjectBadge, { backgroundColor: subject.color + "15" }]}>
-                  <Text style={[styles.subjectBadgeText, { color: subject.color }]}>Expert</Text>
+                <View
+                  style={[
+                    styles.subjectBadge,
+                    { backgroundColor: subject.color + "15" },
+                  ]}
+                >
+                  <Text
+                    style={[styles.subjectBadgeText, { color: subject.color }]}
+                  >
+                    Expert
+                  </Text>
                 </View>
               </View>
             ))}
@@ -237,14 +326,23 @@ export default function TutorProfileScreen() {
             <View key={curriculum.id} style={styles.curriculumCard}>
               <TouchableOpacity
                 style={styles.curriculumHeader}
-                onPress={() => setExpandedCurriculum(
-                  expandedCurriculum === curriculum.id ? null : curriculum.id
-                )}
+                onPress={() =>
+                  setExpandedCurriculum(
+                    expandedCurriculum === curriculum.id ? null : curriculum.id,
+                  )
+                }
               >
                 <View style={styles.curriculumLeft}>
-                  <View style={[styles.curriculumDot, { backgroundColor: curriculum.subjectColor }]} />
+                  <View
+                    style={[
+                      styles.curriculumDot,
+                      { backgroundColor: curriculum.subjectColor },
+                    ]}
+                  />
                   <View>
-                    <Text style={styles.curriculumTitle}>{curriculum.title}</Text>
+                    <Text style={styles.curriculumTitle}>
+                      {curriculum.title}
+                    </Text>
                     <Text style={styles.curriculumMeta}>
                       {curriculum.lessonsCount} leçons • {curriculum.level}
                     </Text>
@@ -253,16 +351,32 @@ export default function TutorProfileScreen() {
                 <ChevronDown
                   size={16}
                   color="#64748B"
-                  style={{ transform: [{ rotate: expandedCurriculum === curriculum.id ? "180deg" : "0deg" }] }}
+                  style={{
+                    transform: [
+                      {
+                        rotate:
+                          expandedCurriculum === curriculum.id
+                            ? "180deg"
+                            : "0deg",
+                      },
+                    ],
+                  }}
                 />
               </TouchableOpacity>
 
               {expandedCurriculum === curriculum.id && (
                 <View style={styles.curriculumExpanded}>
-                  <Text style={styles.curriculumDescription}>{curriculum.description}</Text>
+                  <Text style={styles.curriculumDescription}>
+                    {curriculum.description}
+                  </Text>
                   {curriculum.lessons.map((lesson, index) => (
                     <View key={lesson.id} style={styles.lessonItem}>
-                      <View style={[styles.lessonDot, { backgroundColor: curriculum.subjectColor }]} />
+                      <View
+                        style={[
+                          styles.lessonDot,
+                          { backgroundColor: curriculum.subjectColor },
+                        ]}
+                      />
                       <Text style={styles.lessonText}>{lesson.title}</Text>
                     </View>
                   ))}
@@ -276,7 +390,9 @@ export default function TutorProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Méthodologie</Text>
           <View style={styles.methodologyCard}>
-            <Text style={styles.methodologyQuote}>"{tutor.methodology.approach}"</Text>
+            <Text style={styles.methodologyQuote}>
+              &quot;{tutor.methodology.approach}&quot;
+            </Text>
             <View style={styles.techniquesContainer}>
               {tutor.methodology.techniques.map((tech, index) => (
                 <View key={index} style={styles.techniqueItem}>
@@ -296,7 +412,12 @@ export default function TutorProfileScreen() {
               <View style={styles.reviewHeader}>
                 <View style={styles.reviewStars}>
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={12} color="#F59E0B" fill={i < review.rating ? "#F59E0B" : "none"} />
+                    <Star
+                      key={i}
+                      size={12}
+                      color="#F59E0B"
+                      fill={i < review.rating ? "#F59E0B" : "none"}
+                    />
                   ))}
                 </View>
                 <Text style={styles.reviewDate}>{review.date}</Text>
@@ -304,7 +425,9 @@ export default function TutorProfileScreen() {
               <Text style={styles.reviewComment}>{review.comment}</Text>
               <View style={styles.reviewAuthor}>
                 <View style={styles.reviewAuthorAvatar}>
-                  <Text style={styles.reviewAuthorInitial}>{review.parentName.charAt(0)}</Text>
+                  <Text style={styles.reviewAuthorInitial}>
+                    {review.parentName.charAt(0)}
+                  </Text>
                 </View>
                 <Text style={styles.reviewAuthorName}>{review.parentName}</Text>
               </View>
@@ -321,10 +444,16 @@ export default function TutorProfileScreen() {
           <Text style={styles.priceUnit}>/h</Text>
         </View>
         <View style={styles.bottomActions}>
-          <TouchableOpacity style={styles.messageButton} onPress={() => router.push("/messaging")}>
+          <TouchableOpacity
+            style={styles.messageButton}
+            onPress={() => router.push("/messaging")}
+          >
             <MessageSquare size={18} color="#6366F1" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.bookButton} onPress={() => setBookingModalVisible(true)}>
+          <TouchableOpacity
+            style={styles.bookButton}
+            onPress={() => setBookingModalVisible(true)}
+          >
             <Calendar size={18} color="white" />
             <Text style={styles.bookButtonText}>Réserver</Text>
           </TouchableOpacity>
@@ -336,13 +465,16 @@ export default function TutorProfileScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHandle} />
-            
+
             <View style={styles.modalHeader}>
               <View>
                 <Text style={styles.modalTitle}>Réserver</Text>
                 <Text style={styles.modalSubtitle}>avec {tutor.name}</Text>
               </View>
-              <TouchableOpacity style={styles.modalClose} onPress={() => setBookingModalVisible(false)}>
+              <TouchableOpacity
+                style={styles.modalClose}
+                onPress={() => setBookingModalVisible(false)}
+              >
                 <X size={18} color="#64748B" />
               </TouchableOpacity>
             </View>
@@ -351,18 +483,32 @@ export default function TutorProfileScreen() {
               {/* Enfants */}
               <View style={styles.modalSection}>
                 <Text style={styles.modalSectionTitle}>Enfants</Text>
-                {mockChildren.map((child) => (
+                {bookingChildren.map((child) => (
                   <TouchableOpacity
                     key={child.id}
-                    style={[styles.childItem, selectedChildren.includes(child.id) && styles.childItemSelected]}
+                    style={[
+                      styles.childItem,
+                      selectedChildren.includes(child.id) &&
+                        styles.childItemSelected,
+                    ]}
                     onPress={() => toggleChildSelection(child.id)}
                   >
                     <View style={styles.childInfo}>
                       <Text style={styles.childName}>{child.name}</Text>
-                      <Text style={styles.childDetails}>{child.age} ans • {child.grade}</Text>
+                      <Text style={styles.childDetails}>
+                        {child.age} ans • {child.grade}
+                      </Text>
                     </View>
-                    <View style={[styles.childCheck, selectedChildren.includes(child.id) && styles.childCheckSelected]}>
-                      {selectedChildren.includes(child.id) && <Check size={12} color="white" />}
+                    <View
+                      style={[
+                        styles.childCheck,
+                        selectedChildren.includes(child.id) &&
+                          styles.childCheckSelected,
+                      ]}
+                    >
+                      {selectedChildren.includes(child.id) && (
+                        <Check size={12} color="white" />
+                      )}
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -373,27 +519,59 @@ export default function TutorProfileScreen() {
                 <Text style={styles.modalSectionTitle}>Mode</Text>
                 <View style={styles.modeContainer}>
                   <TouchableOpacity
-                    style={[styles.modeCard, selectedMode === "online" && styles.modeCardSelected]}
+                    style={[
+                      styles.modeCard,
+                      selectedMode === "online" && styles.modeCardSelected,
+                    ]}
                     onPress={() => setSelectedMode("online")}
                   >
-                    <Video size={20} color={selectedMode === "online" ? "white" : "#64748B"} />
-                    <Text style={[styles.modeText, selectedMode === "online" && styles.modeTextSelected]}>
+                    <Video
+                      size={20}
+                      color={selectedMode === "online" ? "white" : "#64748B"}
+                    />
+                    <Text
+                      style={[
+                        styles.modeText,
+                        selectedMode === "online" && styles.modeTextSelected,
+                      ]}
+                    >
                       En ligne
                     </Text>
-                    <Text style={[styles.modePrice, selectedMode === "online" && styles.modePriceSelected]}>
+                    <Text
+                      style={[
+                        styles.modePrice,
+                        selectedMode === "online" && styles.modePriceSelected,
+                      ]}
+                    >
                       {tutor.hourlyRate}€
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.modeCard, selectedMode === "inPerson" && styles.modeCardSelected]}
+                    style={[
+                      styles.modeCard,
+                      selectedMode === "inPerson" && styles.modeCardSelected,
+                    ]}
                     onPress={() => setSelectedMode("inPerson")}
                   >
-                    <Users size={20} color={selectedMode === "inPerson" ? "white" : "#64748B"} />
-                    <Text style={[styles.modeText, selectedMode === "inPerson" && styles.modeTextSelected]}>
+                    <Users
+                      size={20}
+                      color={selectedMode === "inPerson" ? "white" : "#64748B"}
+                    />
+                    <Text
+                      style={[
+                        styles.modeText,
+                        selectedMode === "inPerson" && styles.modeTextSelected,
+                      ]}
+                    >
                       Présentiel
                     </Text>
-                    <Text style={[styles.modePrice, selectedMode === "inPerson" && styles.modePriceSelected]}>
+                    <Text
+                      style={[
+                        styles.modePrice,
+                        selectedMode === "inPerson" && styles.modePriceSelected,
+                      ]}
+                    >
                       {tutor.inPersonRate}€
                     </Text>
                   </TouchableOpacity>
@@ -417,11 +595,14 @@ export default function TutorProfileScreen() {
                         onPress={() => hasSlots && setSelectedDay(day.key)}
                         disabled={!hasSlots}
                       >
-                        <Text style={[
-                          styles.dayChipText,
-                          selectedDay === day.key && styles.dayChipTextSelected,
-                          !hasSlots && styles.dayChipTextDisabled,
-                        ]}>
+                        <Text
+                          style={[
+                            styles.dayChipText,
+                            selectedDay === day.key &&
+                              styles.dayChipTextSelected,
+                            !hasSlots && styles.dayChipTextDisabled,
+                          ]}
+                        >
                           {day.label}
                         </Text>
                       </TouchableOpacity>
@@ -438,11 +619,25 @@ export default function TutorProfileScreen() {
                     {getAvailableTimeSlots(selectedDay).map((slot, index) => (
                       <TouchableOpacity
                         key={index}
-                        style={[styles.timeSlot, selectedTimeSlot === slot && styles.timeSlotSelected]}
+                        style={[
+                          styles.timeSlot,
+                          selectedTimeSlot === slot && styles.timeSlotSelected,
+                        ]}
                         onPress={() => setSelectedTimeSlot(slot)}
                       >
-                        <Clock size={12} color={selectedTimeSlot === slot ? "white" : "#64748B"} />
-                        <Text style={[styles.timeSlotText, selectedTimeSlot === slot && styles.timeSlotTextSelected]}>
+                        <Clock
+                          size={12}
+                          color={
+                            selectedTimeSlot === slot ? "white" : "#64748B"
+                          }
+                        />
+                        <Text
+                          style={[
+                            styles.timeSlotText,
+                            selectedTimeSlot === slot &&
+                              styles.timeSlotTextSelected,
+                          ]}
+                        >
                           {slot}
                         </Text>
                       </TouchableOpacity>
@@ -456,23 +651,33 @@ export default function TutorProfileScreen() {
                 <View style={styles.summaryCard}>
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>
-                      {selectedChildren.length} enfant{selectedChildren.length > 1 ? "s" : ""}
+                      {selectedChildren.length} enfant
+                      {selectedChildren.length > 1 ? "s" : ""}
                     </Text>
                     <Text style={styles.summaryValue}>
-                      {selectedChildren.length} × {selectedMode === "online" ? tutor.hourlyRate : tutor.inPersonRate}€
+                      {selectedChildren.length} ×{" "}
+                      {selectedMode === "online"
+                        ? tutor.hourlyRate
+                        : tutor.inPersonRate}
+                      €
                     </Text>
                   </View>
                   <View style={styles.summaryDivider} />
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryTotalLabel}>Total</Text>
-                    <Text style={styles.summaryTotalValue}>{calculateTotalPrice()}€</Text>
+                    <Text style={styles.summaryTotalValue}>
+                      {calculateTotalPrice()}€
+                    </Text>
                   </View>
                 </View>
               )}
             </ScrollView>
 
             <TouchableOpacity
-              style={[styles.confirmButton, !canBook && styles.confirmButtonDisabled]}
+              style={[
+                styles.confirmButton,
+                !canBook && styles.confirmButtonDisabled,
+              ]}
               onPress={() => {
                 setBookingModalVisible(false);
                 router.push("/parent/profile/checkout");
@@ -487,9 +692,6 @@ export default function TutorProfileScreen() {
     </SafeAreaView>
   );
 }
-
-// Ajout de Dimensions
-import { Dimensions } from "react-native";
 
 const styles = StyleSheet.create({
   container: {

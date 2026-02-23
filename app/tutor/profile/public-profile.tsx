@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -20,67 +20,97 @@ import {
   Save,
   Sparkles,
 } from "lucide-react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
+import { useMySessions } from "@/hooks/api/tutors";
 
-const mockCurriculums = [
-  {
-    id: "1",
-    title: "Algèbre Fondamentale",
-    subject: "Mathématiques",
-    subjectColor: "#3B82F6",
-    icon: "📐",
-    lessonsCount: 8,
-    level: "Niveau 3ème",
-  },
-  {
-    id: "2",
-    title: "Grammaire Française Avancée",
-    subject: "Français",
-    subjectColor: "#8B5CF6",
-    icon: "📚",
-    lessonsCount: 6,
-    level: "Niveau Lycée",
-  },
-  {
-    id: "3",
-    title: "Physique - Mécanique",
-    subject: "Physique",
-    subjectColor: "#10B981",
-    icon: "⚛️",
-    lessonsCount: 10,
-    level: "Niveau 2nde",
-  },
-];
-
-const mockSubjects = [
-  { id: "math", name: "Mathématiques", color: "#3B82F6", icon: "📐" },
-  { id: "french", name: "Français", color: "#8B5CF6", icon: "📚" },
-  { id: "physics", name: "Physique", color: "#10B981", icon: "⚛️" },
-  { id: "chemistry", name: "Chimie", color: "#F59E0B", icon: "🧪" },
-];
+function subjectMeta(subject: string) {
+  const key = subject.toLowerCase();
+  if (key.includes("math")) {
+    return { color: "#3B82F6", icon: "📐", label: "Mathématiques" };
+  }
+  if (key.includes("fr")) {
+    return { color: "#8B5CF6", icon: "📚", label: "Français" };
+  }
+  if (key.includes("phys")) {
+    return { color: "#10B981", icon: "⚛️", label: "Physique" };
+  }
+  if (key.includes("chim")) {
+    return { color: "#F59E0B", icon: "🧪", label: "Chimie" };
+  }
+  if (key.includes("english")) {
+    return { color: "#06B6D4", icon: "🗣️", label: "Anglais" };
+  }
+  return { color: "#6366F1", icon: "📘", label: subject || "Matière" };
+}
 
 export default function PublicProfileSettings() {
   const router = useRouter();
+  const { data: mySessionsData = [] } = useMySessions();
   const [profileActive, setProfileActive] = useState(true);
   const [showBio, setShowBio] = useState(true);
   const [showMethodology, setShowMethodology] = useState(true);
   const [showReviews, setShowReviews] = useState(true);
   const [showAvailability, setShowAvailability] = useState(true);
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([
-    "math",
-    "french",
-    "physics",
-  ]);
-  const [selectedCurriculums, setSelectedCurriculums] = useState<string[]>([
-    "1",
-    "2",
-  ]);
+  const subjects = useMemo(() => {
+    const grouped = new Map<string, number>();
+    const rows = Array.isArray(mySessionsData) ? mySessionsData : [];
+    rows.forEach((session: any) => {
+      const subject = String(session?.subjectId ?? "").trim();
+      if (!subject) return;
+      grouped.set(subject, (grouped.get(subject) ?? 0) + 1);
+    });
+    if (!grouped.size) grouped.set("Mathématiques", 0);
+    return Array.from(grouped.entries()).map(([name, count]) => {
+      const meta = subjectMeta(name);
+      return {
+        id: name.toLowerCase().replace(/\s+/g, "-"),
+        name: meta.label,
+        color: meta.color,
+        icon: meta.icon,
+        count,
+      };
+    });
+  }, [mySessionsData]);
+  const curriculums = useMemo(
+    () =>
+      subjects.map((subject, index) => ({
+        id: `curriculum-${subject.id}`,
+        title: `Programme ${subject.name}`,
+        subject: subject.name,
+        subjectColor: subject.color,
+        icon: subject.icon,
+        lessonsCount: Math.max(1, subject.count),
+        level: "Niveau personnalisé",
+        order: index,
+      })),
+    [subjects],
+  );
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+  const [selectedCurriculums, setSelectedCurriculums] = useState<string[]>([]);
   const [expandedSection, setExpandedSection] = useState<string | null>(
     "profile",
   );
+
+  useEffect(() => {
+    setSelectedSubjects((prev) => {
+      const available = new Set(subjects.map((subject) => subject.id));
+      const kept = prev.filter((id) => available.has(id));
+      return kept.length
+        ? kept
+        : subjects.slice(0, 3).map((subject) => subject.id);
+    });
+  }, [subjects]);
+
+  useEffect(() => {
+    setSelectedCurriculums((prev) => {
+      const available = new Set(curriculums.map((curriculum) => curriculum.id));
+      const kept = prev.filter((id) => available.has(id));
+      return kept.length
+        ? kept
+        : curriculums.slice(0, 2).map((curriculum) => curriculum.id);
+    });
+  }, [curriculums]);
 
   const toggleSubject = (subjectId: string) => {
     setSelectedSubjects((prev) =>
@@ -118,11 +148,17 @@ export default function PublicProfileSettings() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
           <ArrowLeft size={22} color="#1E293B" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Profil public</Text>
-        <TouchableOpacity style={styles.previewButton} onPress={() => router.push("/tutor/1")}>
+        <TouchableOpacity
+          style={styles.previewButton}
+          onPress={() => router.push("/tutor/1")}
+        >
           <Eye size={18} color="#6366F1" />
         </TouchableOpacity>
       </View>
@@ -144,11 +180,15 @@ export default function PublicProfileSettings() {
           <View style={styles.activationCard}>
             <View style={styles.activationLeft}>
               {profileActive ? (
-                <View style={[styles.statusIcon, { backgroundColor: "#D1FAE5" }]}>
+                <View
+                  style={[styles.statusIcon, { backgroundColor: "#D1FAE5" }]}
+                >
                   <Eye size={18} color="#10B981" />
                 </View>
               ) : (
-                <View style={[styles.statusIcon, { backgroundColor: "#F1F5F9" }]}>
+                <View
+                  style={[styles.statusIcon, { backgroundColor: "#F1F5F9" }]}
+                >
                   <EyeOff size={18} color="#64748B" />
                 </View>
               )}
@@ -176,7 +216,11 @@ export default function PublicProfileSettings() {
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.sectionHeader}
-            onPress={() => setExpandedSection(expandedSection === "sections" ? null : "sections")}
+            onPress={() =>
+              setExpandedSection(
+                expandedSection === "sections" ? null : "sections",
+              )
+            }
           >
             <View style={styles.sectionHeaderLeft}>
               <BookOpen size={16} color="#6366F1" />
@@ -185,7 +229,13 @@ export default function PublicProfileSettings() {
             <ChevronDown
               size={16}
               color="#64748B"
-              style={{ transform: [{ rotate: expandedSection === "sections" ? "180deg" : "0deg" }] }}
+              style={{
+                transform: [
+                  {
+                    rotate: expandedSection === "sections" ? "180deg" : "0deg",
+                  },
+                ],
+              }}
             />
           </TouchableOpacity>
 
@@ -193,9 +243,21 @@ export default function PublicProfileSettings() {
             <View style={styles.sectionContent}>
               {[
                 { label: "Biographie", value: showBio, setter: setShowBio },
-                { label: "Méthodologie", value: showMethodology, setter: setShowMethodology },
-                { label: "Avis et notes", value: showReviews, setter: setShowReviews },
-                { label: "Disponibilités", value: showAvailability, setter: setShowAvailability },
+                {
+                  label: "Méthodologie",
+                  value: showMethodology,
+                  setter: setShowMethodology,
+                },
+                {
+                  label: "Avis et notes",
+                  value: showReviews,
+                  setter: setShowReviews,
+                },
+                {
+                  label: "Disponibilités",
+                  value: showAvailability,
+                  setter: setShowAvailability,
+                },
               ].map((item, index) => (
                 <View key={index} style={styles.toggleRow}>
                   <Text style={styles.toggleLabel}>{item.label}</Text>
@@ -216,7 +278,11 @@ export default function PublicProfileSettings() {
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.sectionHeader}
-            onPress={() => setExpandedSection(expandedSection === "subjects" ? null : "subjects")}
+            onPress={() =>
+              setExpandedSection(
+                expandedSection === "subjects" ? null : "subjects",
+              )
+            }
           >
             <View style={styles.sectionHeaderLeft}>
               <GraduationCap size={16} color="#6366F1" />
@@ -225,32 +291,50 @@ export default function PublicProfileSettings() {
             <ChevronDown
               size={16}
               color="#64748B"
-              style={{ transform: [{ rotate: expandedSection === "subjects" ? "180deg" : "0deg" }] }}
+              style={{
+                transform: [
+                  {
+                    rotate: expandedSection === "subjects" ? "180deg" : "0deg",
+                  },
+                ],
+              }}
             />
           </TouchableOpacity>
 
           {expandedSection === "subjects" && (
             <View style={styles.sectionContent}>
               <View style={styles.subjectsGrid}>
-                {mockSubjects.map((subject) => {
+                {subjects.map((subject) => {
                   const isSelected = selectedSubjects.includes(subject.id);
                   return (
                     <TouchableOpacity
                       key={subject.id}
                       style={[
                         styles.subjectCard,
-                        isSelected && { borderColor: subject.color, backgroundColor: subject.color + "10" },
+                        isSelected && {
+                          borderColor: subject.color,
+                          backgroundColor: subject.color + "10",
+                        },
                         !profileActive && styles.disabled,
                       ]}
                       onPress={() => toggleSubject(subject.id)}
                       disabled={!profileActive}
                     >
-                      <View style={[styles.subjectIcon, { backgroundColor: subject.color + "15" }]}>
+                      <View
+                        style={[
+                          styles.subjectIcon,
+                          { backgroundColor: subject.color + "15" },
+                        ]}
+                      >
                         <Text style={styles.subjectEmoji}>{subject.icon}</Text>
                       </View>
                       <Text style={styles.subjectName}>{subject.name}</Text>
                       {isSelected && (
-                        <CheckCircle2 size={14} color={subject.color} style={styles.subjectCheck} />
+                        <CheckCircle2
+                          size={14}
+                          color={subject.color}
+                          style={styles.subjectCheck}
+                        />
                       )}
                     </TouchableOpacity>
                   );
@@ -264,7 +348,11 @@ export default function PublicProfileSettings() {
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.sectionHeader}
-            onPress={() => setExpandedSection(expandedSection === "curriculums" ? null : "curriculums")}
+            onPress={() =>
+              setExpandedSection(
+                expandedSection === "curriculums" ? null : "curriculums",
+              )
+            }
           >
             <View style={styles.sectionHeaderLeft}>
               <BookOpen size={16} color="#6366F1" />
@@ -273,13 +361,20 @@ export default function PublicProfileSettings() {
             <ChevronDown
               size={16}
               color="#64748B"
-              style={{ transform: [{ rotate: expandedSection === "curriculums" ? "180deg" : "0deg" }] }}
+              style={{
+                transform: [
+                  {
+                    rotate:
+                      expandedSection === "curriculums" ? "180deg" : "0deg",
+                  },
+                ],
+              }}
             />
           </TouchableOpacity>
 
           {expandedSection === "curriculums" && (
             <View style={styles.sectionContent}>
-              {mockCurriculums.map((curriculum) => {
+              {curriculums.map((curriculum) => {
                 const isSelected = selectedCurriculums.includes(curriculum.id);
                 return (
                   <TouchableOpacity
@@ -293,17 +388,33 @@ export default function PublicProfileSettings() {
                     disabled={!profileActive}
                   >
                     <View style={styles.curriculumLeft}>
-                      <View style={[styles.curriculumIcon, { backgroundColor: curriculum.subjectColor + "15" }]}>
-                        <Text style={styles.curriculumEmoji}>{curriculum.icon}</Text>
+                      <View
+                        style={[
+                          styles.curriculumIcon,
+                          { backgroundColor: curriculum.subjectColor + "15" },
+                        ]}
+                      >
+                        <Text style={styles.curriculumEmoji}>
+                          {curriculum.icon}
+                        </Text>
                       </View>
                       <View>
-                        <Text style={styles.curriculumTitle}>{curriculum.title}</Text>
+                        <Text style={styles.curriculumTitle}>
+                          {curriculum.title}
+                        </Text>
                         <Text style={styles.curriculumMeta}>
                           {curriculum.lessonsCount} leçons • {curriculum.level}
                         </Text>
                       </View>
                     </View>
-                    <View style={[styles.curriculumCheck, isSelected && { backgroundColor: curriculum.subjectColor }]}>
+                    <View
+                      style={[
+                        styles.curriculumCheck,
+                        isSelected && {
+                          backgroundColor: curriculum.subjectColor,
+                        },
+                      ]}
+                    >
                       {isSelected && <CheckCircle2 size={12} color="white" />}
                     </View>
                   </TouchableOpacity>

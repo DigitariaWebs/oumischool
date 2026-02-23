@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import {
   Search,
   MessageSquarePlus,
@@ -21,8 +22,8 @@ import {
 } from "lucide-react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
+import { useConversations, useUnreadCount } from "@/hooks/api/messaging";
 
 interface Conversation {
   id: string;
@@ -44,41 +45,11 @@ const avatarImages = [
   "https://cdn-icons-png.flaticon.com/512/4140/4140051.png",
 ];
 
-const mockConversations: Conversation[] = [
-  {
-    id: "conv-1",
-    participantId: "tutor-1",
-    participantName: "Marie Dupont",
-    participantAvatar: avatarImages[0],
-    participantRole: "tutor",
-    lastMessage: "Bonjour, je confirme la séance de maths pour demain à 14h.",
-    lastMessageTime: new Date(Date.now() - 1000 * 60 * 15),
-    unreadCount: 2,
-    isOnline: true,
-  },
-  {
-    id: "conv-2",
-    participantId: "tutor-2",
-    participantName: "Jean Martin",
-    participantAvatar: avatarImages[1],
-    participantRole: "tutor",
-    lastMessage: "Les devoirs de sciences sont prêts. Emma peut commencer quand elle veut.",
-    lastMessageTime: new Date(Date.now() - 1000 * 60 * 60 * 2),
-    unreadCount: 0,
-    isOnline: false,
-  },
-  {
-    id: "conv-3",
-    participantId: "tutor-3",
-    participantName: "Sophie Leroy",
-    participantAvatar: avatarImages[2],
-    participantRole: "tutor",
-    lastMessage: "Merci pour votre confiance ! À bientôt.",
-    lastMessageTime: new Date(Date.now() - 1000 * 60 * 60 * 24),
-    unreadCount: 0,
-    isOnline: true,
-  },
-];
+function avatarFor(id: string): string {
+  let sum = 0;
+  for (let i = 0; i < id.length; i += 1) sum += id.charCodeAt(i);
+  return avatarImages[sum % avatarImages.length];
+}
 
 const ConversationCard: React.FC<{
   conversation: Conversation;
@@ -99,15 +70,26 @@ const ConversationCard: React.FC<{
 
   return (
     <Animated.View entering={FadeInDown.delay(delay).duration(400)}>
-      <TouchableOpacity style={styles.conversationCard} onPress={onPress} activeOpacity={0.7}>
+      <TouchableOpacity
+        style={styles.conversationCard}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
         <View style={styles.conversationAvatar}>
-          <Image source={{ uri: conversation.participantAvatar }} style={styles.avatar} />
+          <Image
+            source={{ uri: conversation.participantAvatar }}
+            style={styles.avatar}
+          />
           {conversation.isOnline && <View style={styles.onlineDot} />}
         </View>
         <View style={styles.conversationContent}>
           <View style={styles.conversationHeader}>
-            <Text style={styles.participantName}>{conversation.participantName}</Text>
-            <Text style={styles.messageTime}>{formatTime(conversation.lastMessageTime)}</Text>
+            <Text style={styles.participantName}>
+              {conversation.participantName}
+            </Text>
+            <Text style={styles.messageTime}>
+              {formatTime(conversation.lastMessageTime)}
+            </Text>
           </View>
           <Text style={styles.lastMessage} numberOfLines={1}>
             {conversation.lastMessage}
@@ -125,24 +107,62 @@ const ConversationCard: React.FC<{
 
 export default function MessagingScreen() {
   const router = useRouter();
+  const isFocused = useIsFocused();
+  const { data: conversationsData = [] } = useConversations({
+    enabled: isFocused,
+  });
+  const { data: unreadData } = useUnreadCount({ enabled: isFocused });
   const [searchQuery, setSearchQuery] = useState("");
+  const conversationRows = Array.isArray(conversationsData)
+    ? conversationsData
+    : [];
+  const conversations: Conversation[] = conversationRows.map((conversation) => {
+    const participant = conversation.participants[0];
+    const participantName =
+      participant?.name || participant?.email || "Conversation";
+    const participantId =
+      participant?.id ?? conversation.participantIds[0] ?? conversation.id;
+    return {
+      id: conversation.id,
+      participantId,
+      participantName,
+      participantAvatar: avatarFor(participantId),
+      participantRole: participant?.role === "PARENT" ? "parent" : "tutor",
+      lastMessage: conversation.lastMessage ?? "Aucun message",
+      lastMessageTime: conversation.lastMessageAt
+        ? new Date(conversation.lastMessageAt)
+        : new Date(),
+      unreadCount: conversation.unreadCount ?? 0,
+      isOnline: false,
+    };
+  });
 
-  const filteredConversations = mockConversations.filter((conv) =>
+  const filteredConversations = conversations.filter((conv) =>
     conv.participantName.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const totalUnread = mockConversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
-  const onlineTutors = mockConversations.filter((c) => c.isOnline).length;
+  const totalUnread =
+    (typeof unreadData?.unreadCount === "number"
+      ? unreadData.unreadCount
+      : undefined) ??
+    conversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
+  const onlineTutors = conversations.filter((c) => c.isOnline).length;
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header simple */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
           <ArrowLeft size={22} color="#1E293B" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Messages</Text>
-        <TouchableOpacity style={styles.newMessageButton} onPress={() => router.push("/messaging/new")}>
+        <TouchableOpacity
+          style={styles.newMessageButton}
+          onPress={() => router.push("/messaging/new")}
+        >
           <MessageSquarePlus size={20} color="#6366F1" />
         </TouchableOpacity>
       </View>
@@ -155,7 +175,9 @@ export default function MessagingScreen() {
               <MessageCircle size={16} color="#8B5CF6" />
             </View>
             <Text style={styles.statValue}>
-              {totalUnread > 0 ? `${totalUnread} non lu${totalUnread > 1 ? "s" : ""}` : "Tout lu"}
+              {totalUnread > 0
+                ? `${totalUnread} non lu${totalUnread > 1 ? "s" : ""}`
+                : "Tout lu"}
             </Text>
           </View>
           <View style={styles.statDivider} />
@@ -170,7 +192,7 @@ export default function MessagingScreen() {
             <View style={[styles.statIcon, { backgroundColor: "#F59E0B15" }]}>
               <Clock size={16} color="#F59E0B" />
             </View>
-            <Text style={styles.statValue}>{mockConversations.length} conv</Text>
+            <Text style={styles.statValue}>{conversations.length} conv</Text>
           </View>
         </View>
       </View>
@@ -200,7 +222,8 @@ export default function MessagingScreen() {
             <View style={styles.sectionHeader}>
               <Sparkles size={16} color="#6366F1" />
               <Text style={styles.sectionTitle}>
-                {totalUnread} nouveau{totalUnread > 1 ? "x" : ""} message{totalUnread > 1 ? "s" : ""}
+                {totalUnread} nouveau{totalUnread > 1 ? "x" : ""} message
+                {totalUnread > 1 ? "s" : ""}
               </Text>
             </View>
           )
@@ -217,14 +240,19 @@ export default function MessagingScreen() {
             <MessageSquarePlus size={48} color="#CBD5E1" />
             <Text style={styles.emptyStateTitle}>Aucune conversation</Text>
             <Text style={styles.emptyStateText}>
-              {searchQuery ? "Aucun résultat trouvé" : "Commencez une conversation avec vos tuteurs"}
+              {searchQuery
+                ? "Aucun résultat trouvé"
+                : "Commencez une conversation avec vos tuteurs"}
             </Text>
           </View>
         }
       />
 
       {/* Bouton Add source */}
-      <TouchableOpacity style={styles.sourceButton} onPress={() => router.push("/messaging/new")}>
+      <TouchableOpacity
+        style={styles.sourceButton}
+        onPress={() => router.push("/messaging/new")}
+      >
         <Text style={styles.sourceButtonText}>+ Nouveau message</Text>
       </TouchableOpacity>
     </SafeAreaView>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   Pressable,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -18,11 +19,12 @@ import {
   Calendar,
   User,
   Inbox,
-  TrendingUp,
 } from "lucide-react-native";
 
-import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
+import { useAcceptSession, useRejectSession } from "@/hooks/api/sessions";
+import { useMySessions } from "@/hooks/api/tutors";
+import { subjectLabelFromId } from "@/utils/subjects";
 
 interface TutoringRequest {
   id: string;
@@ -43,100 +45,198 @@ interface TutoringRequest {
   pricePerHour: number;
 }
 
-const mockRequests: TutoringRequest[] = [
-  {
-    id: "1",
-    parentName: "Fatima Zahra",
-    parentAvatar: "https://cdn-icons-png.flaticon.com/512/4140/4140048.png",
-    childName: "Adam",
-    childAge: 10,
-    childGrade: "5ème année",
-    subject: "Mathématiques",
-    subjectColor: "#3B82F6",
-    mode: "online",
-    preferredDay: "Lundi",
-    preferredTime: "14:00 - 15:00",
-    message: "Mon fils a besoin d'aide pour comprendre les fractions.",
-    requestedDate: "Il y a 2 heures",
-    status: "pending",
-    pricePerHour: 150,
-  },
-  {
-    id: "2",
-    parentName: "Mohammed Bennani",
-    parentAvatar: "https://cdn-icons-png.flaticon.com/512/4140/4140049.png",
-    childName: "Sofia",
-    childAge: 12,
-    childGrade: "1ère année collège",
-    subject: "Français",
-    subjectColor: "#EF4444",
-    mode: "inPerson",
-    location: "Casablanca",
-    preferredDay: "Mercredi",
-    preferredTime: "16:00 - 17:00",
-    message: "Je cherche un professeur pour améliorer l'orthographe de ma fille.",
-    requestedDate: "Il y a 5 heures",
-    status: "pending",
-    pricePerHour: 180,
-  },
-  {
-    id: "3",
-    parentName: "Aisha El Mansouri",
-    parentAvatar: "https://cdn-icons-png.flaticon.com/512/4140/4140050.png",
-    childName: "Youssef",
-    childAge: 14,
-    childGrade: "3ème année collège",
-    subject: "Sciences",
-    subjectColor: "#10B981",
-    mode: "online",
-    preferredDay: "Vendredi",
-    preferredTime: "15:00 - 16:00",
-    requestedDate: "Il y a 1 jour",
-    status: "pending",
-    pricePerHour: 150,
-  },
-  {
-    id: "4",
-    parentName: "Karim Idrissi",
-    parentAvatar: "https://cdn-icons-png.flaticon.com/512/4140/4140051.png",
-    childName: "Lina",
-    childAge: 11,
-    childGrade: "6ème année",
-    subject: "Mathématiques",
-    subjectColor: "#3B82F6",
-    mode: "online",
-    preferredDay: "Mardi",
-    preferredTime: "10:00 - 11:00",
-    requestedDate: "Il y a 2 jours",
-    status: "accepted",
-    pricePerHour: 150,
-  },
+type TabType = "pending" | "accepted" | "declined";
+type ApiLike = Record<string, unknown>;
+
+const avatarPool = [
+  "https://cdn-icons-png.flaticon.com/512/4140/4140048.png",
+  "https://cdn-icons-png.flaticon.com/512/4140/4140049.png",
+  "https://cdn-icons-png.flaticon.com/512/4140/4140050.png",
+  "https://cdn-icons-png.flaticon.com/512/4140/4140051.png",
 ];
 
-type TabType = "pending" | "accepted" | "declined";
+function asRecord(value: unknown): ApiLike | null {
+  return typeof value === "object" && value !== null
+    ? (value as ApiLike)
+    : null;
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function avatarFor(seed: string): string {
+  let sum = 0;
+  for (let i = 0; i < seed.length; i += 1) sum += seed.charCodeAt(i);
+  return avatarPool[sum % avatarPool.length];
+}
+
+function colorForSubject(subject: string): string {
+  const key = subject.toLowerCase();
+  if (key.includes("math")) return "#3B82F6";
+  if (key.includes("fr")) return "#EF4444";
+  if (key.includes("science")) return "#10B981";
+  if (key.includes("english")) return "#6366F1";
+  return "#6366F1";
+}
+
+function statusFromApi(status: string): TabType {
+  const key = status.toUpperCase();
+  if (key === "PENDING" || key === "REQUESTED") return "pending";
+  if (key === "REJECTED" || key === "DECLINED" || key === "CANCELLED") {
+    return "declined";
+  }
+  return "accepted";
+}
+
+function formatRelativeDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Récente";
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.max(1, Math.floor(diffMs / 60000));
+  if (diffMin < 60) return `Il y a ${diffMin} min`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `Il y a ${diffHours} h`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `Il y a ${diffDays} j`;
+}
+
+function formatDayAndTimeRange(startValue: string, endValue: string) {
+  const start = new Date(startValue);
+  const end = new Date(endValue);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return { day: "À planifier", range: "Heure à confirmer" };
+  }
+  const day = start.toLocaleDateString("fr-FR", { weekday: "long" });
+  const startLabel = start.toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const endLabel = end.toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return {
+    day: day.charAt(0).toUpperCase() + day.slice(1),
+    range: `${startLabel} - ${endLabel}`,
+  };
+}
 
 export default function TutorRequestsScreen() {
   const [selectedTab, setSelectedTab] = useState<TabType>("pending");
-  const [requests, setRequests] = useState<TutoringRequest[]>(mockRequests);
+  const { data: mySessionsData = [] } = useMySessions();
+  const acceptSession = useAcceptSession();
+  const rejectSession = useRejectSession();
+  const [localStatusById, setLocalStatusById] = useState<
+    Record<string, TabType>
+  >({});
 
-  const handleAccept = (requestId: string) => {
-    setRequests((prev) =>
-      prev.map((req) =>
-        req.id === requestId ? { ...req, status: "accepted" } : req,
-      ),
-    );
+  const requests = useMemo((): TutoringRequest[] => {
+    const rows = Array.isArray(mySessionsData) ? mySessionsData : [];
+    return rows
+      .map((row) => {
+        const session = asRecord(row);
+        if (!session) return null;
+
+        const id = asString(session.id);
+        if (!id) return null;
+        const child = asRecord(session.child);
+        const parent = asRecord(session.parent);
+        const childParent = asRecord(child?.parent);
+        const user =
+          asRecord(parent?.user) ??
+          asRecord(childParent?.user) ??
+          asRecord(session.user);
+
+        const firstName =
+          asString(parent?.firstName) || asString(childParent?.firstName);
+        const lastName =
+          asString(parent?.lastName) || asString(childParent?.lastName);
+        const email = asString(user?.email);
+        const parentName =
+          `${firstName} ${lastName}`.trim() ||
+          (email ? email.split("@")[0] : "Parent");
+
+        const childName = asString(child?.name, "Élève");
+        const childAge = asNumber(child?.age, 0);
+        const childGrade = asString(child?.grade, "—");
+        const subjectData = asRecord(session.subject);
+        const subject = subjectLabelFromId(
+          asString(subjectData?.name) || asString(session.subjectId),
+          "Cours",
+        );
+        const mode =
+          asString(session.mode) === "presential" ? "inPerson" : "online";
+        const status =
+          localStatusById[id] ?? statusFromApi(asString(session.status));
+        const dayTime = formatDayAndTimeRange(
+          asString(session.startTime),
+          asString(session.endTime),
+        );
+
+        return {
+          id,
+          parentName,
+          parentAvatar: avatarFor(parentName || id),
+          childName,
+          childAge,
+          childGrade,
+          subject,
+          subjectColor: colorForSubject(subject),
+          mode,
+          location: mode === "inPerson" ? "Présentiel" : undefined,
+          preferredDay: dayTime.day,
+          preferredTime: dayTime.range,
+          message: asString(session.message) || asString(session.note),
+          requestedDate: formatRelativeDate(
+            asString(session.createdAt, asString(session.startTime)),
+          ),
+          status,
+          pricePerHour:
+            asNumber(session.pricePerHour) ||
+            asNumber(session.hourlyRate) ||
+            asNumber(session.price),
+        } satisfies TutoringRequest;
+      })
+      .filter((item): item is TutoringRequest => !!item);
+  }, [localStatusById, mySessionsData]);
+
+  const handleAccept = async (requestId: string) => {
+    const previous = localStatusById[requestId];
+    setLocalStatusById((prev) => ({ ...prev, [requestId]: "accepted" }));
+    try {
+      await acceptSession.mutateAsync(requestId);
+    } catch {
+      setLocalStatusById((prev) => ({
+        ...prev,
+        [requestId]: previous ?? "pending",
+      }));
+      Alert.alert("Erreur", "Impossible d'accepter la demande.");
+    }
   };
 
-  const handleDecline = (requestId: string) => {
-    setRequests((prev) =>
-      prev.map((req) =>
-        req.id === requestId ? { ...req, status: "declined" } : req,
-      ),
-    );
+  const handleDecline = async (requestId: string) => {
+    const previous = localStatusById[requestId];
+    setLocalStatusById((prev) => ({ ...prev, [requestId]: "declined" }));
+    try {
+      await rejectSession.mutateAsync(requestId);
+    } catch {
+      setLocalStatusById((prev) => ({
+        ...prev,
+        [requestId]: previous ?? "pending",
+      }));
+      Alert.alert("Erreur", "Impossible de refuser la demande.");
+    }
   };
 
   const filteredRequests = requests.filter((req) => req.status === selectedTab);
-  const pendingCount = requests.filter((req) => req.status === "pending").length;
+  const pendingCount = requests.filter(
+    (req) => req.status === "pending",
+  ).length;
 
   const tabs: { key: TabType; label: string }[] = [
     { key: "pending", label: "En attente" },
@@ -183,10 +283,7 @@ export default function TutorRequestsScreen() {
           {tabs.map((tab) => (
             <Pressable
               key={tab.key}
-              style={[
-                styles.tab,
-                selectedTab === tab.key && styles.tabActive,
-              ]}
+              style={[styles.tab, selectedTab === tab.key && styles.tabActive]}
               onPress={() => setSelectedTab(tab.key)}
             >
               <Text
@@ -210,16 +307,37 @@ export default function TutorRequestsScreen() {
         <View style={styles.requestsList}>
           {filteredRequests.length > 0 ? (
             filteredRequests.map((request) => (
-              <View key={request.id} style={[styles.requestCard, { borderLeftColor: request.subjectColor }]}>
+              <View
+                key={request.id}
+                style={[
+                  styles.requestCard,
+                  { borderLeftColor: request.subjectColor },
+                ]}
+              >
                 {/* En-tête avec parent */}
                 <View style={styles.requestHeader}>
-                  <Image source={{ uri: request.parentAvatar }} style={styles.parentAvatar} />
+                  <Image
+                    source={{ uri: request.parentAvatar }}
+                    style={styles.parentAvatar}
+                  />
                   <View style={styles.parentInfo}>
                     <Text style={styles.parentName}>{request.parentName}</Text>
-                    <Text style={styles.requestTime}>{request.requestedDate}</Text>
+                    <Text style={styles.requestTime}>
+                      {request.requestedDate}
+                    </Text>
                   </View>
-                  <View style={[styles.subjectPill, { backgroundColor: request.subjectColor + "15" }]}>
-                    <Text style={[styles.subjectPillText, { color: request.subjectColor }]}>
+                  <View
+                    style={[
+                      styles.subjectPill,
+                      { backgroundColor: request.subjectColor + "15" },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.subjectPillText,
+                        { color: request.subjectColor },
+                      ]}
+                    >
                       {request.subject}
                     </Text>
                   </View>
@@ -229,7 +347,8 @@ export default function TutorRequestsScreen() {
                 <View style={styles.childInfo}>
                   <User size={12} color="#64748B" />
                   <Text style={styles.childText}>
-                    {request.childName} • {request.childAge} ans • {request.childGrade}
+                    {request.childName} • {request.childAge} ans •{" "}
+                    {request.childGrade}
                   </Text>
                 </View>
 
@@ -250,7 +369,9 @@ export default function TutorRequestsScreen() {
                     ) : (
                       <>
                         <MapPin size={12} color="#6366F1" />
-                        <Text style={styles.detailText}>{request.location}</Text>
+                        <Text style={styles.detailText}>
+                          {request.location}
+                        </Text>
                       </>
                     )}
                   </View>
@@ -259,14 +380,18 @@ export default function TutorRequestsScreen() {
                 {/* Message (optionnel) */}
                 {request.message && (
                   <View style={styles.messageBox}>
-                    <Text style={styles.messageText}>"{request.message}"</Text>
+                    <Text style={styles.messageText}>
+                      &quot;{request.message}&quot;
+                    </Text>
                   </View>
                 )}
 
                 {/* Prix */}
                 <View style={styles.priceRow}>
                   <Clock size={12} color="#64748B" />
-                  <Text style={styles.priceText}>{request.pricePerHour} MAD / heure</Text>
+                  <Text style={styles.priceText}>
+                    {request.pricePerHour} MAD / heure
+                  </Text>
                 </View>
 
                 {/* Actions ou statut */}
@@ -309,9 +434,12 @@ export default function TutorRequestsScreen() {
               <Inbox size={48} color="#CBD5E1" />
               <Text style={styles.emptyTitle}>Aucune demande</Text>
               <Text style={styles.emptyText}>
-                {selectedTab === "pending" && "Vous n'avez aucune demande en attente"}
-                {selectedTab === "accepted" && "Vous n'avez accepté aucune demande"}
-                {selectedTab === "declined" && "Vous n'avez refusé aucune demande"}
+                {selectedTab === "pending" &&
+                  "Vous n'avez aucune demande en attente"}
+                {selectedTab === "accepted" &&
+                  "Vous n'avez accepté aucune demande"}
+                {selectedTab === "declined" &&
+                  "Vous n'avez refusé aucune demande"}
               </Text>
             </View>
           )}
@@ -321,7 +449,6 @@ export default function TutorRequestsScreen() {
         <TouchableOpacity style={styles.sourceButton}>
           <Text style={styles.sourceButtonText}>+ Voir plus de demandes</Text>
         </TouchableOpacity>
-
       </ScrollView>
     </SafeAreaView>
   );

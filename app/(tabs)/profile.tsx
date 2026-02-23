@@ -21,18 +21,18 @@ import {
   Shield,
   MessageSquare,
   Sparkles,
-  User,
 } from "lucide-react-native";
 
-import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
+import { useLogout } from "@/hooks/api/auth";
 
 export default function ProfileScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
+  const logoutMutation = useLogout();
 
   const menuItems = [
     {
@@ -94,7 +94,9 @@ export default function ProfileScreen() {
               </Text>
             </View>
             <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{user?.name || "Utilisateur"}</Text>
+              <Text style={styles.profileName}>
+                {user?.name || "Utilisateur"}
+              </Text>
               <View style={styles.roleBadge}>
                 <Sparkles size={12} color="#6366F1" />
                 <Text style={styles.roleBadgeText}>
@@ -108,7 +110,9 @@ export default function ProfileScreen() {
           <View style={styles.contactSection}>
             <View style={styles.contactItem}>
               <Mail size={14} color="#64748B" />
-              <Text style={styles.contactText}>{user?.email || "email@example.com"}</Text>
+              <Text style={styles.contactText}>
+                {user?.email || "email@example.com"}
+              </Text>
             </View>
             {user?.phoneNumber && (
               <View style={styles.contactItem}>
@@ -138,7 +142,9 @@ export default function ProfileScreen() {
                   <View style={styles.menuItemText}>
                     <Text style={styles.menuItemTitle}>{item.title}</Text>
                     {item.subtitle && (
-                      <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
+                      <Text style={styles.menuItemSubtitle}>
+                        {item.subtitle}
+                      </Text>
                     )}
                   </View>
                 </View>
@@ -150,8 +156,12 @@ export default function ProfileScreen() {
 
         {/* Déconnexion */}
         <Pressable
-          style={({ pressed }) => [styles.logoutButton, pressed && { opacity: 0.7 }]}
-          onPress={() => {
+          style={({ pressed }) => [
+            styles.logoutButton,
+            pressed && { opacity: 0.7 },
+          ]}
+          onPress={async () => {
+            await logoutMutation.mutateAsync().catch(() => {});
             dispatch(logout());
             router.replace("/sign-in");
           }}
@@ -162,14 +172,15 @@ export default function ProfileScreen() {
 
         {/* Version */}
         <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>Oumi'School v1.0.0</Text>
+          <Text style={styles.versionText}>Oumi&apos;School v1.0.0</Text>
         </View>
 
         {/* Bouton Add source */}
         <TouchableOpacity style={styles.sourceButton}>
-          <Text style={styles.sourceButtonText}>+ Ajouter un mode de paiement</Text>
+          <Text style={styles.sourceButtonText}>
+            + Ajouter un mode de paiement
+          </Text>
         </TouchableOpacity>
-
       </ScrollView>
     </SafeAreaView>
   );
