@@ -24,6 +24,27 @@ export interface Session {
   tutorId: string;
   childId: string;
   subjectId: string | null;
+  tutor?: {
+    id: string;
+    user?: { firstName?: string; lastName?: string; email?: string };
+  };
+  child?: {
+    id: string;
+    name?: string;
+    grade?: string;
+  };
+  parent?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    user?: { email?: string };
+  };
+  subject?: {
+    id: string;
+    name: string;
+    color: string;
+    icon?: string | null;
+  } | null;
 }
 
 export const sessionApi = {
@@ -33,9 +54,7 @@ export const sessionApi = {
     apiClient.post<Session>("/sessions/request", body),
   accept: (id: string) => apiClient.post<Session>(`/sessions/${id}/accept`),
   reject: (id: string) => apiClient.post<Session>(`/sessions/${id}/reject`),
-  schedule: (id: string) =>
-    apiClient.post<Session>(`/sessions/${id}/schedule`),
+  schedule: (id: string) => apiClient.post<Session>(`/sessions/${id}/schedule`),
   cancel: (id: string) => apiClient.post<Session>(`/sessions/${id}/cancel`),
-  complete: (id: string) =>
-    apiClient.post<Session>(`/sessions/${id}/complete`),
+  complete: (id: string) => apiClient.post<Session>(`/sessions/${id}/complete`),
 };

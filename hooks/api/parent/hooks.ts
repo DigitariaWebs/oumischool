@@ -1,11 +1,43 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { parentApi, CreateChildPayload, UpdateChildPayload } from "./api";
+import {
+  parentApi,
+  CreateChildPayload,
+  UpdateChildPayload,
+  UpdateParentProfilePayload,
+} from "./api";
 import { parentKeys } from "./keys";
 
 export function useParentMe() {
   return useQuery({
     queryKey: parentKeys.me(),
     queryFn: parentApi.getMe,
+  });
+}
+
+export function useUpdateParentProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: UpdateParentProfilePayload) => parentApi.updateProfile(body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: parentKeys.me() });
+    },
+  });
+}
+
+export function useUploadAvatar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ uri, fileName }: { uri: string; fileName: string }) =>
+      parentApi.uploadAvatar(uri, fileName),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: parentKeys.me() });
+    },
+  });
+}
+
+export function useRequestDeletion() {
+  return useMutation({
+    mutationFn: (reason?: string) => parentApi.requestDeletion(reason),
   });
 }
 

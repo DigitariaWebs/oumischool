@@ -5,20 +5,18 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Alert,
   Dimensions,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { usePayment } from "@/hooks/usePayment";
+import { usePaymentMethods } from "@/hooks/api/payment-methods";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ArrowLeft,
   CreditCard,
   Lock,
   Calendar,
-  User,
-  MapPin,
   CheckCircle,
   Clock,
   Users,
@@ -27,6 +25,7 @@ import {
   Sparkles,
   Shield,
   Zap,
+  AlertCircle,
 } from "lucide-react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
@@ -37,14 +36,6 @@ import { useTheme } from "@/hooks/use-theme";
 import { ThemeColors } from "@/constants/theme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
-interface SavedCard {
-  id: string;
-  type: string;
-  last4: string;
-  expiry: string;
-  isDefault: boolean;
-}
 
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -66,47 +57,8 @@ export default function CheckoutScreen() {
   };
 
   const { payForSession } = usePayment();
-
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardHolder, setCardHolder] = useState("");
-  const [expiryDate, setExpiryDate] = useState("");
-  const [cvv, setCvv] = useState("");
-  const [billingAddress, setBillingAddress] = useState("");
+  const { data: paymentMethods = [], isLoading: methodsLoading } = usePaymentMethods();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"saved" | "new">("saved");
-
-  const savedCards: SavedCard[] = [
-    {
-      id: "1",
-      type: "Visa",
-      last4: "4242",
-      expiry: "12/25",
-      isDefault: true,
-    },
-    {
-      id: "2",
-      type: "Mastercard",
-      last4: "8888",
-      expiry: "10/26",
-      isDefault: false,
-    },
-  ];
-
-  const [selectedCard, setSelectedCard] = useState(savedCards[0].id);
-
-  const formatCardNumber = (text: string) => {
-    const cleaned = text.replace(/\s/g, "");
-    const formatted = cleaned.match(/.{1,4}/g)?.join(" ") || cleaned;
-    return formatted.substring(0, 19);
-  };
-
-  const formatExpiryDate = (text: string) => {
-    const cleaned = text.replace(/\D/g, "");
-    if (cleaned.length >= 2) {
-      return `${cleaned.substring(0, 2)}/${cleaned.substring(2, 4)}`;
-    }
-    return cleaned;
-  };
 
   const handlePayment = async () => {
     if (!bookingDetails.startTime || !bookingDetails.endTime) {
@@ -126,7 +78,6 @@ export default function CheckoutScreen() {
         childrenIds: childIds.length > 1 ? childIds : undefined,
         startTime: bookingDetails.startTime,
         endTime: bookingDetails.endTime,
-        subjectId: bookingDetails.subjectId,
         mode: bookingDetails.mode,
         type: childIds.length > 1 ? "group" : "individual",
       });
@@ -136,6 +87,12 @@ export default function CheckoutScreen() {
           "Paiement réussi! 🎉",
           "Votre réservation a été confirmée. Le tuteur sera notifié.",
           [{ text: "OK", onPress: () => router.push("/(tabs)") }]
+        );
+      } else {
+        Alert.alert(
+          "Erreur de paiement",
+          "Le paiement n'a pas pu être effectué. Veuillez réessayer.",
+          [{ text: "OK" }]
         );
       }
     } finally {
@@ -302,231 +259,69 @@ export default function CheckoutScreen() {
           </View>
         </Animated.View>
 
-        {/* Payment Method Toggle */}
+        {/* Payment Method */}
         <Animated.View
           entering={FadeInDown.delay(400).duration(600).springify()}
           style={styles.section}
         >
           <Text style={styles.sectionTitle}>💳 Méthode de paiement</Text>
 
-          <View style={styles.methodToggle}>
-            <TouchableOpacity
-              style={[
-                styles.methodTab,
-                paymentMethod === "saved" && styles.methodTabActive,
-              ]}
-              onPress={() => setPaymentMethod("saved")}
-              activeOpacity={0.7}
-            >
-              <CreditCard
-                size={18}
-                color={
-                  paymentMethod === "saved"
-                    ? COLORS.primary.DEFAULT
-                    : COLORS.secondary[400]
-                }
-              />
-              <Text
-                style={[
-                  styles.methodTabText,
-                  paymentMethod === "saved" && styles.methodTabTextActive,
-                ]}
-              >
-                Carte enregistrée
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.methodTab,
-                paymentMethod === "new" && styles.methodTabActive,
-              ]}
-              onPress={() => setPaymentMethod("new")}
-              activeOpacity={0.7}
-            >
-              <CreditCard
-                size={18}
-                color={
-                  paymentMethod === "new"
-                    ? COLORS.primary.DEFAULT
-                    : COLORS.secondary[400]
-                }
-              />
-              <Text
-                style={[
-                  styles.methodTabText,
-                  paymentMethod === "new" && styles.methodTabTextActive,
-                ]}
-              >
-                Nouvelle carte
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Saved Cards */}
-          {paymentMethod === "saved" ? (
-            <View style={styles.formCard}>
-              {savedCards.map((card) => (
-                <TouchableOpacity
-                  key={card.id}
-                  style={[
-                    styles.savedCard,
-                    selectedCard === card.id && styles.savedCardActive,
-                  ]}
-                  onPress={() => setSelectedCard(card.id)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.savedCardLeft}>
-                    <View
-                      style={[
-                        styles.cardTypeIcon,
-                        selectedCard === card.id && styles.cardTypeIconActive,
-                      ]}
-                    >
-                      <CreditCard
-                        size={20}
-                        color={
-                          selectedCard === card.id
-                            ? colors.primary
-                            : colors.textSecondary
-                        }
-                      />
-                    </View>
-                    <View>
-                      <Text style={styles.cardType}>{card.type}</Text>
-                      <Text style={styles.cardNumber}>
-                        •••• •••• •••• {card.last4}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.savedCardRight}>
-                    <Text style={styles.cardExpiry}>{card.expiry}</Text>
-                    {selectedCard === card.id && (
-                      <View style={styles.checkCircle}>
-                        <CheckCircle size={20} color={colors.primary} />
+          <View style={styles.formCard}>
+            {methodsLoading ? (
+              <View style={styles.savedCard}>
+                <CreditCard size={18} color={colors.textSecondary} />
+                <Text style={[styles.cardType, { marginLeft: 10, color: colors.textSecondary }]}>
+                  Chargement…
+                </Text>
+              </View>
+            ) : paymentMethods.length > 0 ? (
+              <>
+                {paymentMethods.map((method) => (
+                  <View key={method.id} style={styles.savedCard}>
+                    <View style={styles.savedCardLeft}>
+                      <View style={styles.cardTypeIcon}>
+                        <CreditCard size={20} color={colors.textSecondary} />
                       </View>
-                    )}
+                      <View>
+                        <Text style={styles.cardType}>
+                          {method.type.charAt(0).toUpperCase() + method.type.slice(1)}
+                          {method.isDefault ? "  ✓" : ""}
+                        </Text>
+                        {method.last4 ? (
+                          <Text style={styles.cardNumber}>
+                            •••• •••• •••• {method.last4}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                    {method.expiryDate ? (
+                      <Text style={styles.cardExpiry}>{method.expiryDate}</Text>
+                    ) : null}
                   </View>
-                </TouchableOpacity>
-              ))}
-
-              {/* CVV Input */}
-              <View style={styles.cvvRow}>
-                <View style={styles.cvvInputWrapper}>
-                  <Text style={styles.inputLabel}>CVV</Text>
-                  <View style={styles.inputContainer}>
-                    <Lock size={18} color={colors.textSecondary} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="•••"
-                      value={cvv}
-                      onChangeText={setCvv}
-                      keyboardType="number-pad"
-                      maxLength={3}
-                      secureTextEntry
-                      placeholderTextColor={colors.inputPlaceholder}
-                    />
-                  </View>
-                </View>
-                <View style={styles.cvvHint}>
-                  <Shield size={16} color="#10B981" />
-                  <Text style={styles.cvvHintText}>
-                    Les 3 chiffres au dos de votre carte
+                ))}
+                <View style={styles.stripeNote}>
+                  <Shield size={14} color="#10B981" />
+                  <Text style={styles.stripeNoteText}>
+                    Vos cartes enregistrées sont disponibles dans le paiement sécurisé Stripe
                   </Text>
                 </View>
+              </>
+            ) : (
+              <View style={styles.noCardsRow}>
+                <AlertCircle size={18} color={colors.textSecondary} />
+                <Text style={styles.noCardsText}>
+                  Vous pourrez ajouter une carte à l&apos;étape suivante via Stripe
+                </Text>
               </View>
-            </View>
-          ) : (
-            <View style={styles.formCard}>
-              {/* Card Number */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Numéro de carte</Text>
-                <View style={styles.inputContainer}>
-                  <CreditCard size={18} color={colors.textSecondary} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="1234 5678 9012 3456"
-                    value={cardNumber}
-                    onChangeText={(text) =>
-                      setCardNumber(formatCardNumber(text))
-                    }
-                    keyboardType="number-pad"
-                    maxLength={19}
-                    placeholderTextColor={colors.inputPlaceholder}
-                  />
-                </View>
-              </View>
+            )}
+          </View>
 
-              {/* Card Holder */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Titulaire</Text>
-                <View style={styles.inputContainer}>
-                  <User size={18} color={colors.textSecondary} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="JEAN DUPONT"
-                    value={cardHolder}
-                    onChangeText={setCardHolder}
-                    autoCapitalize="characters"
-                    placeholderTextColor={colors.inputPlaceholder}
-                  />
-                </View>
-              </View>
-
-              {/* Expiry & CVV Row */}
-              <View style={styles.rowInputs}>
-                <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.inputLabel}>Expiration</Text>
-                  <View style={styles.inputContainer}>
-                    <Calendar size={18} color={colors.textSecondary} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="MM/AA"
-                      value={expiryDate}
-                      onChangeText={(text) =>
-                        setExpiryDate(formatExpiryDate(text))
-                      }
-                      keyboardType="number-pad"
-                      maxLength={5}
-                      placeholderTextColor={colors.inputPlaceholder}
-                    />
-                  </View>
-                </View>
-
-                <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.inputLabel}>CVV</Text>
-                  <View style={styles.inputContainer}>
-                    <Lock size={18} color={colors.textSecondary} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="123"
-                      value={cvv}
-                      onChangeText={setCvv}
-                      keyboardType="number-pad"
-                      maxLength={3}
-                      secureTextEntry
-                      placeholderTextColor={colors.inputPlaceholder}
-                    />
-                  </View>
-                </View>
-              </View>
-
-              {/* Billing Address */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Adresse de facturation</Text>
-                <View style={styles.inputContainer}>
-                  <MapPin size={18} color={colors.textSecondary} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="123 Rue de la République"
-                    value={billingAddress}
-                    onChangeText={setBillingAddress}
-                    placeholderTextColor={colors.inputPlaceholder}
-                  />
-                </View>
-              </View>
-            </View>
-          )}
+          <View style={styles.stripeBadgeRow}>
+            <Lock size={13} color={colors.textMuted} />
+            <Text style={styles.stripeBadgeText}>
+              Paiement traité de façon sécurisée par Stripe
+            </Text>
+          </View>
         </Animated.View>
 
         {/* Security Notice */}
@@ -950,59 +745,44 @@ const createStyles = (colors: ThemeColors, isDark: boolean) =>
       fontSize: 12,
       color: colors.textMuted,
     },
-    checkCircle: {},
-    cvvRow: {
-      flexDirection: "row",
-      alignItems: "flex-end",
-      gap: 16,
-      marginTop: 4,
-    },
-    cvvInputWrapper: {
-      width: 100,
-    },
-    cvvHint: {
-      flex: 1,
+    stripeNote: {
       flexDirection: "row",
       alignItems: "center",
       gap: 8,
-      paddingBottom: 12,
+      marginTop: 12,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.inputBorder,
     },
-    cvvHintText: {
+    stripeNoteText: {
       fontFamily: FONTS.secondary,
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.textSecondary,
       flex: 1,
     },
-    inputGroup: {
-      marginBottom: 16,
+    noCardsRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingVertical: 4,
     },
-    inputLabel: {
+    noCardsText: {
       fontFamily: FONTS.secondary,
       fontSize: 13,
       color: colors.textSecondary,
-      fontWeight: "600",
-      marginBottom: 8,
+      flex: 1,
     },
-    inputContainer: {
+    stripeBadgeRow: {
       flexDirection: "row",
       alignItems: "center",
-      backgroundColor: colors.input,
-      borderRadius: 12,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      gap: 10,
-      borderWidth: 1.5,
-      borderColor: colors.inputBorder,
+      gap: 6,
+      marginTop: 10,
+      paddingHorizontal: 4,
     },
-    input: {
-      flex: 1,
+    stripeBadgeText: {
       fontFamily: FONTS.secondary,
-      fontSize: 15,
-      color: colors.textPrimary,
-    },
-    rowInputs: {
-      flexDirection: "row",
-      gap: 12,
+      fontSize: 11,
+      color: colors.textMuted,
     },
     securityNotice: {
       flexDirection: "row",

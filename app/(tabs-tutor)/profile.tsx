@@ -21,27 +21,48 @@ import { FONTS } from "@/config/fonts";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
 import { useLogout } from "@/hooks/api/auth";
+import {
+  useMyEarnings,
+  useMySessions,
+  useMyStudents,
+} from "@/hooks/api/tutors";
 
 export default function TutorProfileScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const logoutMutation = useLogout();
+  const { data: myStudentsData = [] } = useMyStudents();
+  const { data: mySessionsData = [] } = useMySessions();
+  const { data: myEarningsData } = useMyEarnings();
+
+  const sessions = Array.isArray(mySessionsData) ? mySessionsData : [];
+  const students = Array.isArray(myStudentsData) ? myStudentsData : [];
+  const completedSessions = sessions.filter(
+    (session) => String(session.status).toUpperCase() === "COMPLETED",
+  ).length;
+  const subjects = Array.from(
+    new Set(
+      sessions
+        .map((session) => session.subject?.name)
+        .filter((value): value is string => Boolean(value?.trim())),
+    ),
+  );
 
   const stats = [
     {
       icon: <Users size={16} color="#8B5CF6" />,
-      value: user?.totalStudents?.toString() || "0",
+      value: String(students.length),
       label: "Élèves",
     },
     {
       icon: <Calendar size={16} color="#10B981" />,
-      value: user?.completedSessions?.toString() || "0",
+      value: String(completedSessions),
       label: "Sessions",
     },
     {
       icon: <TrendingUp size={16} color="#F59E0B" />,
-      value: `${user?.monthlyEarnings || 0}€`,
+      value: `${Math.round(myEarningsData?.thisMonth ?? 0)}€`,
       label: "Ce mois",
     },
     {
@@ -99,9 +120,7 @@ export default function TutorProfileScreen() {
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>{user?.name || "Tuteur"}</Text>
               <Text style={styles.profileSubjects}>
-                {user?.subjects?.length
-                  ? user.subjects.join(" • ")
-                  : "Tuteur certifié"}
+                {subjects.length ? subjects.join(" • ") : "Tuteur certifié"}
               </Text>
               <View style={styles.ratingBadge}>
                 <Star size={12} color="#F59E0B" fill="#F59E0B" />

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -40,26 +40,15 @@ import {
   useTrackResourceDownload,
   useUploadResource,
 } from "@/hooks/api/resources";
+import { useMySessions, useMyStudents } from "@/hooks/api/tutors";
 import { useAppSelector } from "@/store/hooks";
+import { resolveSubjectDisplayName } from "@/utils/sessionDisplay";
 
-// --- Mock Data ---
-const MY_STUDENTS = [
-  {
-    id: 1,
-    name: "Adam B.",
-    grade: "CE2",
-    subject: "Maths",
-    subjectColor: "#3B82F6",
-    image: "https://cdn-icons-png.flaticon.com/512/4140/4140048.png",
-  },
-  {
-    id: 2,
-    name: "Sofia M.",
-    grade: "CP",
-    subject: "Français",
-    subjectColor: "#EF4444",
-    image: "https://cdn-icons-png.flaticon.com/512/4140/4140049.png",
-  },
+const STUDENT_IMAGES = [
+  "https://cdn-icons-png.flaticon.com/512/4140/4140048.png",
+  "https://cdn-icons-png.flaticon.com/512/4140/4140049.png",
+  "https://cdn-icons-png.flaticon.com/512/4140/4140050.png",
+  "https://cdn-icons-png.flaticon.com/512/4140/4140051.png",
 ];
 
 const SUBJECT_NORMALIZATION: Record<string, string> = {
@@ -70,38 +59,98 @@ const SUBJECT_NORMALIZATION: Record<string, string> = {
   Anglais: "Anglais",
 };
 
-const MOCK_SESSIONS = [
-  {
-    id: 1,
-    student: "Adam B.",
-    time: "14:00",
-    duration: "60min",
-    subject: "Maths",
-    color: "#3B82F6",
-  },
-  {
-    id: 2,
-    student: "Sofia M.",
-    time: "16:00",
-    duration: "45min",
-    subject: "Français",
-    color: "#EF4444",
-  },
-  {
-    id: 3,
-    student: "Adam B.",
-    time: "Demain 10:00",
-    duration: "60min",
-    subject: "Maths",
-    color: "#3B82F6",
-  },
-];
+function asNonEmptyString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function asDisplayString(value: unknown): string | null {
+  if (typeof value === "string") return asNonEmptyString(value);
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return null;
+}
+
+function looksLikeStudentIdentifier(value: string, studentId?: string | null) {
+  const normalized = value.trim();
+  if (!normalized) return true;
+  if (studentId && normalized === studentId) return true;
+  if (
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      normalized,
+    )
+  ) {
+    return true;
+  }
+  if (/^[a-f0-9]{24}$/i.test(normalized)) return true;
+  if (/^(child|student|user)[_-]?[0-9a-z-]+$/i.test(normalized)) return true;
+  if (normalized.length > 20 && !/\s/.test(normalized)) return true;
+  return false;
+}
+
+function resolveStudentDisplayName(item: any, studentId: string): string {
+  const userFirstName = asNonEmptyString(item?.child?.user?.firstName);
+  const userLastName = asNonEmptyString(item?.child?.user?.lastName);
+  const composedUserName = [userFirstName ?? "", userLastName ?? ""]
+    .join(" ")
+    .trim();
+  const emailPrefix = asNonEmptyString(item?.child?.user?.email)?.split("@")[0];
+  const candidates = [
+    asNonEmptyString(composedUserName),
+    asNonEmptyString(item?.child?.fullName),
+    asNonEmptyString(item?.child?.name),
+    asNonEmptyString(item?.childName),
+    asNonEmptyString(item?.studentName),
+    asNonEmptyString(emailPrefix),
+    asNonEmptyString(item?.name),
+  ].filter((value): value is string => Boolean(value));
+
+  const valid = candidates.find(
+    (candidate) =>
+      !looksLikeStudentIdentifier(candidate, studentId) &&
+      !candidate.includes("@"),
+  );
+  return valid ?? "Élève";
+}
+
+function resolveStudentGrade(item: any, studentId: string): string {
+  const candidates = [
+    asDisplayString(item?.child?.grade),
+    asDisplayString(item?.child?.level),
+    asDisplayString(item?.grade),
+    asDisplayString(item?.gradeLevel),
+    asDisplayString(item?.classLevel),
+    asDisplayString(item?.className),
+  ].filter((value): value is string => Boolean(value));
+
+  const valid = candidates.find(
+    (candidate) => !looksLikeStudentIdentifier(candidate, studentId),
+  );
+  return valid ?? "—";
+}
+
+function subjectColor(subject: string): string {
+  const key = subject.toLowerCase();
+  if (key.includes("math")) return "#3B82F6";
+  if (key.includes("fr")) return "#EF4444";
+  if (key.includes("science")) return "#10B981";
+  if (key.includes("english")) return "#06B6D4";
+  return "#6366F1";
+}
+
+function formatSessionTimeLabel(start: Date): string {
+  return `${String(start.getHours()).padStart(2, "0")}:${String(
+    start.getMinutes(),
+  ).padStart(2, "0")}`;
+}
 
 export default function TutorDashboardScreen() {
   const router = useRouter();
   const user = useAppSelector((state) => state.auth.user);
   const userName = user?.name || "Tuteur";
   const { data: apiResources = [] } = useResources();
+  const { data: myStudentsData = [] } = useMyStudents();
+  const { data: mySessionsData = [] } = useMySessions();
   const uploadResourceMutation = useUploadResource();
   const trackDownloadMutation = useTrackResourceDownload();
 
@@ -113,7 +162,7 @@ export default function TutorDashboardScreen() {
   const [newResource, setNewResource] = useState({
     title: "",
     type: "PDF",
-    targetStudentId: 1,
+    targetStudentId: "",
     isPaid: false,
     price: "",
     uploadedFileName: "",
@@ -121,6 +170,81 @@ export default function TutorDashboardScreen() {
     uploadedFileSize: "",
     uploadedFileMimeType: "",
   });
+
+  const students = useMemo(
+    () =>
+      (Array.isArray(myStudentsData) ? myStudentsData : []).map(
+        (item: any, index: number) => {
+          const childId =
+            asNonEmptyString(item?.child?.id) ??
+            asNonEmptyString(item?.childId) ??
+            `student-${index}`;
+          const subject = resolveSubjectDisplayName(item, "Matière");
+          return {
+            id: childId,
+            name: resolveStudentDisplayName(item, childId),
+            grade: resolveStudentGrade(item, childId),
+            subject,
+            subjectColor: subjectColor(subject),
+            image:
+              item?.child?.avatar ??
+              STUDENT_IMAGES[index % STUDENT_IMAGES.length],
+          };
+        },
+      ),
+    [myStudentsData],
+  );
+
+  const sessions = useMemo(
+    () =>
+      (Array.isArray(mySessionsData) ? mySessionsData : [])
+        .map((session: any) => {
+          const start = new Date(session?.startTime ?? Date.now());
+          const end = new Date(session?.endTime ?? Date.now());
+          const durationMinutes = Math.max(
+            30,
+            Math.round((end.getTime() - start.getTime()) / 60000),
+          );
+          const studentId =
+            asNonEmptyString(session?.child?.id) ??
+            asNonEmptyString(session?.childId) ??
+            "";
+          const studentName =
+            students.find((s) => s.id === studentId)?.name ??
+            resolveStudentDisplayName(session, studentId);
+          const subject = resolveSubjectDisplayName(session, "Cours");
+          return {
+            id: asNonEmptyString(session?.id) ?? `session-${Math.random()}`,
+            studentId,
+            student: studentName,
+            time: formatSessionTimeLabel(start),
+            duration: `${durationMinutes}min`,
+            subject,
+            color: subjectColor(subject),
+          };
+        })
+        .slice(0, 5),
+    [mySessionsData, students],
+  );
+  const todaySessionsCount = useMemo(() => {
+    const rows = Array.isArray(mySessionsData) ? mySessionsData : [];
+    const today = new Date();
+    return rows.filter((session: any) => {
+      const start = new Date(session?.startTime ?? "");
+      if (Number.isNaN(start.getTime())) return false;
+      return (
+        start.getFullYear() === today.getFullYear() &&
+        start.getMonth() === today.getMonth() &&
+        start.getDate() === today.getDate()
+      );
+    }).length;
+  }, [mySessionsData]);
+
+  useEffect(() => {
+    if (!newResource.targetStudentId && students[0]?.id) {
+      setNewResource((prev) => ({ ...prev, targetStudentId: students[0].id }));
+    }
+  }, [newResource.targetStudentId, students]);
 
   const formatServerFileSize = (value: string | null) => {
     if (!value) return "—";
@@ -162,12 +286,12 @@ export default function TutorDashboardScreen() {
   }));
 
   // Ouvre le modal ressource pré-rempli depuis une session du planning
-  const handleAddResourceFromSession = (session: (typeof MOCK_SESSIONS)[0]) => {
-    const student = MY_STUDENTS.find((s) => s.name === session.student);
+  const handleAddResourceFromSession = (session: (typeof sessions)[0]) => {
+    const student = students.find((s) => s.id === session.studentId);
     setNewResource({
       title: `Ressource - ${session.subject} (${session.student})`,
       type: "PDF",
-      targetStudentId: student?.id ?? 1,
+      targetStudentId: student?.id ?? "",
       isPaid: false,
       price: "",
       uploadedFileName: "",
@@ -271,11 +395,13 @@ export default function TutorDashboardScreen() {
       return;
     }
 
-    const targetStudent = MY_STUDENTS.find(
+    const targetStudent = students.find(
       (student) => student.id === newResource.targetStudentId,
     );
     const normalizedSubject =
-      SUBJECT_NORMALIZATION[targetStudent?.subject ?? ""] ?? "Mathématiques";
+      SUBJECT_NORMALIZATION[targetStudent?.subject ?? ""] ??
+      targetStudent?.subject ??
+      "Mathématiques";
     const normalizedType =
       newResource.type === "Vidéo"
         ? "video"
@@ -315,7 +441,7 @@ export default function TutorDashboardScreen() {
       setNewResource({
         title: "",
         type: "PDF",
-        targetStudentId: 1,
+        targetStudentId: students[0]?.id ?? "",
         isPaid: false,
         price: "",
         uploadedFileName: "",
@@ -390,12 +516,12 @@ export default function TutorDashboardScreen() {
         <View style={styles.statsCard}>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>12</Text>
+              <Text style={styles.statValue}>{resources.length}</Text>
               <Text style={styles.statLabel}>Ressources</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>2</Text>
+              <Text style={styles.statValue}>{todaySessionsCount}</Text>
               <Text style={styles.statLabel}>Cours ajd</Text>
             </View>
           </View>
@@ -433,7 +559,7 @@ export default function TutorDashboardScreen() {
             </View>
           </TouchableOpacity>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {MY_STUDENTS.map((student) => (
+            {students.map((student) => (
               <TouchableOpacity
                 key={student.id}
                 style={styles.studentSmallCard}
@@ -524,9 +650,7 @@ export default function TutorDashboardScreen() {
                   { backgroundColor: "#F59E0B" },
                 ]}
               >
-                <Text style={styles.notificationText}>
-                  {MY_STUDENTS.length}
-                </Text>
+                <Text style={styles.notificationText}>{students.length}</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -617,7 +741,7 @@ export default function TutorDashboardScreen() {
                 {/* Élève cible */}
                 <Text style={styles.inputLabel}>Pour quel élève ?</Text>
                 <View style={styles.studentPicker}>
-                  {MY_STUDENTS.map((s) => (
+                  {students.map((s) => (
                     <TouchableOpacity
                       key={s.id}
                       style={[
@@ -886,63 +1010,71 @@ export default function TutorDashboardScreen() {
             <Text style={styles.modalSubtitle}>Vos prochaines sessions</Text>
 
             <ScrollView style={styles.modalList}>
-              {MOCK_SESSIONS.map((session) => (
-                <View
-                  key={session.id}
-                  style={[
-                    styles.sessionItem,
-                    { borderLeftColor: session.color },
-                  ]}
-                >
-                  {/* Infos session */}
-                  <TouchableOpacity
-                    style={styles.sessionLeft}
-                    onPress={() =>
-                      Alert.alert(
-                        "Session",
-                        `Cours de ${session.subject} avec ${session.student}`,
-                      )
-                    }
+              {sessions.length === 0 ? (
+                <Text style={styles.emptySessionsText}>
+                  Aucune session planifiée.
+                </Text>
+              ) : (
+                sessions.map((session) => (
+                  <View
+                    key={session.id}
+                    style={[
+                      styles.sessionItem,
+                      { borderLeftColor: session.color },
+                    ]}
                   >
-                    <View style={styles.sessionTime}>
-                      <Text style={styles.sessionTimeText}>{session.time}</Text>
-                      <Text style={styles.sessionDuration}>
-                        {session.duration}
-                      </Text>
-                    </View>
-                    <View style={styles.sessionInfo}>
-                      <Text style={styles.sessionStudent}>
-                        {session.student}
-                      </Text>
-                      <View
-                        style={[
-                          styles.sessionSubjectBadge,
-                          { backgroundColor: session.color + "15" },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.sessionSubjectText,
-                            { color: session.color },
-                          ]}
-                        >
-                          {session.subject}
+                    {/* Infos session */}
+                    <TouchableOpacity
+                      style={styles.sessionLeft}
+                      onPress={() =>
+                        Alert.alert(
+                          "Session",
+                          `Cours de ${session.subject} avec ${session.student}`,
+                        )
+                      }
+                    >
+                      <View style={styles.sessionTime}>
+                        <Text style={styles.sessionTimeText}>
+                          {session.time}
+                        </Text>
+                        <Text style={styles.sessionDuration}>
+                          {session.duration}
                         </Text>
                       </View>
-                    </View>
-                    <Clock size={14} color="#94A3B8" />
-                  </TouchableOpacity>
+                      <View style={styles.sessionInfo}>
+                        <Text style={styles.sessionStudent}>
+                          {session.student}
+                        </Text>
+                        <View
+                          style={[
+                            styles.sessionSubjectBadge,
+                            { backgroundColor: session.color + "15" },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.sessionSubjectText,
+                              { color: session.color },
+                            ]}
+                          >
+                            {session.subject}
+                          </Text>
+                        </View>
+                      </View>
+                      <Clock size={14} color="#94A3B8" />
+                    </TouchableOpacity>
 
-                  {/* ── Bouton ajouter ressource depuis cette session ── */}
-                  <TouchableOpacity
-                    style={styles.sessionAddBtn}
-                    onPress={() => handleAddResourceFromSession(session)}
-                  >
-                    <Plus size={12} color="#6366F1" />
-                    <Text style={styles.sessionAddBtnText}>Ressource</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
+                    {/* ── Bouton ajouter ressource depuis cette session ── */}
+                    <TouchableOpacity
+                      style={styles.sessionAddBtn}
+                      onPress={() => handleAddResourceFromSession(session)}
+                    >
+                      <Plus size={12} color="#6366F1" />
+                      <Text style={styles.sessionAddBtnText}>Ressource</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
             </ScrollView>
 
             <TouchableOpacity
@@ -1168,6 +1300,12 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 20, fontWeight: "bold" },
   modalSubtitle: { fontSize: 14, color: "#64748B", marginBottom: 20 },
   modalList: { maxHeight: 400 },
+  emptySessionsText: {
+    fontSize: 14,
+    color: "#64748B",
+    textAlign: "center",
+    paddingVertical: 16,
+  },
   modalButton: {
     flexDirection: "row",
     alignItems: "center",

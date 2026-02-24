@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -19,10 +19,16 @@ import { X, Check } from "lucide-react-native";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
+import {
+  useMarkAllNotificationsRead,
+  useMarkNotificationRead,
+  useNotifications,
+} from "@/hooks/api/notifications";
+import type { Notification as ApiNotification } from "@/hooks/api/notifications/api";
 
 interface Notification {
   id: string;
-  type: "assignment" | "progress" | "achievement" | "message" | "reminder";
+  type: string;
   title: string;
   message: string;
   time: string;
@@ -38,96 +44,73 @@ interface NotificationDrawerProps {
 const { width } = Dimensions.get("window");
 const DRAWER_WIDTH = Math.min(width * 0.85, 400);
 
-const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    type: "assignment",
-    title: "Nouveau Devoir",
-    message: "Un devoir de mathématiques a été assigné pour demain",
-    time: "Il y a 5m",
-    read: false,
-    icon: "📝",
-  },
-  {
-    id: "2",
-    type: "progress",
-    title: "Mise à jour des Progrès",
-    message: "Sarah a complété 3 leçons aujourd'hui ! Excellent travail !",
-    time: "Il y a 1h",
-    read: false,
-    icon: "📈",
-  },
-  {
-    id: "3",
-    type: "achievement",
-    title: "Succès Débloqué",
-    message: 'Ahmed a obtenu le badge "Maître des Maths"',
-    time: "Il y a 2h",
-    read: true,
-    icon: "🏆",
-  },
-  {
-    id: "4",
-    type: "message",
-    title: "Message du Professeur",
-    message:
-      "Mme. Johnson vous a envoyé un message concernant le projet de sciences",
-    time: "Il y a 3h",
-    read: true,
-    icon: "💬",
-  },
-  {
-    id: "5",
-    type: "reminder",
-    title: "Événement à Venir",
-    message: "Réunion parents-professeurs prévue vendredi à 15h00",
-    time: "Il y a 5h",
-    read: true,
-    icon: "🔔",
-  },
-  {
-    id: "6",
-    type: "progress",
-    title: "Rapport Hebdomadaire Disponible",
-    message: "Le rapport de progrès hebdomadaire de vos enfants est prêt",
-    time: "Il y a 1j",
-    read: true,
-    icon: "📊",
-  },
-  {
-    id: "7",
-    type: "achievement",
-    title: "Jalon de Série",
-    message: "Sarah a atteint une série d'apprentissage de 7 jours !",
-    time: "Il y a 2j",
-    read: true,
-    icon: "🔥",
-  },
-];
+function formatRelativeTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Récente";
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.max(1, Math.floor(diffMs / 60000));
+  if (diffMin < 60) return `Il y a ${diffMin} min`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `Il y a ${diffHours} h`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `Il y a ${diffDays} j`;
+}
+
+function iconForType(type: string): string {
+  const key = type.toUpperCase();
+  if (key.includes("SESSION")) return "📅";
+  if (key.includes("PAYMENT")) return "💳";
+  if (key.includes("MESSAGE")) return "💬";
+  if (key.includes("REVIEW")) return "⭐";
+  if (key.includes("SUBSCRIPTION")) return "📦";
+  return "🔔";
+}
+
+function mapNotification(item: ApiNotification): Notification {
+  return {
+    id: item.id,
+    type: item.type,
+    title: item.title,
+    message: item.body,
+    time: formatRelativeTime(item.createdAt),
+    read: Boolean(item.readAt),
+    icon: iconForType(item.type),
+  };
+}
 
 export default function NotificationDrawer({
   visible,
   onClose,
 }: NotificationDrawerProps) {
-  const [notifications, setNotifications] = useState(mockNotifications);
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const { data: apiNotifications = [] } = useNotifications();
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
+  const notifications = useMemo(
+    () => apiNotifications.map(mapNotification),
+    [apiNotifications],
+  );
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const handleMarkAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((notif) => (notif.id === id ? { ...notif, read: true } : notif)),
-    );
+  const handleMarkAsRead = async (id: string) => {
+    await markRead.mutateAsync(id).catch(() => {});
   };
 
-  const handleMarkAllAsRead = () => {
-    setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true })));
+  const handleMarkAllAsRead = async () => {
+    await markAllRead.mutateAsync().catch(() => {});
   };
 
   const filteredNotifications =
     filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
 
   const getNotificationColor = (type: Notification["type"]) => {
+    const key = type.toUpperCase();
+    if (key.includes("SESSION")) return COLORS.info;
+    if (key.includes("PAYMENT")) return COLORS.success;
+    if (key.includes("MESSAGE")) return "#8B5CF6";
+    if (key.includes("REVIEW")) return COLORS.warning;
+    if (key.includes("SUBSCRIPTION")) return COLORS.error;
     switch (type) {
       case "assignment":
         return COLORS.info;
@@ -176,7 +159,7 @@ export default function NotificationDrawer({
               </View>
               <View style={styles.headerActions}>
                 <TouchableOpacity
-                  onPress={handleMarkAllAsRead}
+                  onPress={() => void handleMarkAllAsRead()}
                   style={[
                     styles.markAllButton,
                     unreadCount === 0 && styles.markAllButtonDisabled,
@@ -256,7 +239,7 @@ export default function NotificationDrawer({
                       styles.notificationCard,
                       !notification.read && styles.notificationCardUnread,
                     ]}
-                    onPress={() => handleMarkAsRead(notification.id)}
+                    onPress={() => void handleMarkAsRead(notification.id)}
                     activeOpacity={0.7}
                   >
                     <View

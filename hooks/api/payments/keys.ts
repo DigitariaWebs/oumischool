@@ -4,4 +4,6 @@ export const paymentKeys = {
   method: (id: string) => [...paymentKeys.all, "method", id] as const,
   history: (params?: Record<string, unknown>) =>
     [...paymentKeys.all, "history", params] as const,
+  orders: () => [...paymentKeys.all, "orders"] as const,
+  order: (id: string) => [...paymentKeys.all, "order", id] as const,
 };

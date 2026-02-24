@@ -33,6 +33,11 @@ export default function ChildProfileScreen() {
   const { data: activitiesData = [] } = useActivities(childId, 100);
   const { data: performanceData } = usePerformance(childId);
   const { data: sessionsData = [] } = useSessions();
+  const mySessionsCount = (
+    Array.isArray(sessionsData) ? sessionsData : []
+  ).filter(
+    (session) => session?.childId === childId || session?.child?.id === childId,
+  ).length;
 
   const menuItems = [
     {
@@ -50,7 +55,7 @@ export default function ChildProfileScreen() {
   const stats = [
     {
       label: "Leçons",
-      value: String(Array.isArray(sessionsData) ? sessionsData.length : 0),
+      value: String(mySessionsCount),
       Icon: BookOpen,
       color: "#6366F1",
     },

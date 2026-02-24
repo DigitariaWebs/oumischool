@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -25,9 +26,18 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
+import { useParentMe, useUpdateParentProfile, useRequestDeletion } from "@/hooks/api/parent";
+import { useLogout } from "@/hooks/api/auth";
+import { useAppDispatch } from "@/store/hooks";
+import { logout } from "@/store/slices/authSlice";
 
 export default function ParentPrivacyScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { data: parentProfile } = useParentMe();
+  const updateParentProfile = useUpdateParentProfile();
+  const requestDeletion = useRequestDeletion();
+  const logoutMutation = useLogout();
 
   const [profileVisibility, setProfileVisibility] = useState(true);
   const [showEmail, setShowEmail] = useState(false);
@@ -35,6 +45,27 @@ export default function ParentPrivacyScreen() {
   const [dataCollection, setDataCollection] = useState(true);
   const [thirdPartySharing, setThirdPartySharing] = useState(false);
   const [marketingEmails, setMarketingEmails] = useState(true);
+
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    if (parentProfile?.privacySettings && !initialized.current) {
+      initialized.current = true;
+      const ps = parentProfile.privacySettings as Record<string, boolean>;
+      if (ps.profileVisibility !== undefined) setProfileVisibility(ps.profileVisibility);
+      if (ps.showEmail !== undefined) setShowEmail(ps.showEmail);
+      if (ps.showPhone !== undefined) setShowPhone(ps.showPhone);
+      if (ps.dataCollection !== undefined) setDataCollection(ps.dataCollection);
+      if (ps.thirdPartySharing !== undefined) setThirdPartySharing(ps.thirdPartySharing);
+      if (ps.marketingEmails !== undefined) setMarketingEmails(ps.marketingEmails);
+    }
+  }, [parentProfile]);
+
+  const handlePrivacyToggle = (key: string, value: boolean, setter: (v: boolean) => void) => {
+    setter(value);
+    const current = (parentProfile?.privacySettings as Record<string, unknown>) ?? {};
+    updateParentProfile.mutate({ privacySettings: { ...current, [key]: value } });
+  };
 
   const handleDownloadData = () => {
     Alert.alert(
@@ -70,8 +101,25 @@ export default function ParentPrivacyScreen() {
                 {
                   text: "Confirmer",
                   style: "destructive",
-                  onPress: () => {
-                    Alert.alert("Compte supprimé", "Votre compte a été supprimé");
+                  onPress: async () => {
+                    try {
+                      await requestDeletion.mutateAsync("Demande initiée depuis l'application");
+                      Alert.alert(
+                        "Demande enregistrée",
+                        "Votre demande de suppression a été enregistrée. Notre équipe traitera votre demande sous 30 jours.",
+                        [
+                          {
+                            text: "OK",
+                            onPress: async () => {
+                              await logoutMutation.mutateAsync();
+                              dispatch(logout());
+                            },
+                          },
+                        ],
+                      );
+                    } catch {
+                      Alert.alert("Erreur", "Impossible d'enregistrer votre demande. Veuillez réessayer.");
+                    }
                   },
                 },
               ],
@@ -135,7 +183,7 @@ export default function ParentPrivacyScreen() {
               </View>
               <Switch
                 value={profileVisibility}
-                onValueChange={setProfileVisibility}
+                onValueChange={(v) => handlePrivacyToggle("profileVisibility", v, setProfileVisibility)}
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -150,7 +198,7 @@ export default function ParentPrivacyScreen() {
               </View>
               <Switch
                 value={showEmail}
-                onValueChange={setShowEmail}
+                onValueChange={(v) => handlePrivacyToggle("showEmail", v, setShowEmail)}
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -165,7 +213,7 @@ export default function ParentPrivacyScreen() {
               </View>
               <Switch
                 value={showPhone}
-                onValueChange={setShowPhone}
+                onValueChange={(v) => handlePrivacyToggle("showPhone", v, setShowPhone)}
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -189,7 +237,7 @@ export default function ParentPrivacyScreen() {
               </View>
               <Switch
                 value={dataCollection}
-                onValueChange={setDataCollection}
+                onValueChange={(v) => handlePrivacyToggle("dataCollection", v, setDataCollection)}
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -204,7 +252,7 @@ export default function ParentPrivacyScreen() {
               </View>
               <Switch
                 value={thirdPartySharing}
-                onValueChange={setThirdPartySharing}
+                onValueChange={(v) => handlePrivacyToggle("thirdPartySharing", v, setThirdPartySharing)}
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -219,7 +267,7 @@ export default function ParentPrivacyScreen() {
               </View>
               <Switch
                 value={marketingEmails}
-                onValueChange={setMarketingEmails}
+                onValueChange={(v) => handlePrivacyToggle("marketingEmails", v, setMarketingEmails)}
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -255,10 +303,18 @@ export default function ParentPrivacyScreen() {
             <UserX size={16} color="#EF4444" />
             <Text style={[styles.sectionTitle, styles.dangerTitle]}>Zone dangereuse</Text>
           </View>
-          <TouchableOpacity style={[styles.actionCard, styles.dangerCard]} onPress={handleDeleteAccount}>
+          <TouchableOpacity
+            style={[styles.actionCard, styles.dangerCard]}
+            onPress={handleDeleteAccount}
+            disabled={requestDeletion.isPending}
+          >
             <View style={styles.actionLeft}>
               <View style={[styles.actionIcon, styles.dangerIcon]}>
-                <Trash2 size={18} color="#EF4444" />
+                {requestDeletion.isPending ? (
+                  <ActivityIndicator size="small" color="#EF4444" />
+                ) : (
+                  <Trash2 size={18} color="#EF4444" />
+                )}
               </View>
               <View>
                 <Text style={[styles.actionTitle, styles.dangerText]}>Supprimer mon compte</Text>
@@ -275,7 +331,7 @@ export default function ParentPrivacyScreen() {
         <View style={styles.policyCard}>
           <Text style={styles.policyTitle}>Politique de confidentialité</Text>
           <Text style={styles.policyText}>
-            En utilisant Oumi'School, vous acceptez notre politique de confidentialité. 
+            En utilisant Oumi'School, vous acceptez notre politique de confidentialité.
             Nous nous engageons à protéger vos données personnelles conformément au RGPD.
           </Text>
           <TouchableOpacity style={styles.policyLink}>

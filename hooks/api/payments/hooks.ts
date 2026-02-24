@@ -16,6 +16,13 @@ export function usePaymentHistory(params?: Record<string, string>) {
   });
 }
 
+export function useParentOrders() {
+  return useQuery({
+    queryKey: paymentKeys.orders(),
+    queryFn: paymentsApi.listOrders,
+  });
+}
+
 export function useAddPaymentMethod() {
   const qc = useQueryClient();
   return useMutation({

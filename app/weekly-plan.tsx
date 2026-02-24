@@ -25,6 +25,10 @@ import {
 import { FONTS } from "@/config/fonts";
 import { useSessions } from "@/hooks/api/sessions";
 import { useAppSelector } from "@/store/hooks";
+import {
+  resolveSubjectDisplayName,
+  resolveTutorDisplayName,
+} from "@/utils/sessionDisplay";
 
 // ── Mois ──
 const MONTHS = [
@@ -132,8 +136,8 @@ export default function WeeklyPlanScreen() {
           30,
           Math.round((end.getTime() - start.getTime()) / 60000),
         );
-        const subject = String(session?.subjectId ?? "Cours");
-        const tutorId = String(session?.tutorId ?? "");
+        const subject = resolveSubjectDisplayName(session, "Cours");
+        const tutorName = resolveTutorDisplayName(session, "Tuteur");
         const status = String(session?.status ?? "").toUpperCase();
         return {
           id: String(session?.id ?? ""),
@@ -147,7 +151,7 @@ export default function WeeklyPlanScreen() {
           color: colorForSubject(subject),
           done: status === "COMPLETED",
           isPaid: false,
-          tutorName: tutorId ? `Tuteur ${tutorId.slice(0, 6)}` : null,
+          tutorName,
         };
       })
       .filter((item) => !!item.id);

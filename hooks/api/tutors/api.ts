@@ -36,6 +36,64 @@ export interface TutorUpdatePayload {
   sessionPricing?: Record<string, unknown>;
 }
 
+export interface TutorStudentRow {
+  child: {
+    id: string;
+    name: string;
+    grade: string;
+    dateOfBirth?: string | null;
+    avgScore?: number;
+    attendanceRate?: number;
+    avatar?: string | null;
+  };
+  parent: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    user?: { email?: string };
+  };
+  sessionsTotal: number;
+  nextSessionAt: string | null;
+  progressScore: number;
+  attendanceRate: number;
+  primarySubject?: {
+    id: string;
+    name: string;
+    color: string;
+  } | null;
+}
+
+export interface TutorSessionRow {
+  id: string;
+  childId: string;
+  parentId: string;
+  tutorId: string;
+  subjectId: string | null;
+  startTime: string;
+  endTime: string;
+  status: string;
+  mode: string;
+  child?: {
+    id: string;
+    name?: string;
+    grade?: string;
+    avatar?: string | null;
+    user?: { firstName?: string; lastName?: string; email?: string };
+  };
+  parent?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    user?: { email?: string };
+  };
+  subject?: {
+    id: string;
+    name: string;
+    color: string;
+    icon?: string | null;
+  } | null;
+}
+
 export interface CreateAvailabilityPayload {
   dayOfWeek: number;
   startTime: string;
@@ -62,8 +120,8 @@ export const tutorApi = {
   // Tutor-self endpoints
   updateMe: (body: TutorUpdatePayload) =>
     apiClient.put<TutorListItem>("/tutors/me", body),
-  getMyStudents: () => apiClient.get<unknown[]>("/tutors/me/students"),
-  getMySessions: () => apiClient.get<unknown[]>("/tutors/me/sessions"),
+  getMyStudents: () => apiClient.get<TutorStudentRow[]>("/tutors/me/students"),
+  getMySessions: () => apiClient.get<TutorSessionRow[]>("/tutors/me/sessions"),
   getMyEarnings: () =>
     apiClient.get<{ total: number; thisMonth: number }>("/tutors/me/earnings"),
   addAvailability: (body: CreateAvailabilityPayload) =>

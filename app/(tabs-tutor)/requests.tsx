@@ -24,7 +24,7 @@ import {
 import { FONTS } from "@/config/fonts";
 import { useAcceptSession, useRejectSession } from "@/hooks/api/sessions";
 import { useMySessions } from "@/hooks/api/tutors";
-import { subjectLabelFromId } from "@/utils/subjects";
+import { resolveSubjectDisplayName } from "@/utils/sessionDisplay";
 
 interface TutoringRequest {
   id: string;
@@ -164,11 +164,7 @@ export default function TutorRequestsScreen() {
         const childName = asString(child?.name, "Élève");
         const childAge = asNumber(child?.age, 0);
         const childGrade = asString(child?.grade, "—");
-        const subjectData = asRecord(session.subject);
-        const subject = subjectLabelFromId(
-          asString(subjectData?.name) || asString(session.subjectId),
-          "Cours",
-        );
+        const subject = resolveSubjectDisplayName(session, "Cours");
         const mode =
           asString(session.mode) === "presential" ? "inPerson" : "online";
         const status =

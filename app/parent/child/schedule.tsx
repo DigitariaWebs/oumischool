@@ -27,6 +27,10 @@ import { FONTS } from "@/config/fonts";
 import { useChild } from "@/hooks/api/parent";
 import { useSessions } from "@/hooks/api/sessions";
 import { useAppSelector } from "@/store/hooks";
+import {
+  resolveSubjectDisplayName,
+  resolveTutorDisplayName,
+} from "@/utils/sessionDisplay";
 
 interface Session {
   id: string;
@@ -168,7 +172,12 @@ export default function ChildScheduleScreen() {
   const liveSessions: Session[] = useMemo(
     () =>
       sessionsData
-        .filter((session) => !childId || session.childId === childId)
+        .filter(
+          (session: any) =>
+            !childId ||
+            session?.childId === childId ||
+            session?.child?.id === childId,
+        )
         .map((session) => {
           const start = new Date(session.startTime);
           const end = new Date(session.endTime);
@@ -176,12 +185,23 @@ export default function ChildScheduleScreen() {
             30,
             Math.round((end.getTime() - start.getTime()) / 60000),
           );
+          const subject = resolveSubjectDisplayName(
+            session as unknown as Record<string, unknown>,
+            "Cours",
+          );
+          const tutorName = resolveTutorDisplayName(
+            session as unknown as Record<string, unknown>,
+            "Tuteur",
+          );
+          const tutorIdForAvatar = String(
+            (session as any)?.tutor?.id ?? session.tutorId ?? tutorName,
+          );
           return {
             id: session.id,
-            tutorName: `Tuteur ${session.tutorId.slice(0, 6)}`,
-            tutorAvatar: avatarFor(session.tutorId),
-            subject: session.subjectId ?? "Cours",
-            subjectColor: colorForSubject(session.subjectId ?? "general"),
+            tutorName,
+            tutorAvatar: avatarFor(tutorIdForAvatar),
+            subject,
+            subjectColor: colorForSubject(subject),
             time: `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`,
             duration,
             mode: session.mode === "presential" ? "inPerson" : "online",

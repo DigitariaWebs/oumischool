@@ -40,10 +40,11 @@ import { FONTS } from "@/config/fonts";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { updateChild } from "@/store/slices/childrenSlice";
 import AssignLessonModal from "@/components/AssignLessonModal";
-import { useChild } from "@/hooks/api/parent";
+import { useChild, useUpdateChild } from "@/hooks/api/parent";
 import { useSessions } from "@/hooks/api/sessions";
 import { useActivities } from "@/hooks/api/performance";
 import type { PerformanceRecord } from "@/hooks/api/performance";
+import { resolveSubjectDisplayName } from "@/utils/sessionDisplay";
 
 interface LessonDetails {
   progressHistory: { date: string; progress: number }[];
@@ -144,7 +145,7 @@ interface StudyDay {
 }
 
 function buildStudyDaysFromActivities(
-  records: PerformanceRecord[]
+  records: PerformanceRecord[],
 ): StudyDay[] {
   const today = new Date();
   const days: StudyDay[] = [];
@@ -155,7 +156,7 @@ function buildStudyDaysFromActivities(
     const dayOfWeek = date.getDay();
 
     const dayRecords = records.filter(
-      (r) => r.recordedAt.split("T")[0] === dateStr
+      (r) => r.recordedAt.split("T")[0] === dateStr,
     );
     const lessonsCompleted = dayRecords.length;
     // Estimate 30 min per activity as a reasonable proxy
@@ -202,6 +203,7 @@ export default function ChildDetailsScreen() {
   const params = useLocalSearchParams();
   const childId = params.id as string;
   const { data: apiChild, isLoading: isChildLoading } = useChild(childId);
+  const updateChildMutation = useUpdateChild();
   const { data: sessionsData = [] } = useSessions();
 
   const localChild = useAppSelector((state) =>
@@ -238,10 +240,11 @@ export default function ChildDetailsScreen() {
           Math.round((end.getTime() - start.getTime()) / 60000),
         );
         const status = lessonStatusFromSession(String(session?.status ?? ""));
+        const subject = resolveSubjectDisplayName(session, "Cours");
         return {
           id: String(session?.id ?? `session-${Math.random()}`),
-          title: String(session?.subjectId ?? "Cours"),
-          subject: String(session?.subjectId ?? "Cours"),
+          title: subject,
+          subject,
           status,
           progress:
             status === "completed" ? 100 : status === "in-progress" ? 50 : 0,
@@ -298,7 +301,7 @@ export default function ChildDetailsScreen() {
   const { data: recentActivities = [] } = useActivities(childId, 30);
   const studyStreakDays = useMemo(
     () => buildStudyDaysFromActivities(recentActivities),
-    [recentActivities]
+    [recentActivities],
   );
 
   useEffect(() => {
@@ -363,8 +366,16 @@ export default function ChildDetailsScreen() {
     );
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (editedName.trim() && editedDateOfBirth && editedGrade) {
+      try {
+        await updateChildMutation.mutateAsync({
+          id: childId,
+          body: { name: editedName.trim(), dateOfBirth: editedDateOfBirth, grade: editedGrade },
+        });
+      } catch {
+        // API failed — still update local Redux cache so the UI reflects changes
+      }
       dispatch(
         updateChild({
           id: childId,

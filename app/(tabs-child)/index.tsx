@@ -23,6 +23,7 @@ import { FONTS } from "@/config/fonts";
 import { useAppSelector } from "@/store/hooks";
 import { AnimatedSection } from "@/components/ui";
 import { useSessions } from "@/hooks/api/sessions";
+import { resolveSubjectDisplayName } from "@/utils/sessionDisplay";
 
 const DAY_META = [
   { jour: "Dim", full: "Dimanche" },
@@ -100,8 +101,11 @@ export default function ChildDashboard() {
           1,
           Math.round((end.getTime() - start.getTime()) / 60000),
         );
-        const seed = session.subjectId ?? session.id;
-        const subject = (session as any)?.subject?.name ?? "Cours";
+        const subject = resolveSubjectDisplayName(
+          session as unknown as Record<string, unknown>,
+          "Cours",
+        );
+        const seed = subject || session.id;
         const title =
           (session as any)?.lesson?.title ??
           `${subject} (${session.mode === "online" ? "En ligne" : "Présentiel"})`;

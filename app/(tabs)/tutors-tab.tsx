@@ -23,7 +23,7 @@ import {
 import { FONTS } from "@/config/fonts";
 import { useTutors } from "@/hooks/api/tutors";
 import type { TutorListItem } from "@/hooks/api/tutors/api";
-import { useAppSelector } from "@/store/hooks";
+import { useChildren } from "@/hooks/api/parent";
 
 interface Subject {
   id: string;
@@ -55,16 +55,22 @@ const SUBJECT_META: Record<string, { name: string; color: string }> = {
   history: { name: "Histoire", color: "#F59E0B" },
 };
 
-const FALLBACK_CHILDREN = [
-  { id: "child1", name: "Emma", color: "#6366F1" },
-  { id: "child2", name: "Lucas", color: "#10B981" },
-];
-
 const FALLBACK_SUBJECT: Subject = {
   id: "general",
   name: "General",
   color: "#6366F1",
 };
+
+const CHILD_COLORS = [
+  "#3B82F6",
+  "#EC4899",
+  "#10B981",
+  "#F59E0B",
+  "#8B5CF6",
+  "#EF4444",
+  "#14B8A6",
+  "#F97316",
+];
 
 function subjectFromId(id: string): Subject {
   const key = id.toLowerCase();
@@ -101,22 +107,18 @@ function getPrimarySubject(tutor: Tutor): Subject {
 export default function TutorsTab() {
   const router = useRouter();
   const { data: tutorsData = [] } = useTutors();
-  const childrenFromStore = useAppSelector((state) => state.children.children);
+  const { data: childrenFromApi = [] } = useChildren();
   const [browseMode, setBrowseMode] = useState<"recommended" | "tutor">(
     "recommended",
   );
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [sortByRating, setSortByRating] = useState(true);
   const [selectedChild, setSelectedChild] = useState<string>("all");
-  const children =
-    childrenFromStore.length > 0
-      ? childrenFromStore.map((child) => ({
-          id: child.id,
-          name: child.name,
-          color: child.color,
-          favoriteSubjects: child.favoriteSubjects,
-        }))
-      : FALLBACK_CHILDREN;
+  const children = childrenFromApi.map((child, index) => ({
+    id: child.id,
+    name: child.name,
+    color: CHILD_COLORS[index % CHILD_COLORS.length],
+  }));
   const tutors = tutorsData.map(adaptTutor);
   const subjects: Subject[] = Array.from(
     new Map(
@@ -500,95 +502,106 @@ export default function TutorsTab() {
 
             {/* Recommandations */}
             <View style={styles.recommendationsList}>
-              {recommendedTutors.map((tutor, index) => {
-                const child =
-                  selectedChild === "all"
-                    ? children[index % Math.max(children.length, 1)]
-                    : children.find((c) => c.id === selectedChild);
-                if (!child) return null;
-                const subject = getPrimarySubject(tutor);
-                const reason =
-                  selectedChild !== "all"
-                    ? "Recommandé selon son profil et ses besoins"
-                    : "Recommandé parmi les meilleurs tuteurs";
-                const avatarSubject = getPrimarySubject(tutor);
+              {children.length === 0 ? (
+                <View style={styles.emptyRecommendations}>
+                  <Text style={styles.emptyRecommendationsText}>
+                    Ajoutez un enfant pour recevoir des recommandations
+                    personnalisées.
+                  </Text>
+                </View>
+              ) : (
+                recommendedTutors.map((tutor, index) => {
+                  const child =
+                    selectedChild === "all"
+                      ? children[index % children.length]
+                      : children.find((c) => c.id === selectedChild);
+                  if (!child) return null;
+                  const subject = getPrimarySubject(tutor);
+                  const reason =
+                    selectedChild !== "all"
+                      ? "Recommandé selon son profil et ses besoins"
+                      : "Recommandé parmi les meilleurs tuteurs";
+                  const avatarSubject = getPrimarySubject(tutor);
 
-                return (
-                  <View key={index} style={styles.recommendationCard}>
-                    <View
-                      style={[
-                        styles.recommendationHeader,
-                        { borderLeftColor: child.color },
-                      ]}
-                    >
-                      <Text style={styles.recommendationFor}>
-                        Pour {child.name}
-                      </Text>
+                  return (
+                    <View key={index} style={styles.recommendationCard}>
                       <View
                         style={[
-                          styles.recommendationSubject,
-                          { backgroundColor: subject.color + "15" },
+                          styles.recommendationHeader,
+                          { borderLeftColor: child.color },
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.recommendationSubjectText,
-                            { color: subject.color },
-                          ]}
-                        >
-                          {subject.name}
+                        <Text style={styles.recommendationFor}>
+                          Pour {child.name}
                         </Text>
-                      </View>
-                    </View>
-
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.tutorCard,
-                        pressed && { opacity: 0.9 },
-                      ]}
-                      onPress={() => router.push(`/tutor/${tutor.id}`)}
-                    >
-                      <View style={styles.tutorHeader}>
                         <View
                           style={[
-                            styles.tutorAvatar,
-                            { backgroundColor: avatarSubject.color + "20" },
+                            styles.recommendationSubject,
+                            { backgroundColor: subject.color + "15" },
                           ]}
                         >
                           <Text
                             style={[
-                              styles.tutorAvatarText,
-                              { color: avatarSubject.color },
+                              styles.recommendationSubjectText,
+                              { color: subject.color },
                             ]}
                           >
-                            {tutor.name.charAt(0)}
+                            {subject.name}
                           </Text>
                         </View>
-                        <View style={styles.tutorInfo}>
-                          <Text style={styles.tutorName}>{tutor.name}</Text>
-                          <View style={styles.tutorRating}>
-                            <Star size={12} color="#F59E0B" fill="#F59E0B" />
-                            <Text style={styles.ratingText}>
-                              {tutor.rating}
+                      </View>
+
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.tutorCard,
+                          pressed && { opacity: 0.9 },
+                        ]}
+                        onPress={() => router.push(`/tutor/${tutor.id}`)}
+                      >
+                        <View style={styles.tutorHeader}>
+                          <View
+                            style={[
+                              styles.tutorAvatar,
+                              { backgroundColor: avatarSubject.color + "20" },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.tutorAvatarText,
+                                { color: avatarSubject.color },
+                              ]}
+                            >
+                              {tutor.name.charAt(0)}
                             </Text>
                           </View>
+                          <View style={styles.tutorInfo}>
+                            <Text style={styles.tutorName}>{tutor.name}</Text>
+                            <View style={styles.tutorRating}>
+                              <Star size={12} color="#F59E0B" fill="#F59E0B" />
+                              <Text style={styles.ratingText}>
+                                {tutor.rating}
+                              </Text>
+                            </View>
+                          </View>
                         </View>
-                      </View>
 
-                      <Text style={styles.recommendationReason}>{reason}</Text>
+                        <Text style={styles.recommendationReason}>
+                          {reason}
+                        </Text>
 
-                      <View style={styles.tutorFooter}>
-                        <Text style={styles.priceValue}>
-                          {tutor.hourlyRate}€/h
-                        </Text>
-                        <Text style={styles.experienceText}>
-                          {tutor.experience} ans d&apos;exp.
-                        </Text>
-                      </View>
-                    </Pressable>
-                  </View>
-                );
-              })}
+                        <View style={styles.tutorFooter}>
+                          <Text style={styles.priceValue}>
+                            {tutor.hourlyRate}€/h
+                          </Text>
+                          <Text style={styles.experienceText}>
+                            {tutor.experience} ans d&apos;exp.
+                          </Text>
+                        </View>
+                      </Pressable>
+                    </View>
+                  );
+                })
+              )}
             </View>
           </>
         )}
@@ -956,6 +969,18 @@ const styles = StyleSheet.create({
   // Recommendations
   recommendationsList: {
     paddingHorizontal: 24,
+  },
+  emptyRecommendations: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  emptyRecommendationsText: {
+    fontSize: 13,
+    color: "#64748B",
+    lineHeight: 18,
   },
   recommendationCard: {
     marginBottom: 16,

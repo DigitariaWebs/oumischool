@@ -23,6 +23,7 @@ import {
 
 import { FONTS } from "@/config/fonts";
 import { useMySessions } from "@/hooks/api/tutors";
+import { resolveSubjectDisplayName } from "@/utils/sessionDisplay";
 
 function subjectMeta(subject: string) {
   const key = subject.toLowerCase();
@@ -56,7 +57,7 @@ export default function PublicProfileSettings() {
     const grouped = new Map<string, number>();
     const rows = Array.isArray(mySessionsData) ? mySessionsData : [];
     rows.forEach((session: any) => {
-      const subject = String(session?.subjectId ?? "").trim();
+      const subject = resolveSubjectDisplayName(session, "").trim();
       if (!subject) return;
       grouped.set(subject, (grouped.get(subject) ?? 0) + 1);
     });

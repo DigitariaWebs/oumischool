@@ -14,7 +14,6 @@ import Animated, { FadeInDown, SlideInUp } from "react-native-reanimated";
 import { X, User, Cake, GraduationCap, Sparkles } from "lucide-react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
-import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 
 interface AddChildModalProps {
@@ -25,7 +24,7 @@ interface AddChildModalProps {
     dateOfBirth: string;
     grade: string;
     color: string;
-  }) => void;
+  }) => Promise<void> | void;
 }
 
 const AVATAR_COLORS = [
@@ -62,6 +61,8 @@ export default function AddChildModal({
   const [selectedGrade, setSelectedGrade] = useState("");
   const [selectedColor, setSelectedColor] = useState(AVATAR_COLORS[0]);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [errors, setErrors] = useState<{
     name?: string;
     dateOfBirth?: string;
@@ -74,7 +75,10 @@ export default function AddChildModal({
     const birthDate = new Date(dob);
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
       age--;
     }
     return age;
@@ -98,6 +102,8 @@ export default function AddChildModal({
     setSelectedGrade("");
     setSelectedColor(AVATAR_COLORS[0]);
     setShowDatePicker(false);
+    setIsSubmitting(false);
+    setSubmitError(null);
     setErrors({});
   };
 
@@ -107,7 +113,8 @@ export default function AddChildModal({
   };
 
   const validate = () => {
-    const newErrors: { name?: string; dateOfBirth?: string; grade?: string } = {};
+    const newErrors: { name?: string; dateOfBirth?: string; grade?: string } =
+      {};
 
     if (!name.trim()) {
       newErrors.name = "Le nom est requis";
@@ -130,15 +137,27 @@ export default function AddChildModal({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
-    if (validate()) {
-      onAdd({
+  const handleSubmit = async () => {
+    if (!validate() || isSubmitting) return;
+
+    try {
+      setIsSubmitting(true);
+      setSubmitError(null);
+      await onAdd({
         name: name.trim(),
         dateOfBirth: dateOfBirth,
         grade: selectedGrade,
         color: selectedColor,
       });
       handleClose();
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Impossible d'ajouter l'enfant pour le moment.",
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -196,7 +215,10 @@ export default function AddChildModal({
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            style={styles.scrollView}
+          >
             {/* Nom */}
             <View style={styles.inputGroup}>
               <View style={styles.labelContainer}>
@@ -213,7 +235,9 @@ export default function AddChildModal({
                 }}
                 placeholderTextColor="#94A3B8"
               />
-              {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+              {errors.name && (
+                <Text style={styles.errorText}>{errors.name}</Text>
+              )}
             </View>
 
             {/* Date de naissance */}
@@ -223,7 +247,10 @@ export default function AddChildModal({
                 <Text style={styles.label}>Date de naissance</Text>
               </View>
               <TouchableOpacity
-                style={[styles.dateInput, errors.dateOfBirth && styles.inputError]}
+                style={[
+                  styles.dateInput,
+                  errors.dateOfBirth && styles.inputError,
+                ]}
                 onPress={() => setShowDatePicker(true)}
               >
                 <Text
@@ -260,7 +287,11 @@ export default function AddChildModal({
                 <GraduationCap size={14} color="#64748B" />
                 <Text style={styles.label}>Niveau scolaire</Text>
               </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.gradeScroll}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.gradeScroll}
+              >
                 <View style={styles.gradeContainer}>
                   {GRADES.map((grade) => (
                     <TouchableOpacity
@@ -274,7 +305,8 @@ export default function AddChildModal({
                       ]}
                       onPress={() => {
                         setSelectedGrade(grade);
-                        if (errors.grade) setErrors({ ...errors, grade: undefined });
+                        if (errors.grade)
+                          setErrors({ ...errors, grade: undefined });
                       }}
                     >
                       <Text
@@ -289,7 +321,9 @@ export default function AddChildModal({
                   ))}
                 </View>
               </ScrollView>
-              {errors.grade && <Text style={styles.errorText}>{errors.grade}</Text>}
+              {errors.grade && (
+                <Text style={styles.errorText}>{errors.grade}</Text>
+              )}
             </View>
 
             {/* Couleur */}
@@ -305,7 +339,9 @@ export default function AddChildModal({
                     ]}
                     onPress={() => setSelectedColor(color)}
                   >
-                    <View style={[styles.colorCircle, { backgroundColor: color }]} />
+                    <View
+                      style={[styles.colorCircle, { backgroundColor: color }]}
+                    />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -317,8 +353,15 @@ export default function AddChildModal({
                 entering={FadeInDown.duration(400)}
                 style={[styles.previewCard, { borderLeftColor: selectedColor }]}
               >
-                <View style={[styles.previewAvatar, { backgroundColor: selectedColor + "15" }]}>
-                  <Text style={[styles.previewAvatarText, { color: selectedColor }]}>
+                <View
+                  style={[
+                    styles.previewAvatar,
+                    { backgroundColor: selectedColor + "15" },
+                  ]}
+                >
+                  <Text
+                    style={[styles.previewAvatarText, { color: selectedColor }]}
+                  >
                     {name.charAt(0).toUpperCase()}
                   </Text>
                 </View>
@@ -333,6 +376,9 @@ export default function AddChildModal({
                 <Sparkles size={16} color={selectedColor} />
               </Animated.View>
             )}
+            {submitError ? (
+              <Text style={styles.submitErrorText}>{submitError}</Text>
+            ) : null}
           </ScrollView>
 
           {/* Boutons */}
@@ -344,12 +390,15 @@ export default function AddChildModal({
               style={[
                 styles.submitButton,
                 { backgroundColor: selectedColor },
-                (!name || !dateOfBirth || !selectedGrade) && styles.submitButtonDisabled,
+                (!name || !dateOfBirth || !selectedGrade || isSubmitting) &&
+                  styles.submitButtonDisabled,
               ]}
               onPress={handleSubmit}
-              disabled={!name || !dateOfBirth || !selectedGrade}
+              disabled={!name || !dateOfBirth || !selectedGrade || isSubmitting}
             >
-              <Text style={styles.submitButtonText}>Ajouter</Text>
+              <Text style={styles.submitButtonText}>
+                {isSubmitting ? "Ajout..." : "Ajouter"}
+              </Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -524,6 +573,11 @@ const styles = StyleSheet.create({
   previewDetails: {
     fontSize: 13,
     color: "#64748B",
+  },
+  submitErrorText: {
+    fontSize: 12,
+    color: "#EF4444",
+    marginTop: 4,
   },
   buttonContainer: {
     flexDirection: "row",

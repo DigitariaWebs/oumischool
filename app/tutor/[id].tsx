@@ -31,7 +31,7 @@ import {
 
 import { FONTS } from "@/config/fonts";
 import { useTutorAvailability, useTutorDetail } from "@/hooks/api/tutors";
-import { useAppSelector } from "@/store/hooks";
+import { useChildren } from "@/hooks/api/parent";
 
 // Mock data
 const fallbackTutor = {
@@ -99,10 +99,23 @@ const fallbackTutor = {
   ],
 };
 
-const fallbackChildren = [
-  { id: "child1", name: "Emma", age: 8, grade: "CE2" },
-  { id: "child2", name: "Lucas", age: 10, grade: "CM1" },
-];
+
+/** Returns the ISO datetime string for the next occurrence of `dayName` at `time` ("HH:MM") in UTC. */
+function getNextOccurrenceIso(dayName: string, time: string): string {
+  const dayMap: Record<string, number> = {
+    monday: 1, tuesday: 2, wednesday: 3, thursday: 4,
+    friday: 5, saturday: 6, sunday: 0,
+  };
+  const targetDay = dayMap[dayName.toLowerCase()] ?? 1;
+  const [hours, minutes] = time.split(":").map(Number);
+  const now = new Date();
+  let daysUntil = (targetDay - now.getUTCDay() + 7) % 7;
+  if (daysUntil === 0) daysUntil = 7; // always the next occurrence, not today
+  const target = new Date(now);
+  target.setUTCDate(now.getUTCDate() + daysUntil);
+  target.setUTCHours(hours, minutes, 0, 0);
+  return target.toISOString();
+}
 
 const daysOfWeek = [
   { key: "monday", label: "Lun" },
@@ -120,7 +133,7 @@ export default function TutorProfileScreen() {
   const tutorId = Array.isArray(params.id) ? params.id[0] : params.id;
   const { data: tutorData } = useTutorDetail(tutorId ?? "");
   const { data: availabilityData = [] } = useTutorAvailability(tutorId ?? "");
-  const childrenFromStore = useAppSelector((state) => state.children.children);
+  const { data: childrenFromApi = [], isLoading: childrenLoading } = useChildren();
   const [bookingModalVisible, setBookingModalVisible] = useState(false);
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
   const [selectedMode, setSelectedMode] = useState<"online" | "inPerson">(
@@ -133,15 +146,12 @@ export default function TutorProfileScreen() {
   );
   const [isFavorite, setIsFavorite] = useState(false);
 
-  const bookingChildren =
-    childrenFromStore.length > 0
-      ? childrenFromStore.map((child) => ({
-          id: child.id,
-          name: child.name,
-          age: 0,
-          grade: child.grade,
-        }))
-      : fallbackChildren;
+  const bookingChildren = childrenFromApi.map((child) => ({
+    id: child.id,
+    name: child.name,
+    age: 0,
+    grade: child.grade,
+  }));
 
   const tutor = useMemo(() => {
     if (!tutorData) return fallbackTutor;
@@ -483,6 +493,13 @@ export default function TutorProfileScreen() {
               {/* Enfants */}
               <View style={styles.modalSection}>
                 <Text style={styles.modalSectionTitle}>Enfants</Text>
+                {childrenLoading ? (
+                  <Text style={styles.childDetails}>Chargement…</Text>
+                ) : bookingChildren.length === 0 ? (
+                  <Text style={styles.childDetails}>
+                    Aucun enfant enregistré. Ajoutez-en un dans votre profil.
+                  </Text>
+                ) : null}
                 {bookingChildren.map((child) => (
                   <TouchableOpacity
                     key={child.id}
@@ -679,8 +696,27 @@ export default function TutorProfileScreen() {
                 !canBook && styles.confirmButtonDisabled,
               ]}
               onPress={() => {
+                const [startStr, endStr] = (selectedTimeSlot ?? "09:00-10:00").split("-");
+                const startTime = getNextOccurrenceIso(selectedDay ?? "monday", startStr.trim());
+                const endTime = getNextOccurrenceIso(selectedDay ?? "monday", endStr.trim());
+                const children = bookingChildren.filter((c) =>
+                  selectedChildren.includes(c.id)
+                );
                 setBookingModalVisible(false);
-                router.push("/parent/profile/checkout");
+                router.push({
+                  pathname: "/parent/profile/checkout",
+                  params: {
+                    tutorId: tutor.id,
+                    tutorName: tutor.name,
+                    children: JSON.stringify(children),
+                    mode: selectedMode === "inPerson" ? "presential" : "online",
+                    day: selectedDay ?? "",
+                    timeSlot: selectedTimeSlot ?? "",
+                    startTime,
+                    endTime,
+                    totalPrice: calculateTotalPrice().toString(),
+                  },
+                });
               }}
               disabled={!canBook}
             >
