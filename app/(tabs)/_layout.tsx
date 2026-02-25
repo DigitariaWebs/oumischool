@@ -17,7 +17,9 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.tabBarContainer, { paddingBottom: insets.bottom + 12 }]}>
+    <View
+      style={[styles.tabBarContainer, { paddingBottom: insets.bottom + 12 }]}
+    >
       <View style={styles.tabBar}>
         {state.routes.map((route: any, index: number) => {
           const { options } = descriptors[route.key];
@@ -41,20 +43,24 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
               onPress={onPress}
               style={({ pressed }) => [
                 styles.tabItemWrapper,
-                pressed && { opacity: 0.7, transform: [{ scale: 0.96 }] }
+                pressed && { opacity: 0.7, transform: [{ scale: 0.96 }] },
               ]}
             >
-              <View style={[
-                styles.tabIconContainer,
-                isFocused && styles.tabIconContainerActive
-              ]}>
+              <View
+                style={[
+                  styles.tabIconContainer,
+                  isFocused && styles.tabIconContainerActive,
+                ]}
+              >
                 {options.tabBarIcon &&
                   options.tabBarIcon({
                     color: isFocused ? "#6366F1" : "#94A3B8",
                     focused: isFocused,
                   })}
               </View>
-              <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
+              <Text
+                style={[styles.tabLabel, isFocused && styles.tabLabelActive]}
+              >
                 {options.title}
               </Text>
             </Pressable>
@@ -77,18 +83,14 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Accueil",
-          tabBarIcon: ({ color, focused }) => (
-            <Home size={22} color={color} />
-          ),
+          tabBarIcon: ({ color, focused }) => <Home size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="children-tab"
         options={{
           title: "Enfants",
-          tabBarIcon: ({ color, focused }) => (
-            <Users size={22} color={color} />
-          ),
+          tabBarIcon: ({ color, focused }) => <Users size={22} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -113,9 +115,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: "Profil",
-          tabBarIcon: ({ color, focused }) => (
-            <User size={22} color={color} />
-          ),
+          tabBarIcon: ({ color, focused }) => <User size={22} color={color} />,
         }}
       />
     </Tabs>

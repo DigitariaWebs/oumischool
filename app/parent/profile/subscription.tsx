@@ -77,7 +77,8 @@ function subscriptionStatusColor(status: string) {
 export default function ParentSubscriptionScreen() {
   const router = useRouter();
 
-  const { data: subscription, isLoading: subLoading } = useCurrentSubscription();
+  const { data: subscription, isLoading: subLoading } =
+    useCurrentSubscription();
   const { data: plans = [], isLoading: plansLoading } = useSubscriptionPlans();
   const { data: paymentMethods = [] } = usePaymentMethods();
   const { data: allOrders = [] } = useParentOrders();
@@ -87,7 +88,8 @@ export default function ParentSubscriptionScreen() {
     (o) => o.type === "SUBSCRIPTION" && o.status === "PAID",
   );
 
-  const defaultMethod = paymentMethods.find((m) => m.isDefault) ?? paymentMethods[0];
+  const defaultMethod =
+    paymentMethods.find((m) => m.isDefault) ?? paymentMethods[0];
 
   const handleChangePlan = () => {
     router.push("/pricing");
@@ -106,9 +108,18 @@ export default function ParentSubscriptionScreen() {
           onPress: async () => {
             try {
               await cancelSubscription.mutateAsync();
-              Alert.alert("Abonnement annulé", "Vous gardez l'accès jusqu'au " + formatDate(subscription.expiresAt));
+              Alert.alert(
+                "Abonnement annulé",
+                "Vous gardez l'accès jusqu'au " +
+                  formatDate(subscription.expiresAt),
+              );
             } catch (err) {
-              Alert.alert("Erreur", err instanceof Error ? err.message : "Impossible d'annuler l'abonnement");
+              Alert.alert(
+                "Erreur",
+                err instanceof Error
+                  ? err.message
+                  : "Impossible d'annuler l'abonnement",
+              );
             }
           },
         },
@@ -120,11 +131,16 @@ export default function ParentSubscriptionScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
             <ArrowLeft size={22} color="#1E293B" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Abonnement</Text>
-          <View style={styles.headerRight}><Crown size={16} color="#6366F1" /></View>
+          <View style={styles.headerRight}>
+            <Crown size={16} color="#6366F1" />
+          </View>
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366F1" />
@@ -137,10 +153,16 @@ export default function ParentSubscriptionScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.purpleBlob} />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
             <ArrowLeft size={22} color="#1E293B" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Abonnement</Text>
@@ -151,25 +173,50 @@ export default function ParentSubscriptionScreen() {
 
         {/* Plan actuel */}
         {subscription ? (
-          <Animated.View entering={FadeInDown.delay(100).duration(400)} style={styles.currentPlanCard}>
+          <Animated.View
+            entering={FadeInDown.delay(100).duration(400)}
+            style={styles.currentPlanCard}
+          >
             <View style={styles.currentPlanHeader}>
               <View style={styles.currentPlanIcon}>
                 <Crown size={20} color="#6366F1" />
               </View>
-              <Text style={styles.currentPlanName}>{subscription.plan.name}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: subscriptionStatusColor(subscription.status).bg }]}>
-                <Text style={[styles.statusText, { color: subscriptionStatusColor(subscription.status).text }]}>
+              <Text style={styles.currentPlanName}>
+                {subscription.plan.name}
+              </Text>
+              <View
+                style={[
+                  styles.statusBadge,
+                  {
+                    backgroundColor: subscriptionStatusColor(
+                      subscription.status,
+                    ).bg,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.statusText,
+                    {
+                      color: subscriptionStatusColor(subscription.status).text,
+                    },
+                  ]}
+                >
                   {subscriptionStatusLabel(subscription.status)}
                 </Text>
               </View>
             </View>
-            <Text style={styles.currentPlanPrice}>{subscription.plan.price}€ / mois</Text>
+            <Text style={styles.currentPlanPrice}>
+              {subscription.plan.price}€ / mois
+            </Text>
             <View style={styles.currentPlanStats}>
               {subscription.plan.maxChildren != null && (
                 <View style={styles.currentPlanStat}>
                   <Users size={14} color="#64748B" />
                   <Text style={styles.currentPlanStatText}>
-                    {subscription.plan.maxChildren === 0 ? "Illimité" : `${subscription.plan.maxChildren} enfant(s)`}
+                    {subscription.plan.maxChildren === 0
+                      ? "Illimité"
+                      : `${subscription.plan.maxChildren} enfant(s)`}
                   </Text>
                 </View>
               )}
@@ -187,11 +234,19 @@ export default function ParentSubscriptionScreen() {
             </View>
           </Animated.View>
         ) : (
-          <Animated.View entering={FadeInDown.delay(100).duration(400)} style={styles.noPlanCard}>
+          <Animated.View
+            entering={FadeInDown.delay(100).duration(400)}
+            style={styles.noPlanCard}
+          >
             <AlertCircle size={32} color="#94A3B8" />
             <Text style={styles.noPlanTitle}>Aucun abonnement actif</Text>
-            <Text style={styles.noPlanText}>Choisissez un plan pour accéder à toutes les fonctionnalités</Text>
-            <TouchableOpacity style={styles.subscribeCta} onPress={() => router.push("/pricing")}>
+            <Text style={styles.noPlanText}>
+              Choisissez un plan pour accéder à toutes les fonctionnalités
+            </Text>
+            <TouchableOpacity
+              style={styles.subscribeCta}
+              onPress={() => router.push("/pricing")}
+            >
               <Zap size={16} color="white" />
               <Text style={styles.subscribeCtaText}>Voir les offres</Text>
             </TouchableOpacity>
@@ -199,17 +254,27 @@ export default function ParentSubscriptionScreen() {
         )}
 
         {/* Plans disponibles */}
-        <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.section}>
+        <Animated.View
+          entering={FadeInDown.delay(200).duration(400)}
+          style={styles.section}
+        >
           <View style={styles.sectionHeader}>
             <Zap size={16} color="#6366F1" />
             <Text style={styles.sectionTitle}>Plans disponibles</Text>
           </View>
           {plans.map((plan, index) => {
-            const isCurrent = subscription?.planId === plan.id && subscription?.status === "ACTIVE";
+            const isCurrent =
+              subscription?.planId === plan.id &&
+              subscription?.status === "ACTIVE";
             const features = Array.isArray(plan.features) ? plan.features : [];
             return (
-              <Animated.View key={plan.id} entering={FadeInDown.delay(250 + index * 80).duration(400)}>
-                <View style={[styles.planCard, isCurrent && styles.planCardCurrent]}>
+              <Animated.View
+                key={plan.id}
+                entering={FadeInDown.delay(250 + index * 80).duration(400)}
+              >
+                <View
+                  style={[styles.planCard, isCurrent && styles.planCardCurrent]}
+                >
                   <Text style={styles.planName}>{plan.name}</Text>
                   <View style={styles.priceRow}>
                     <Text style={styles.price}>{plan.price}€</Text>
@@ -230,7 +295,10 @@ export default function ParentSubscriptionScreen() {
                       <Text style={styles.currentButtonText}>Plan actuel</Text>
                     </View>
                   ) : (
-                    <TouchableOpacity style={styles.selectButton} onPress={handleChangePlan}>
+                    <TouchableOpacity
+                      style={styles.selectButton}
+                      onPress={handleChangePlan}
+                    >
                       <Text style={styles.selectButtonText}>Choisir</Text>
                     </TouchableOpacity>
                   )}
@@ -241,7 +309,10 @@ export default function ParentSubscriptionScreen() {
         </Animated.View>
 
         {/* Moyen de paiement */}
-        <Animated.View entering={FadeInDown.delay(350).duration(400)} style={styles.section}>
+        <Animated.View
+          entering={FadeInDown.delay(350).duration(400)}
+          style={styles.section}
+        >
           <View style={styles.sectionHeader}>
             <CreditCard size={16} color="#6366F1" />
             <Text style={styles.sectionTitle}>Paiement</Text>
@@ -254,20 +325,32 @@ export default function ParentSubscriptionScreen() {
                 </View>
                 <View style={styles.paymentInfo}>
                   <Text style={styles.cardNumber}>
-                    {defaultMethod.last4 ? `•••• •••• •••• ${defaultMethod.last4}` : defaultMethod.type}
+                    {defaultMethod.last4
+                      ? `•••• •••• •••• ${defaultMethod.last4}`
+                      : defaultMethod.type}
                   </Text>
                   {defaultMethod.expiryDate && (
-                    <Text style={styles.cardExpiry}>Expire {defaultMethod.expiryDate}</Text>
+                    <Text style={styles.cardExpiry}>
+                      Expire {defaultMethod.expiryDate}
+                    </Text>
                   )}
                 </View>
-                <TouchableOpacity style={styles.changeButton} onPress={() => router.push("/parent/profile/checkout")}>
+                <TouchableOpacity
+                  style={styles.changeButton}
+                  onPress={() => router.push("/parent/profile/checkout")}
+                >
                   <Text style={styles.changeButtonText}>Modifier</Text>
                 </TouchableOpacity>
               </View>
             ) : (
-              <TouchableOpacity style={styles.addPaymentRow} onPress={() => router.push("/parent/profile/checkout")}>
+              <TouchableOpacity
+                style={styles.addPaymentRow}
+                onPress={() => router.push("/parent/profile/checkout")}
+              >
                 <CreditCard size={18} color="#94A3B8" />
-                <Text style={styles.addPaymentText}>Ajouter un moyen de paiement</Text>
+                <Text style={styles.addPaymentText}>
+                  Ajouter un moyen de paiement
+                </Text>
                 <ChevronRight size={16} color="#94A3B8" />
               </TouchableOpacity>
             )}
@@ -276,7 +359,10 @@ export default function ParentSubscriptionScreen() {
 
         {/* Historique de paiements */}
         {subscriptionOrders.length > 0 && (
-          <Animated.View entering={FadeInDown.delay(400).duration(400)} style={styles.section}>
+          <Animated.View
+            entering={FadeInDown.delay(400).duration(400)}
+            style={styles.section}
+          >
             <View style={styles.sectionHeader}>
               <Download size={16} color="#6366F1" />
               <Text style={styles.sectionTitle}>Historique</Text>
@@ -288,21 +374,37 @@ export default function ParentSubscriptionScreen() {
                   <View key={order.id}>
                     <View style={styles.invoiceRow}>
                       <View>
-                        <Text style={styles.invoiceDate}>{formatDate(order.createdAt)}</Text>
+                        <Text style={styles.invoiceDate}>
+                          {formatDate(order.createdAt)}
+                        </Text>
                         <Text style={styles.invoiceDescription}>
                           {order.items[0]?.description ?? "Abonnement"}
                         </Text>
                       </View>
                       <View style={styles.invoiceRight}>
-                        <Text style={styles.invoiceAmount}>{formatAmount(order.amount)}</Text>
-                        <View style={[styles.invoiceStatusBadge, { backgroundColor: colors.bg }]}>
-                          <Text style={[styles.invoiceStatusText, { color: colors.text }]}>
+                        <Text style={styles.invoiceAmount}>
+                          {formatAmount(order.amount)}
+                        </Text>
+                        <View
+                          style={[
+                            styles.invoiceStatusBadge,
+                            { backgroundColor: colors.bg },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.invoiceStatusText,
+                              { color: colors.text },
+                            ]}
+                          >
                             {statusLabel(order.status)}
                           </Text>
                         </View>
                       </View>
                     </View>
-                    {index < subscriptionOrders.length - 1 && <View style={styles.divider} />}
+                    {index < subscriptionOrders.length - 1 && (
+                      <View style={styles.divider} />
+                    )}
                   </View>
                 );
               })}
@@ -321,10 +423,14 @@ export default function ParentSubscriptionScreen() {
               {cancelSubscription.isPending ? (
                 <ActivityIndicator size="small" color="#EF4444" />
               ) : (
-                <Text style={styles.cancelButtonText}>Annuler l'abonnement</Text>
+                <Text style={styles.cancelButtonText}>
+                  Annuler l'abonnement
+                </Text>
               )}
             </TouchableOpacity>
-            <Text style={styles.cancelNote}>Vous gardez l'accès jusqu'à la fin de la période</Text>
+            <Text style={styles.cancelNote}>
+              Vous gardez l'accès jusqu'à la fin de la période
+            </Text>
           </View>
         )}
       </ScrollView>

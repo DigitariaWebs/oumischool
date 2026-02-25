@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Dimensions,
-} from "react-native";
+import { View, Text, StyleSheet, Pressable, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { ArrowLeft, Star, Trophy } from "lucide-react-native";
 import Animated, {
@@ -93,7 +87,7 @@ export default function PlanetsMemoryGame() {
     if (!card || card.isFlipped || card.isMatched) return;
 
     setCards((prev) =>
-      prev.map((c) => (c.id === cardId ? { ...c, isFlipped: true } : c))
+      prev.map((c) => (c.id === cardId ? { ...c, isFlipped: true } : c)),
     );
 
     setFlippedCards((prev) => [...prev, cardId]);
@@ -107,20 +101,24 @@ export default function PlanetsMemoryGame() {
     setMoves(moves + 1);
 
     setTimeout(() => {
-      if (firstCard && secondCard && firstCard.planetId === secondCard.planetId) {
+      if (
+        firstCard &&
+        secondCard &&
+        firstCard.planetId === secondCard.planetId
+      ) {
         // Match found
         setCards((prev) =>
           prev.map((c) =>
             c.id === firstId || c.id === secondId
               ? { ...c, isMatched: true }
-              : c
-          )
+              : c,
+          ),
         );
         setScore(score + 20);
 
         // Check if game is won
         const allMatched = cards.every(
-          (c) => c.isMatched || c.id === firstId || c.id === secondId
+          (c) => c.isMatched || c.id === firstId || c.id === secondId,
         );
         if (allMatched) {
           setGameWon(true);
@@ -131,8 +129,8 @@ export default function PlanetsMemoryGame() {
           prev.map((c) =>
             c.id === firstId || c.id === secondId
               ? { ...c, isFlipped: false }
-              : c
-          )
+              : c,
+          ),
         );
       }
 
@@ -216,10 +214,7 @@ export default function PlanetsMemoryGame() {
       </View>
 
       {gameWon && (
-        <Animated.View
-          entering={ZoomIn.springify()}
-          style={styles.winOverlay}
-        >
+        <Animated.View entering={ZoomIn.springify()} style={styles.winOverlay}>
           <View style={styles.winCard}>
             <Trophy size={64} color="#FBBF24" />
             <Text style={styles.winTitle}>Bravo ! 🎉</Text>

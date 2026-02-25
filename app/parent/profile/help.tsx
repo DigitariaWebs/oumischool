@@ -115,7 +115,10 @@ export default function ParentHelpScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <ArrowLeft size={22} color="#1E293B" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Aide & Support</Text>
@@ -133,7 +136,9 @@ export default function ParentHelpScreen() {
           <View style={styles.welcomeIcon}>
             <Sparkles size={20} color="#6366F1" />
           </View>
-          <Text style={styles.welcomeTitle}>Comment pouvons-nous vous aider ?</Text>
+          <Text style={styles.welcomeTitle}>
+            Comment pouvons-nous vous aider ?
+          </Text>
           <Text style={styles.welcomeText}>Réponse en moins de 24h</Text>
         </View>
 
@@ -144,8 +149,13 @@ export default function ParentHelpScreen() {
             <Text style={styles.sectionTitle}>Contactez-nous</Text>
           </View>
           <View style={styles.contactRow}>
-            <TouchableOpacity style={styles.contactCard} onPress={() => handleContact("email")}>
-              <View style={[styles.contactIcon, { backgroundColor: "#EEF2FF" }]}>
+            <TouchableOpacity
+              style={styles.contactCard}
+              onPress={() => handleContact("email")}
+            >
+              <View
+                style={[styles.contactIcon, { backgroundColor: "#EEF2FF" }]}
+              >
                 <Mail size={18} color="#6366F1" />
               </View>
               <Text style={styles.contactLabel}>Email</Text>
@@ -153,8 +163,13 @@ export default function ParentHelpScreen() {
                 support@oumischool.com
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.contactCard} onPress={() => handleContact("phone")}>
-              <View style={[styles.contactIcon, { backgroundColor: "#D1FAE5" }]}>
+            <TouchableOpacity
+              style={styles.contactCard}
+              onPress={() => handleContact("phone")}
+            >
+              <View
+                style={[styles.contactIcon, { backgroundColor: "#D1FAE5" }]}
+              >
                 <Phone size={18} color="#10B981" />
               </View>
               <Text style={styles.contactLabel}>Téléphone</Text>
@@ -194,7 +209,10 @@ export default function ParentHelpScreen() {
               numberOfLines={4}
               textAlignVertical="top"
             />
-            <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
+            <TouchableOpacity
+              style={styles.sendButton}
+              onPress={handleSendMessage}
+            >
               <Send size={16} color="white" />
               <Text style={styles.sendButtonText}>Envoyer</Text>
             </TouchableOpacity>
@@ -223,7 +241,9 @@ export default function ParentHelpScreen() {
 
         {/* Bouton Add source */}
         <TouchableOpacity style={styles.sourceButton}>
-          <Text style={styles.sourceButtonText}>+ Consulter la base de connaissances</Text>
+          <Text style={styles.sourceButtonText}>
+            + Consulter la base de connaissances
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

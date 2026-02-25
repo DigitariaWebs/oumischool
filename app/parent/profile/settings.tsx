@@ -41,7 +41,11 @@ import { FONTS } from "@/config/fonts";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { updateUser } from "@/store/slices/authSlice";
 import { useUpdateProfile, useChangePassword } from "@/hooks/api/auth";
-import { useParentMe, useUploadAvatar, useUpdateParentProfile } from "@/hooks/api/parent";
+import {
+  useParentMe,
+  useUploadAvatar,
+  useUpdateParentProfile,
+} from "@/hooks/api/parent";
 
 export default function ParentSettingsScreen() {
   const router = useRouter();
@@ -79,13 +83,19 @@ export default function ParentSettingsScreen() {
   useEffect(() => {
     if (parentProfile && !notifPrefsInitialized.current) {
       notifPrefsInitialized.current = true;
-      const np = parentProfile.notificationPreferences as Record<string, boolean> | null;
+      const np = parentProfile.notificationPreferences as Record<
+        string,
+        boolean
+      > | null;
       if (np) {
         if (np.push !== undefined) setPushNotifications(np.push);
         if (np.email !== undefined) setEmailNotifications(np.email);
         if (np.inApp !== undefined) setInAppNotifications(np.inApp);
       }
-      const ps = parentProfile.privacySettings as Record<string, boolean> | null;
+      const ps = parentProfile.privacySettings as Record<
+        string,
+        boolean
+      > | null;
       if (ps) {
         if (ps.dataSharing !== undefined) setDataSharing(ps.dataSharing);
         if (ps.analytics !== undefined) setAnalytics(ps.analytics);
@@ -96,7 +106,10 @@ export default function ParentSettingsScreen() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission refusée", "Nous avons besoin de l'accès à la galerie.");
+      Alert.alert(
+        "Permission refusée",
+        "Nous avons besoin de l'accès à la galerie.",
+      );
       return;
     }
 
@@ -125,11 +138,18 @@ export default function ParentSettingsScreen() {
     const lastName = nameParts.slice(1).join(" ") || firstName;
     try {
       await updateProfile.mutateAsync({ firstName, lastName, phone });
-      dispatch(updateUser({ name, email, phoneNumber: phone, avatar: avatarUri }));
+      dispatch(
+        updateUser({ name, email, phoneNumber: phone, avatar: avatarUri }),
+      );
       setEditMode(false);
       Alert.alert("Succès", "Profil mis à jour");
     } catch (err) {
-      Alert.alert("Erreur", err instanceof Error ? err.message : "Impossible de mettre à jour le profil");
+      Alert.alert(
+        "Erreur",
+        err instanceof Error
+          ? err.message
+          : "Impossible de mettre à jour le profil",
+      );
     }
   };
 
@@ -162,34 +182,59 @@ export default function ParentSettingsScreen() {
       return;
     }
     try {
-      await changePasswordMutation.mutateAsync({ currentPassword, newPassword });
+      await changePasswordMutation.mutateAsync({
+        currentPassword,
+        newPassword,
+      });
       Alert.alert("Succès", "Mot de passe modifié");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
       setSecurityEditMode(false);
     } catch (err) {
-      Alert.alert("Erreur", err instanceof Error ? err.message : "Impossible de changer le mot de passe");
+      Alert.alert(
+        "Erreur",
+        err instanceof Error
+          ? err.message
+          : "Impossible de changer le mot de passe",
+      );
     }
   };
 
-  const handleNotifToggle = (key: string, value: boolean, setter: (v: boolean) => void) => {
+  const handleNotifToggle = (
+    key: string,
+    value: boolean,
+    setter: (v: boolean) => void,
+  ) => {
     setter(value);
-    const currentPrefs = (parentProfile?.notificationPreferences as Record<string, unknown>) ?? {};
-    updateParentProfile.mutate({ notificationPreferences: { ...currentPrefs, [key]: value } });
+    const currentPrefs =
+      (parentProfile?.notificationPreferences as Record<string, unknown>) ?? {};
+    updateParentProfile.mutate({
+      notificationPreferences: { ...currentPrefs, [key]: value },
+    });
   };
 
-  const handlePrivacyToggle = (key: string, value: boolean, setter: (v: boolean) => void) => {
+  const handlePrivacyToggle = (
+    key: string,
+    value: boolean,
+    setter: (v: boolean) => void,
+  ) => {
     setter(value);
-    const currentSettings = (parentProfile?.privacySettings as Record<string, unknown>) ?? {};
-    updateParentProfile.mutate({ privacySettings: { ...currentSettings, [key]: value } });
+    const currentSettings =
+      (parentProfile?.privacySettings as Record<string, unknown>) ?? {};
+    updateParentProfile.mutate({
+      privacySettings: { ...currentSettings, [key]: value },
+    });
   };
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
           <ArrowLeft size={22} color="#1E293B" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Paramètres</Text>
@@ -212,7 +257,9 @@ export default function ParentSettingsScreen() {
               <View style={styles.avatarContainer}>
                 <Image
                   source={{
-                    uri: avatarUri || "https://cdn-icons-png.flaticon.com/512/4140/4140048.png",
+                    uri:
+                      avatarUri ||
+                      "https://cdn-icons-png.flaticon.com/512/4140/4140048.png",
                   }}
                   style={styles.avatar}
                 />
@@ -229,8 +276,12 @@ export default function ParentSettingsScreen() {
                 </TouchableOpacity>
               </View>
               <View>
-                <Text style={styles.userName}>{user?.name || "Utilisateur"}</Text>
-                <Text style={styles.userEmail}>{user?.email || "email@example.com"}</Text>
+                <Text style={styles.userName}>
+                  {user?.name || "Utilisateur"}
+                </Text>
+                <Text style={styles.userEmail}>
+                  {user?.email || "email@example.com"}
+                </Text>
               </View>
             </View>
             <View style={styles.userBadge}>
@@ -246,7 +297,10 @@ export default function ParentSettingsScreen() {
         <View style={styles.sectionsContainer}>
           {/* Profil */}
           <View style={styles.section}>
-            <TouchableOpacity style={styles.sectionHeader} onPress={handleEditToggle}>
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={handleEditToggle}
+            >
               <View style={styles.sectionTitleContainer}>
                 <User size={16} color="#6366F1" />
                 <Text style={styles.sectionTitle}>Profil</Text>
@@ -258,7 +312,9 @@ export default function ParentSettingsScreen() {
               <View style={styles.profileDisplay}>
                 <Text style={styles.profileName}>{name}</Text>
                 <Text style={styles.profileEmail}>{email}</Text>
-                {phone ? <Text style={styles.profilePhone}>{phone}</Text> : null}
+                {phone ? (
+                  <Text style={styles.profilePhone}>{phone}</Text>
+                ) : null}
               </View>
             ) : (
               <View style={styles.editForm}>
@@ -287,7 +343,10 @@ export default function ParentSettingsScreen() {
                   placeholderTextColor="#94A3B8"
                 />
                 <TouchableOpacity
-                  style={[styles.saveButton, updateProfile.isPending && styles.buttonLoading]}
+                  style={[
+                    styles.saveButton,
+                    updateProfile.isPending && styles.buttonLoading,
+                  ]}
                   onPress={handleSaveProfile}
                   disabled={updateProfile.isPending}
                 >
@@ -306,7 +365,10 @@ export default function ParentSettingsScreen() {
 
           {/* Sécurité */}
           <View style={styles.section}>
-            <TouchableOpacity style={styles.sectionHeader} onPress={handleSecurityEditToggle}>
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={handleSecurityEditToggle}
+            >
               <View style={styles.sectionTitleContainer}>
                 <Lock size={16} color="#6366F1" />
                 <Text style={styles.sectionTitle}>Sécurité</Text>
@@ -346,7 +408,10 @@ export default function ParentSettingsScreen() {
                   placeholderTextColor="#94A3B8"
                 />
                 <TouchableOpacity
-                  style={[styles.saveButton, changePasswordMutation.isPending && styles.buttonLoading]}
+                  style={[
+                    styles.saveButton,
+                    changePasswordMutation.isPending && styles.buttonLoading,
+                  ]}
                   onPress={handleChangePassword}
                   disabled={changePasswordMutation.isPending}
                 >
@@ -423,7 +488,9 @@ export default function ParentSettingsScreen() {
               <Text style={styles.preferenceLabel}>Push</Text>
               <Switch
                 value={pushNotifications}
-                onValueChange={(v) => handleNotifToggle("push", v, setPushNotifications)}
+                onValueChange={(v) =>
+                  handleNotifToggle("push", v, setPushNotifications)
+                }
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -433,7 +500,9 @@ export default function ParentSettingsScreen() {
               <Text style={styles.preferenceLabel}>Email</Text>
               <Switch
                 value={emailNotifications}
-                onValueChange={(v) => handleNotifToggle("email", v, setEmailNotifications)}
+                onValueChange={(v) =>
+                  handleNotifToggle("email", v, setEmailNotifications)
+                }
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -443,7 +512,9 @@ export default function ParentSettingsScreen() {
               <Text style={styles.preferenceLabel}>In-app</Text>
               <Switch
                 value={inAppNotifications}
-                onValueChange={(v) => handleNotifToggle("inApp", v, setInAppNotifications)}
+                onValueChange={(v) =>
+                  handleNotifToggle("inApp", v, setInAppNotifications)
+                }
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -463,7 +534,9 @@ export default function ParentSettingsScreen() {
               <Text style={styles.preferenceLabel}>Partage de données</Text>
               <Switch
                 value={dataSharing}
-                onValueChange={(v) => handlePrivacyToggle("dataSharing", v, setDataSharing)}
+                onValueChange={(v) =>
+                  handlePrivacyToggle("dataSharing", v, setDataSharing)
+                }
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -473,7 +546,9 @@ export default function ParentSettingsScreen() {
               <Text style={styles.preferenceLabel}>Suivi analytique</Text>
               <Switch
                 value={analytics}
-                onValueChange={(v) => handlePrivacyToggle("analytics", v, setAnalytics)}
+                onValueChange={(v) =>
+                  handlePrivacyToggle("analytics", v, setAnalytics)
+                }
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -482,7 +557,10 @@ export default function ParentSettingsScreen() {
 
           {/* Enfants */}
           <View style={styles.section}>
-            <TouchableOpacity style={styles.sectionHeader} onPress={() => router.push("/(tabs)/children-tab")}>
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={() => router.push("/(tabs)/children-tab")}
+            >
               <View style={styles.sectionTitleContainer}>
                 <Users size={16} color="#6366F1" />
                 <Text style={styles.sectionTitle}>Enfants</Text>
@@ -495,7 +573,9 @@ export default function ParentSettingsScreen() {
                 <TouchableOpacity
                   key={child.id}
                   style={styles.childRow}
-                  onPress={() => router.push(`/parent/child/details?id=${child.id}`)}
+                  onPress={() =>
+                    router.push(`/parent/child/details?id=${child.id}`)
+                  }
                 >
                   <Text style={styles.childName}>{child.name}</Text>
                   <Text style={styles.childGrade}>{child.grade}</Text>
@@ -507,7 +587,10 @@ export default function ParentSettingsScreen() {
           </View>
 
           {/* Abonnement */}
-          <TouchableOpacity style={styles.section} onPress={() => router.push("/parent/profile/subscription")}>
+          <TouchableOpacity
+            style={styles.section}
+            onPress={() => router.push("/parent/profile/subscription")}
+          >
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleContainer}>
                 <CreditCard size={16} color="#6366F1" />
@@ -519,7 +602,10 @@ export default function ParentSettingsScreen() {
           </TouchableOpacity>
 
           {/* Aide */}
-          <TouchableOpacity style={styles.section} onPress={() => router.push("/parent/profile/help")}>
+          <TouchableOpacity
+            style={styles.section}
+            onPress={() => router.push("/parent/profile/help")}
+          >
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleContainer}>
                 <HelpCircle size={16} color="#6366F1" />

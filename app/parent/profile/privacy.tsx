@@ -26,7 +26,11 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
-import { useParentMe, useUpdateParentProfile, useRequestDeletion } from "@/hooks/api/parent";
+import {
+  useParentMe,
+  useUpdateParentProfile,
+  useRequestDeletion,
+} from "@/hooks/api/parent";
 import { useLogout } from "@/hooks/api/auth";
 import { useAppDispatch } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
@@ -52,19 +56,29 @@ export default function ParentPrivacyScreen() {
     if (parentProfile?.privacySettings && !initialized.current) {
       initialized.current = true;
       const ps = parentProfile.privacySettings as Record<string, boolean>;
-      if (ps.profileVisibility !== undefined) setProfileVisibility(ps.profileVisibility);
+      if (ps.profileVisibility !== undefined)
+        setProfileVisibility(ps.profileVisibility);
       if (ps.showEmail !== undefined) setShowEmail(ps.showEmail);
       if (ps.showPhone !== undefined) setShowPhone(ps.showPhone);
       if (ps.dataCollection !== undefined) setDataCollection(ps.dataCollection);
-      if (ps.thirdPartySharing !== undefined) setThirdPartySharing(ps.thirdPartySharing);
-      if (ps.marketingEmails !== undefined) setMarketingEmails(ps.marketingEmails);
+      if (ps.thirdPartySharing !== undefined)
+        setThirdPartySharing(ps.thirdPartySharing);
+      if (ps.marketingEmails !== undefined)
+        setMarketingEmails(ps.marketingEmails);
     }
   }, [parentProfile]);
 
-  const handlePrivacyToggle = (key: string, value: boolean, setter: (v: boolean) => void) => {
+  const handlePrivacyToggle = (
+    key: string,
+    value: boolean,
+    setter: (v: boolean) => void,
+  ) => {
     setter(value);
-    const current = (parentProfile?.privacySettings as Record<string, unknown>) ?? {};
-    updateParentProfile.mutate({ privacySettings: { ...current, [key]: value } });
+    const current =
+      (parentProfile?.privacySettings as Record<string, unknown>) ?? {};
+    updateParentProfile.mutate({
+      privacySettings: { ...current, [key]: value },
+    });
   };
 
   const handleDownloadData = () => {
@@ -76,7 +90,10 @@ export default function ParentPrivacyScreen() {
         {
           text: "Confirmer",
           onPress: () => {
-            Alert.alert("Demande enregistrée", "Vous recevrez un email sous peu");
+            Alert.alert(
+              "Demande enregistrée",
+              "Vous recevrez un email sous peu",
+            );
           },
         },
       ],
@@ -103,7 +120,9 @@ export default function ParentPrivacyScreen() {
                   style: "destructive",
                   onPress: async () => {
                     try {
-                      await requestDeletion.mutateAsync("Demande initiée depuis l'application");
+                      await requestDeletion.mutateAsync(
+                        "Demande initiée depuis l'application",
+                      );
                       Alert.alert(
                         "Demande enregistrée",
                         "Votre demande de suppression a été enregistrée. Notre équipe traitera votre demande sous 30 jours.",
@@ -118,7 +137,10 @@ export default function ParentPrivacyScreen() {
                         ],
                       );
                     } catch {
-                      Alert.alert("Erreur", "Impossible d'enregistrer votre demande. Veuillez réessayer.");
+                      Alert.alert(
+                        "Erreur",
+                        "Impossible d'enregistrer votre demande. Veuillez réessayer.",
+                      );
                     }
                   },
                 },
@@ -137,7 +159,10 @@ export default function ParentPrivacyScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <ArrowLeft size={22} color="#1E293B" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Confidentialité</Text>
@@ -183,7 +208,13 @@ export default function ParentPrivacyScreen() {
               </View>
               <Switch
                 value={profileVisibility}
-                onValueChange={(v) => handlePrivacyToggle("profileVisibility", v, setProfileVisibility)}
+                onValueChange={(v) =>
+                  handlePrivacyToggle(
+                    "profileVisibility",
+                    v,
+                    setProfileVisibility,
+                  )
+                }
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -198,7 +229,9 @@ export default function ParentPrivacyScreen() {
               </View>
               <Switch
                 value={showEmail}
-                onValueChange={(v) => handlePrivacyToggle("showEmail", v, setShowEmail)}
+                onValueChange={(v) =>
+                  handlePrivacyToggle("showEmail", v, setShowEmail)
+                }
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -213,7 +246,9 @@ export default function ParentPrivacyScreen() {
               </View>
               <Switch
                 value={showPhone}
-                onValueChange={(v) => handlePrivacyToggle("showPhone", v, setShowPhone)}
+                onValueChange={(v) =>
+                  handlePrivacyToggle("showPhone", v, setShowPhone)
+                }
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -237,7 +272,9 @@ export default function ParentPrivacyScreen() {
               </View>
               <Switch
                 value={dataCollection}
-                onValueChange={(v) => handlePrivacyToggle("dataCollection", v, setDataCollection)}
+                onValueChange={(v) =>
+                  handlePrivacyToggle("dataCollection", v, setDataCollection)
+                }
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -252,7 +289,13 @@ export default function ParentPrivacyScreen() {
               </View>
               <Switch
                 value={thirdPartySharing}
-                onValueChange={(v) => handlePrivacyToggle("thirdPartySharing", v, setThirdPartySharing)}
+                onValueChange={(v) =>
+                  handlePrivacyToggle(
+                    "thirdPartySharing",
+                    v,
+                    setThirdPartySharing,
+                  )
+                }
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -267,7 +310,9 @@ export default function ParentPrivacyScreen() {
               </View>
               <Switch
                 value={marketingEmails}
-                onValueChange={(v) => handlePrivacyToggle("marketingEmails", v, setMarketingEmails)}
+                onValueChange={(v) =>
+                  handlePrivacyToggle("marketingEmails", v, setMarketingEmails)
+                }
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -281,7 +326,10 @@ export default function ParentPrivacyScreen() {
             <Download size={16} color="#6366F1" />
             <Text style={styles.sectionTitle}>Vos droits</Text>
           </View>
-          <TouchableOpacity style={styles.actionCard} onPress={handleDownloadData}>
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={handleDownloadData}
+          >
             <View style={styles.actionLeft}>
               <View style={styles.actionIcon}>
                 <Download size={18} color="#6366F1" />
@@ -301,7 +349,9 @@ export default function ParentPrivacyScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <UserX size={16} color="#EF4444" />
-            <Text style={[styles.sectionTitle, styles.dangerTitle]}>Zone dangereuse</Text>
+            <Text style={[styles.sectionTitle, styles.dangerTitle]}>
+              Zone dangereuse
+            </Text>
           </View>
           <TouchableOpacity
             style={[styles.actionCard, styles.dangerCard]}
@@ -317,7 +367,9 @@ export default function ParentPrivacyScreen() {
                 )}
               </View>
               <View>
-                <Text style={[styles.actionTitle, styles.dangerText]}>Supprimer mon compte</Text>
+                <Text style={[styles.actionTitle, styles.dangerText]}>
+                  Supprimer mon compte
+                </Text>
                 <Text style={styles.actionDescription}>
                   Action irréversible - toutes vos données seront supprimées
                 </Text>
@@ -331,11 +383,14 @@ export default function ParentPrivacyScreen() {
         <View style={styles.policyCard}>
           <Text style={styles.policyTitle}>Politique de confidentialité</Text>
           <Text style={styles.policyText}>
-            En utilisant Oumi'School, vous acceptez notre politique de confidentialité.
-            Nous nous engageons à protéger vos données personnelles conformément au RGPD.
+            En utilisant Oumi'School, vous acceptez notre politique de
+            confidentialité. Nous nous engageons à protéger vos données
+            personnelles conformément au RGPD.
           </Text>
           <TouchableOpacity style={styles.policyLink}>
-            <Text style={styles.policyLinkText}>Lire la politique complète</Text>
+            <Text style={styles.policyLinkText}>
+              Lire la politique complète
+            </Text>
           </TouchableOpacity>
         </View>
 

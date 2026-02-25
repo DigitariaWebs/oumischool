@@ -24,7 +24,7 @@ import {
 import type { SubscriptionPlan } from "@/hooks/api/subscriptions";
 
 interface PricingPlan {
-  id: string;         // display-only ID
+  id: string; // display-only ID
   serverPlanId: string; // real DB plan ID used for payment
   name: string;
   price: number;
@@ -40,7 +40,7 @@ interface PricingPlan {
  */
 function buildDisplayPlans(
   serverPlans: SubscriptionPlan[],
-  billingCycle: "monthly" | "yearly"
+  billingCycle: "monthly" | "yearly",
 ): PricingPlan[] {
   return serverPlans.map((plan, index) => {
     const isYearly = billingCycle === "yearly";
@@ -82,7 +82,7 @@ export default function PricingScreen() {
         Alert.alert(
           "Abonnement activé!",
           "Votre abonnement a été activé avec succès.",
-          [{ text: "OK", onPress: () => router.back() }]
+          [{ text: "OK", onPress: () => router.back() }],
         );
       }
     } finally {

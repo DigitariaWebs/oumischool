@@ -1,17 +1,8 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { ArrowLeft, CheckCircle, ArrowRight, Clock } from "lucide-react-native";
-import Animated, {
-  FadeInDown,
-  FadeInUp,
-} from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
@@ -151,7 +142,9 @@ export default function FrenchTensesLesson() {
                 <View style={styles.exampleContent}>
                   <Text style={styles.exampleText}>{example.text}</Text>
                   <View style={styles.highlightBadge}>
-                    <Text style={styles.highlightText}>{example.highlight}</Text>
+                    <Text style={styles.highlightText}>
+                      {example.highlight}
+                    </Text>
                   </View>
                 </View>
               </Animated.View>
@@ -162,7 +155,8 @@ export default function FrenchTensesLesson() {
             <View style={styles.tipCard}>
               <Text style={styles.tipTitle}>💡 Astuce</Text>
               <Text style={styles.tipText}>
-                Pour savoir si c'est le présent, demande-toi : "Est-ce que ça se passe maintenant ?"
+                Pour savoir si c'est le présent, demande-toi : "Est-ce que ça se
+                passe maintenant ?"
               </Text>
             </View>
           )}
@@ -171,7 +165,8 @@ export default function FrenchTensesLesson() {
             <View style={styles.tipCard}>
               <Text style={styles.tipTitle}>💡 Astuce</Text>
               <Text style={styles.tipText}>
-                Le passé composé utilise toujours un auxiliaire (avoir ou être) + un participe passé (mangé, joué, allé...)
+                Le passé composé utilise toujours un auxiliaire (avoir ou être)
+                + un participe passé (mangé, joué, allé...)
               </Text>
             </View>
           )}
@@ -180,7 +175,8 @@ export default function FrenchTensesLesson() {
             <View style={styles.tipCard}>
               <Text style={styles.tipTitle}>💡 Astuce</Text>
               <Text style={styles.tipText}>
-                L'imparfait se termine souvent par -ais, -ais, -ait, -ions, -iez, -aient
+                L'imparfait se termine souvent par -ais, -ais, -ait, -ions,
+                -iez, -aient
               </Text>
             </View>
           )}

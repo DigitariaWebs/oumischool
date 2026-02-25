@@ -70,20 +70,37 @@ const Slide = ({
   const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
 
   const animatedStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(scrollX.value, inputRange, [0, 1, 0], Extrapolation.CLAMP);
-    const scale = interpolate(scrollX.value, inputRange, [0.8, 1, 0.8], Extrapolation.CLAMP);
+    const opacity = interpolate(
+      scrollX.value,
+      inputRange,
+      [0, 1, 0],
+      Extrapolation.CLAMP,
+    );
+    const scale = interpolate(
+      scrollX.value,
+      inputRange,
+      [0.8, 1, 0.8],
+      Extrapolation.CLAMP,
+    );
     return { opacity, transform: [{ scale }] };
   });
 
   const imageStyle = useAnimatedStyle(() => {
-    const translateY = interpolate(scrollX.value, inputRange, [50, 0, -50], Extrapolation.CLAMP);
+    const translateY = interpolate(
+      scrollX.value,
+      inputRange,
+      [50, 0, -50],
+      Extrapolation.CLAMP,
+    );
     return { transform: [{ translateY }] };
   });
 
   return (
     <View style={[styles.slide, { width }]}>
       <Animated.View style={[styles.slideContent, animatedStyle]}>
-        <View style={[styles.iconContainer, { backgroundColor: item.color + "15" }]}>
+        <View
+          style={[styles.iconContainer, { backgroundColor: item.color + "15" }]}
+        >
           {item.icon}
         </View>
 
@@ -121,8 +138,18 @@ const PaginationDot = ({
   const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
 
   const animatedStyle = useAnimatedStyle(() => {
-    const dotWidth = interpolate(scrollX.value, inputRange, [8, 24, 8], Extrapolation.CLAMP);
-    const opacity = interpolate(scrollX.value, inputRange, [0.3, 1, 0.3], Extrapolation.CLAMP);
+    const dotWidth = interpolate(
+      scrollX.value,
+      inputRange,
+      [8, 24, 8],
+      Extrapolation.CLAMP,
+    );
+    const opacity = interpolate(
+      scrollX.value,
+      inputRange,
+      [0.3, 1, 0.3],
+      Extrapolation.CLAMP,
+    );
     return { width: dotWidth, opacity, backgroundColor: color };
   });
 
@@ -133,7 +160,12 @@ const Pagination = ({ scrollX }: { scrollX: Animated.SharedValue<number> }) => {
   return (
     <View style={styles.paginationContainer}>
       {SLIDES.map((slide, index) => (
-        <PaginationDot key={index} index={index} scrollX={scrollX} color={slide.color} />
+        <PaginationDot
+          key={index}
+          index={index}
+          scrollX={scrollX}
+          color={slide.color}
+        />
       ))}
     </View>
   );
@@ -157,16 +189,21 @@ export default function WelcomeScreen() {
     }
   };
 
-  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: any[] }) => {
-    if (viewableItems.length > 0) {
-      setCurrentIndex(viewableItems[0].index);
-    }
-  }).current;
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: any[] }) => {
+      if (viewableItems.length > 0) {
+        setCurrentIndex(viewableItems[0].index);
+      }
+    },
+  ).current;
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Skip Button */}
-      <TouchableOpacity style={styles.skipButton} onPress={() => router.replace("/sign-in")}>
+      <TouchableOpacity
+        style={styles.skipButton}
+        onPress={() => router.replace("/sign-in")}
+      >
         <Text style={styles.skipText}>Passer</Text>
       </TouchableOpacity>
 
@@ -174,7 +211,9 @@ export default function WelcomeScreen() {
         ref={flatListRef}
         data={SLIDES}
         keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => <Slide item={item} index={index} scrollX={scrollX} />}
+        renderItem={({ item, index }) => (
+          <Slide item={item} index={index} scrollX={scrollX} />
+        )}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -187,7 +226,13 @@ export default function WelcomeScreen() {
       <View style={styles.footer}>
         <Pagination scrollX={scrollX} />
 
-        <TouchableOpacity style={[styles.button, { backgroundColor: SLIDES[currentIndex].color }]} onPress={handleNext}>
+        <TouchableOpacity
+          style={[
+            styles.button,
+            { backgroundColor: SLIDES[currentIndex].color },
+          ]}
+          onPress={handleNext}
+        >
           <ArrowRight size={22} color="white" />
         </TouchableOpacity>
       </View>

@@ -168,7 +168,9 @@ export default function ChildrenTab() {
                   </View>
                   <TouchableOpacity
                     style={styles.editButton}
-                    onPress={() => router.push(`/parent/child/details?id=${child.id}`)}
+                    onPress={() =>
+                      router.push(`/parent/child/details?id=${child.id}`)
+                    }
                   >
                     <Edit size={16} color="#94A3B8" />
                   </TouchableOpacity>

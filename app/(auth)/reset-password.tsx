@@ -7,23 +7,33 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ArrowLeft, Check } from "lucide-react-native";
+import { ArrowLeft, Check, Mail, Lock } from "lucide-react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
-import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { Button } from "@/components/Button";
+import { Input } from "@/components/Input";
+import { useResetPassword, useForgotPassword } from "@/hooks/api/auth";
 
 export default function OTPVerificationScreen() {
   const router = useRouter();
+  const resetPasswordMutation = useResetPassword();
+  const forgotPasswordMutation = useForgotPassword();
+
+  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [timer, setTimer] = useState(120);
   const [canResend, setCanResend] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
@@ -70,53 +80,103 @@ export default function OTPVerificationScreen() {
   const handleVerify = async () => {
     const otpCode = otp.join("");
 
+    if (!email) {
+      setEmailError("Veuillez entrer votre email");
+      return;
+    }
+    setEmailError("");
+
     if (otpCode.length !== 6) {
       setError("Veuillez entrer le code complet");
       return;
     }
 
+    if (!password) {
+      setPasswordError("Veuillez entrer un mot de passe");
+      return;
+    }
+
+    if (password.length < 6) {
+      setPasswordError("Le mot de passe doit contenir au moins 6 caractères");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setPasswordError("Les mots de passe ne correspondent pas");
+      return;
+    }
+    setPasswordError("");
+
     setIsLoading(true);
     setError("");
 
-    setTimeout(() => {
+    try {
+      await resetPasswordMutation.mutateAsync({
+        token: "",
+        email,
+        code: otpCode,
+        password,
+      });
+      router.replace("/sign-in");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Une erreur est survenue");
+    } finally {
       setIsLoading(false);
-      router.replace("/onboarding");
-    }, 1500);
+    }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (!canResend) return;
 
-    setTimer(120);
-    setCanResend(false);
-    setError("");
-    setOtp(["", "", "", "", "", ""]);
-    inputRefs.current[0]?.focus();
+    if (!email) {
+      setEmailError("Veuillez entrer votre email");
+      return;
+    }
+    setEmailError("");
 
-    console.log("Resending OTP code...");
+    try {
+      await forgotPasswordMutation.mutateAsync(email);
+      setTimer(120);
+      setCanResend(false);
+      setError("");
+      setOtp(["", "", "", "", "", ""]);
+      inputRefs.current[0]?.focus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur lors de l'envoi");
+    }
   };
 
   const isOtpComplete = otp.every((digit) => digit !== "");
+  const isFormValid = email && isOtpComplete && password && confirmPassword;
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Boule violette décorative */}
       <View style={styles.purpleBlob} />
-      
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Bouton retour */}
           <Animated.View entering={FadeInUp.delay(200).duration(600)}>
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
               <ArrowLeft size={22} color="#1E293B" />
             </TouchableOpacity>
           </Animated.View>
 
           {/* Header */}
-          <Animated.View entering={FadeInUp.delay(300).duration(600)} style={styles.header}>
+          <Animated.View
+            entering={FadeInUp.delay(300).duration(600)}
+            style={styles.header}
+          >
             <Text style={styles.headerLabel}>VÉRIFICATION</Text>
             <Text style={styles.headerTitle}>Code de vérification</Text>
             <Text style={styles.headerSubtitle}>
@@ -125,13 +185,34 @@ export default function OTPVerificationScreen() {
           </Animated.View>
 
           {/* Carte OTP */}
-          <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.otpCard}>
+          <Animated.View
+            entering={FadeInDown.delay(400).duration(600)}
+            style={styles.otpCard}
+          >
+            {/* Email input */}
+            <Input
+              label="Email"
+              placeholder="votre@email.com"
+              value={email}
+              onChangeText={(value) => {
+                setEmail(value);
+                setEmailError("");
+              }}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              icon={<Mail size={18} color="#94A3B8" />}
+              containerStyle={styles.inputContainer}
+              error={emailError}
+            />
+
             {/* Champs OTP */}
             <View style={styles.otpContainer}>
               {otp.map((digit, index) => (
                 <TextInput
                   key={index}
-                  ref={(ref) => (inputRefs.current[index] = ref)}
+                  ref={(ref) => {
+                    inputRefs.current[index] = ref;
+                  }}
                   style={[
                     styles.otpInput,
                     digit && styles.otpInputFilled,
@@ -143,14 +224,46 @@ export default function OTPVerificationScreen() {
                   keyboardType="number-pad"
                   maxLength={1}
                   selectTextOnFocus
-                  autoFocus={index === 0}
+                  autoFocus={index === 0 && !email}
                 />
               ))}
             </View>
 
+            {/* Password input */}
+            <Input
+              label="Nouveau mot de passe"
+              placeholder="Entrez votre mot de passe"
+              value={password}
+              onChangeText={(value) => {
+                setPassword(value);
+                setPasswordError("");
+              }}
+              isPassword
+              icon={<Lock size={18} color="#94A3B8" />}
+              containerStyle={styles.inputContainer}
+              error={passwordError}
+            />
+
+            {/* Confirm Password input */}
+            <Input
+              label="Confirmer le mot de passe"
+              placeholder="Confirmez votre mot de passe"
+              value={confirmPassword}
+              onChangeText={(value) => {
+                setConfirmPassword(value);
+                setPasswordError("");
+              }}
+              isPassword
+              icon={<Lock size={18} color="#94A3B8" />}
+              containerStyle={styles.inputContainer}
+            />
+
             {/* Message d'erreur */}
             {error && (
-              <Animated.Text entering={FadeInDown.duration(300)} style={styles.errorText}>
+              <Animated.Text
+                entering={FadeInDown.duration(300)}
+                style={styles.errorText}
+              >
                 {error}
               </Animated.Text>
             )}
@@ -159,7 +272,8 @@ export default function OTPVerificationScreen() {
             <View style={styles.resendContainer}>
               {!canResend ? (
                 <Text style={styles.timerText}>
-                  Renvoyer dans <Text style={styles.timerHighlight}>{formatTime(timer)}</Text>
+                  Renvoyer dans{" "}
+                  <Text style={styles.timerHighlight}>{formatTime(timer)}</Text>
                 </Text>
               ) : (
                 <TouchableOpacity onPress={handleResend}>
@@ -170,19 +284,25 @@ export default function OTPVerificationScreen() {
 
             {/* Bouton de vérification */}
             <Button
-              title="Vérifier"
+              title="Réinitialiser le mot de passe"
               onPress={handleVerify}
               isLoading={isLoading}
-              disabled={!isOtpComplete}
+              disabled={!isFormValid}
               fullWidth
-              style={[styles.verifyButton, !isOtpComplete && styles.verifyButtonDisabled]}
+              style={[
+                styles.verifyButton,
+                !isFormValid && styles.verifyButtonDisabled,
+              ]}
               icon={<Check size={18} color="white" />}
             />
 
             {/* Lien d'aide */}
             <Text style={styles.helpText}>
-              Vous n'avez pas reçu le code ?{" "}
-              <Text style={styles.helpLink} onPress={() => console.log("Contact support")}>
+              Vous n&apos;avez pas reçu le code ?{" "}
+              <Text
+                style={styles.helpLink}
+                onPress={() => console.log("Contact support")}
+              >
                 Contactez-nous
               </Text>
             </Text>
@@ -192,8 +312,6 @@ export default function OTPVerificationScreen() {
     </SafeAreaView>
   );
 }
-
-import { ScrollView } from "react-native";
 
 const styles = StyleSheet.create({
   container: {
@@ -265,6 +383,11 @@ const styles = StyleSheet.create({
     padding: 24,
     borderWidth: 1,
     borderColor: "#F1F5F9",
+    marginBottom: 16,
+  },
+
+  // Input
+  inputContainer: {
     marginBottom: 16,
   },
 

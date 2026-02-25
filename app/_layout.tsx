@@ -83,9 +83,7 @@ export default function RootLayout() {
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <StripeProvider
-          publishableKey={
-            process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ""
-          }
+          publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ""}
           urlScheme="oumischool"
         >
           <MessagingSocketProvider>

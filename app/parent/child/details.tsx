@@ -371,7 +371,11 @@ export default function ChildDetailsScreen() {
       try {
         await updateChildMutation.mutateAsync({
           id: childId,
-          body: { name: editedName.trim(), dateOfBirth: editedDateOfBirth, grade: editedGrade },
+          body: {
+            name: editedName.trim(),
+            dateOfBirth: editedDateOfBirth,
+            grade: editedGrade,
+          },
         });
       } catch {
         // API failed — still update local Redux cache so the UI reflects changes

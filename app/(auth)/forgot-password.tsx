@@ -69,7 +69,7 @@ export default function ForgotPasswordScreen() {
               onPress={() => setIsSuccess(false)}
             >
               <Text style={styles.resendText}>
-                Vous n'avez pas reçu l'email ?
+                Vous n&apos;avez pas reçu l&apos;email ?
               </Text>
             </TouchableOpacity>
           </Animated.View>
@@ -90,13 +90,19 @@ export default function ForgotPasswordScreen() {
         >
           {/* Bouton retour */}
           <Animated.View entering={FadeInUp.delay(200).duration(600)}>
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
               <ArrowLeft size={22} color="#1E293B" />
             </TouchableOpacity>
           </Animated.View>
 
           {/* Header */}
-          <Animated.View entering={FadeInUp.delay(300).duration(600)} style={styles.header}>
+          <Animated.View
+            entering={FadeInUp.delay(300).duration(600)}
+            style={styles.header}
+          >
             <Text style={styles.headerLabel}>MOT DE PASSE OUBLIÉ</Text>
             <Text style={styles.headerTitle}>Réinitialisation</Text>
             <Text style={styles.headerSubtitle}>
@@ -105,7 +111,10 @@ export default function ForgotPasswordScreen() {
           </Animated.View>
 
           {/* Formulaire */}
-          <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.formCard}>
+          <Animated.View
+            entering={FadeInDown.delay(400).duration(600)}
+            style={styles.formCard}
+          >
             <Input
               label="Email"
               placeholder="votre@email.com"
@@ -118,7 +127,14 @@ export default function ForgotPasswordScreen() {
             />
 
             {error && (
-              <Text style={{ color: "#EF4444", fontSize: 13, marginBottom: 12, textAlign: "center" }}>
+              <Text
+                style={{
+                  color: "#EF4444",
+                  fontSize: 13,
+                  marginBottom: 12,
+                  textAlign: "center",
+                }}
+              >
                 {error}
               </Text>
             )}
@@ -138,10 +154,13 @@ export default function ForgotPasswordScreen() {
           </Animated.View>
 
           {/* Petit rappel */}
-          <Animated.View entering={FadeInUp.delay(500).duration(600)} style={styles.tipCard}>
+          <Animated.View
+            entering={FadeInUp.delay(500).duration(600)}
+            style={styles.tipCard}
+          >
             <Sparkles size={14} color="#6366F1" />
             <Text style={styles.tipText}>
-              Vérifiez vos spams si vous ne trouvez pas l'email
+              Vérifiez vos spams si vous ne trouvez pas l&apos;email
             </Text>
           </Animated.View>
         </ScrollView>

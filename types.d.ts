@@ -1,5 +1,17 @@
 import { Child } from "@/store/slices/childrenSlice";
+import { ComponentType } from "react";
 import { ViewStyle } from "react-native";
+
+export interface ExerciseItem {
+  id: number;
+  subject: string;
+  title: string;
+  description: string;
+  Icon: ComponentType<{ size?: number; color?: string }>;
+  color: string;
+  route: string;
+  progress?: number;
+}
 
 // UI Component Types
 export interface BlobBackgroundProps {

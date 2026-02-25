@@ -6,6 +6,8 @@ import {
   StyleSheet,
   TextInputProps,
   Pressable,
+  ViewStyle,
+  StyleProp,
 } from "react-native";
 import { Eye, EyeOff } from "lucide-react-native";
 import Animated, {
@@ -23,6 +25,7 @@ interface InputProps extends TextInputProps {
   error?: string;
   icon?: React.ReactNode;
   isPassword?: boolean;
+  containerStyle?: StyleProp<ViewStyle>;
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -31,6 +34,7 @@ export const Input: React.FC<InputProps> = ({
   icon,
   isPassword = false,
   style,
+  containerStyle,
   onFocus,
   onBlur,
   ...props
@@ -71,10 +75,10 @@ export const Input: React.FC<InputProps> = ({
   });
 
   return (
-    <View style={style as any}>
+    <View style={containerStyle as any}>
       {label && <Text style={styles.label}>{label}</Text>}
 
-      <Animated.View style={[styles.inputContainer, animatedContainerStyle]}>
+      <Animated.View style={[styles.inputContainer, animatedContainerStyle, style] as any}>
         {icon && <View style={styles.iconContainer}>{icon}</View>}
 
         <TextInput

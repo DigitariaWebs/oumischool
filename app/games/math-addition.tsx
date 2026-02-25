@@ -28,7 +28,7 @@ export default function MathAdditionGame() {
   const [correctAnswer, setCorrectAnswer] = useState(0);
   const [options, setOptions] = useState<number[]>([]);
   const [showFeedback, setShowFeedback] = useState<"correct" | "wrong" | null>(
-    null
+    null,
   );
   const [totalQuestions] = useState(10);
 
@@ -56,7 +56,9 @@ export default function MathAdditionGame() {
       }
     }
 
-    const allOptions = [...wrongOptions, answer].sort(() => Math.random() - 0.5);
+    const allOptions = [...wrongOptions, answer].sort(
+      () => Math.random() - 0.5,
+    );
     setOptions(allOptions);
   };
 
@@ -97,14 +99,8 @@ export default function MathAdditionGame() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={["#3B82F6", "#2563EB"]}
-        style={styles.header}
-      >
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
+      <LinearGradient colors={["#3B82F6", "#2563EB"]} style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={28} color="white" />
         </Pressable>
 

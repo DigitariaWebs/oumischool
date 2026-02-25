@@ -57,14 +57,15 @@ export default function CheckoutScreen() {
   };
 
   const { payForSession } = usePayment();
-  const { data: paymentMethods = [], isLoading: methodsLoading } = usePaymentMethods();
+  const { data: paymentMethods = [], isLoading: methodsLoading } =
+    usePaymentMethods();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handlePayment = async () => {
     if (!bookingDetails.startTime || !bookingDetails.endTime) {
       Alert.alert(
         "Erreur",
-        "Informations de réservation incomplètes. Veuillez recommencer."
+        "Informations de réservation incomplètes. Veuillez recommencer.",
       );
       return;
     }
@@ -86,13 +87,13 @@ export default function CheckoutScreen() {
         Alert.alert(
           "Paiement réussi! 🎉",
           "Votre réservation a été confirmée. Le tuteur sera notifié.",
-          [{ text: "OK", onPress: () => router.push("/(tabs)") }]
+          [{ text: "OK", onPress: () => router.push("/(tabs)") }],
         );
       } else {
         Alert.alert(
           "Erreur de paiement",
           "Le paiement n'a pas pu être effectué. Veuillez réessayer.",
-          [{ text: "OK" }]
+          [{ text: "OK" }],
         );
       }
     } finally {
@@ -270,7 +271,12 @@ export default function CheckoutScreen() {
             {methodsLoading ? (
               <View style={styles.savedCard}>
                 <CreditCard size={18} color={colors.textSecondary} />
-                <Text style={[styles.cardType, { marginLeft: 10, color: colors.textSecondary }]}>
+                <Text
+                  style={[
+                    styles.cardType,
+                    { marginLeft: 10, color: colors.textSecondary },
+                  ]}
+                >
                   Chargement…
                 </Text>
               </View>
@@ -284,7 +290,8 @@ export default function CheckoutScreen() {
                       </View>
                       <View>
                         <Text style={styles.cardType}>
-                          {method.type.charAt(0).toUpperCase() + method.type.slice(1)}
+                          {method.type.charAt(0).toUpperCase() +
+                            method.type.slice(1)}
                           {method.isDefault ? "  ✓" : ""}
                         </Text>
                         {method.last4 ? (
@@ -302,7 +309,8 @@ export default function CheckoutScreen() {
                 <View style={styles.stripeNote}>
                   <Shield size={14} color="#10B981" />
                   <Text style={styles.stripeNoteText}>
-                    Vos cartes enregistrées sont disponibles dans le paiement sécurisé Stripe
+                    Vos cartes enregistrées sont disponibles dans le paiement
+                    sécurisé Stripe
                   </Text>
                 </View>
               </>
@@ -310,7 +318,8 @@ export default function CheckoutScreen() {
               <View style={styles.noCardsRow}>
                 <AlertCircle size={18} color={colors.textSecondary} />
                 <Text style={styles.noCardsText}>
-                  Vous pourrez ajouter une carte à l&apos;étape suivante via Stripe
+                  Vous pourrez ajouter une carte à l&apos;étape suivante via
+                  Stripe
                 </Text>
               </View>
             )}

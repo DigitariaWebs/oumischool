@@ -131,12 +131,12 @@ export default function LibraryScreen() {
               if (success) {
                 Alert.alert(
                   "Achat réussi!",
-                  "La ressource est maintenant accessible."
+                  "La ressource est maintenant accessible.",
                 );
               }
             },
           },
-        ]
+        ],
       );
       return;
     }

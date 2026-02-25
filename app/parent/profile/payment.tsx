@@ -94,11 +94,7 @@ export default function ParentSubscriptionScreen() {
       name: "Basic",
       price: "9€",
       period: "mois",
-      features: [
-        "1 enfant",
-        "5 sessions/mois",
-        "Support email",
-      ],
+      features: ["1 enfant", "5 sessions/mois", "Support email"],
       planId: "basic",
     },
     {
@@ -139,23 +135,19 @@ export default function ParentSubscriptionScreen() {
           text: "Confirmer",
           onPress: () => Alert.alert("Succès", "Abonnement modifié"),
         },
-      ]
+      ],
     );
   };
 
   const handleCancelSubscription = () => {
-    Alert.alert(
-      "Annuler l'abonnement",
-      "Êtes-vous sûr de vouloir annuler ?",
-      [
-        { text: "Non", style: "cancel" },
-        {
-          text: "Oui",
-          style: "destructive",
-          onPress: () => Alert.alert("Abonnement annulé"),
-        },
-      ]
-    );
+    Alert.alert("Annuler l'abonnement", "Êtes-vous sûr de vouloir annuler ?", [
+      { text: "Non", style: "cancel" },
+      {
+        text: "Oui",
+        style: "destructive",
+        onPress: () => Alert.alert("Abonnement annulé"),
+      },
+    ]);
   };
 
   return (
@@ -169,7 +161,10 @@ export default function ParentSubscriptionScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
             <ArrowLeft size={22} color="#1E293B" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Abonnement</Text>
@@ -277,7 +272,10 @@ export default function ParentSubscriptionScreen() {
 
         {/* Annulation */}
         <View style={styles.cancelSection}>
-          <TouchableOpacity style={styles.cancelButton} onPress={handleCancelSubscription}>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={handleCancelSubscription}
+          >
             <Text style={styles.cancelButtonText}>Annuler l'abonnement</Text>
           </TouchableOpacity>
           <Text style={styles.cancelNote}>
@@ -287,7 +285,9 @@ export default function ParentSubscriptionScreen() {
 
         {/* Bouton Add source */}
         <TouchableOpacity style={styles.sourceButton}>
-          <Text style={styles.sourceButtonText}>+ Voir toutes les factures</Text>
+          <Text style={styles.sourceButtonText}>
+            + Voir toutes les factures
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

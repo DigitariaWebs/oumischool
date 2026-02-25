@@ -45,11 +45,15 @@ export function useResetPassword() {
   return useMutation({
     mutationFn: ({
       token,
+      email,
+      code,
       password,
     }: {
       token: string;
+      email: string;
+      code: string;
       password: string;
-    }) => authApi.resetPassword(token, password),
+    }) => authApi.resetPassword(token, email, code, password),
   });
 }
 

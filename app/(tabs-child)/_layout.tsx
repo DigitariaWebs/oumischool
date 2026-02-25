@@ -10,7 +10,9 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.tabBarContainer, { paddingBottom: insets.bottom + 12 }]}>
+    <View
+      style={[styles.tabBarContainer, { paddingBottom: insets.bottom + 12 }]}
+    >
       <View style={styles.tabBar}>
         {state.routes.map((route: any, index: number) => {
           const { options } = descriptors[route.key];
@@ -28,25 +30,30 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           };
 
           return (
-            <Pressable 
-              key={route.key} 
-              onPress={onPress} 
+            <Pressable
+              key={route.key}
+              onPress={onPress}
               style={({ pressed }) => [
                 styles.tabItemWrapper,
-                pressed && styles.tabPressed
+                pressed && styles.tabPressed,
               ]}
             >
-              <View style={[
-                styles.tabIconContainer, 
-                isFocused && styles.tabIconContainerActive
-              ]}>
-                {options.tabBarIcon && options.tabBarIcon({
-                  color: isFocused ? "#6366F1" : "#94A3B8",
-                  focused: isFocused,
-                })}
+              <View
+                style={[
+                  styles.tabIconContainer,
+                  isFocused && styles.tabIconContainerActive,
+                ]}
+              >
+                {options.tabBarIcon &&
+                  options.tabBarIcon({
+                    color: isFocused ? "#6366F1" : "#94A3B8",
+                    focused: isFocused,
+                  })}
               </View>
-              
-              <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
+
+              <Text
+                style={[styles.tabLabel, isFocused && styles.tabLabelActive]}
+              >
                 {options.title}
               </Text>
             </Pressable>
@@ -59,48 +66,48 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
 export default function ChildTabLayout() {
   return (
-    <Tabs 
-      tabBar={(props) => <CustomTabBar {...props} />} 
+    <Tabs
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
-      <Tabs.Screen 
-        name="index" 
-        options={{ 
-          title: "Leçons", 
-          tabBarIcon: ({ color }) => <BookOpen size={22} color={color} /> 
-        }} 
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Leçons",
+          tabBarIcon: ({ color }) => <BookOpen size={22} color={color} />,
+        }}
       />
-      <Tabs.Screen 
-        name="exercises" 
-        options={{ 
-          title: "Jeux", 
-          tabBarIcon: ({ color }) => <Gamepad2 size={22} color={color} /> 
-        }} 
+      <Tabs.Screen
+        name="exercises"
+        options={{
+          title: "Jeux",
+          tabBarIcon: ({ color }) => <Gamepad2 size={22} color={color} />,
+        }}
       />
-      <Tabs.Screen 
-        name="progress" 
-        options={{ 
-          title: "Progrès", 
-          tabBarIcon: ({ color }) => <TrendingUp size={22} color={color} /> 
-        }} 
+      <Tabs.Screen
+        name="progress"
+        options={{
+          title: "Progrès",
+          tabBarIcon: ({ color }) => <TrendingUp size={22} color={color} />,
+        }}
       />
-      <Tabs.Screen 
-        name="profile" 
-        options={{ 
-          title: "Profil", 
-          tabBarIcon: ({ color }) => <User size={22} color={color} /> 
-        }} 
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profil",
+          tabBarIcon: ({ color }) => <User size={22} color={color} />,
+        }}
       />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
-  tabBarContainer: { 
-    position: "absolute", 
-    bottom: 0, 
-    left: 0, 
-    right: 0, 
+  tabBarContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
     alignItems: "center",
     backgroundColor: "transparent",
   },
@@ -119,34 +126,34 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 5,
   },
-  tabItemWrapper: { 
-    flex: 1, 
-    alignItems: "center", 
+  tabItemWrapper: {
+    flex: 1,
+    alignItems: "center",
     justifyContent: "center",
   },
   tabPressed: {
     opacity: 0.7,
     transform: [{ scale: 0.96 }],
   },
-  tabIconContainer: { 
-    width: 44,  
-    height: 44, 
+  tabIconContainer: {
+    width: 44,
+    height: 44,
     borderRadius: 22,
-    alignItems: "center", 
+    alignItems: "center",
     justifyContent: "center",
     marginBottom: 4,
     overflow: "hidden",
   },
-  tabIconContainerActive: { 
+  tabIconContainerActive: {
     backgroundColor: "#EEF2FF",
   },
-  tabLabel: { 
-    fontFamily: FONTS.secondary, 
-    fontSize: 11, 
-    fontWeight: "600", 
-    color: "#94A3B8" 
+  tabLabel: {
+    fontFamily: FONTS.secondary,
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#94A3B8",
   },
-  tabLabelActive: { 
+  tabLabelActive: {
     color: "#6366F1",
     fontWeight: "700",
   },

@@ -10,10 +10,10 @@ import {
   Image,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { 
-  Mail, 
-  Lock, 
-  User, 
+import {
+  Mail,
+  Lock,
+  User,
   ArrowLeft,
   Users,
   GraduationCap,
@@ -71,7 +71,7 @@ export default function SignUpScreen() {
             role: appRole,
           },
           token: data.tokens.accessToken,
-        })
+        }),
       );
       if (appRole === "tutor") {
         router.replace("/(tabs-tutor)");
@@ -107,8 +107,15 @@ export default function SignUpScreen() {
           </Animated.View>
 
           {/* Logo */}
-          <Animated.View entering={FadeInUp.delay(250).duration(600)} style={styles.logoContainer}>
-            <Image source={ASSETS.logo} style={styles.logo} resizeMode="contain" />
+          <Animated.View
+            entering={FadeInUp.delay(250).duration(600)}
+            style={styles.logoContainer}
+          >
+            <Image
+              source={ASSETS.logo}
+              style={styles.logo}
+              resizeMode="contain"
+            />
           </Animated.View>
 
           {/* Header simplifié */}
@@ -116,71 +123,79 @@ export default function SignUpScreen() {
             entering={FadeInUp.delay(300).duration(600)}
             style={styles.header}
           >
-            <Text style={styles.headerTitle}>
-              Créer un compte
-            </Text>
+            <Text style={styles.headerTitle}>Créer un compte</Text>
             <Text style={styles.headerSubtitle}>
-              {role === "parent" 
-                ? "Rejoignez Oumi'School en tant que parent" 
-                : "Rejoignez Oumi'School en tant que tuteur"}
+              {role === "parent"
+                ? "Rejoignez Oumi&apos;School en tant que parent"
+                : "Rejoignez Oumi&apos;School en tant que tuteur"}
             </Text>
           </Animated.View>
 
           {/* Sélecteur de Rôle */}
           <Animated.View entering={FadeInDown.delay(350).duration(600)}>
-            <Text style={styles.roleSelectorLabel}>Je m'inscris en tant que</Text>
+            <Text style={styles.roleSelectorLabel}>
+              Je m&apos;inscris en tant que
+            </Text>
             <View style={styles.roleContainer}>
               <TouchableOpacity
                 style={[
                   styles.roleButton,
-                  role === "parent" && { 
+                  role === "parent" && {
                     backgroundColor: roleColor,
                     borderColor: roleColor,
-                  }
+                  },
                 ]}
                 onPress={() => setRole("parent")}
               >
-                <Users 
-                  size={18} 
-                  color={role === "parent" ? "white" : "#64748B"} 
+                <Users
+                  size={18}
+                  color={role === "parent" ? "white" : "#64748B"}
                 />
                 <Text
                   style={[
                     styles.roleText,
-                    role === "parent" && styles.roleTextActive
+                    role === "parent" && styles.roleTextActive,
                   ]}
                 >
                   Parent
                 </Text>
                 {role === "parent" && (
-                  <Sparkles size={14} color="white" style={styles.roleSparkle} />
+                  <Sparkles
+                    size={14}
+                    color="white"
+                    style={styles.roleSparkle}
+                  />
                 )}
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[
                   styles.roleButton,
-                  role === "tutor" && { 
+                  role === "tutor" && {
                     backgroundColor: roleColor,
                     borderColor: roleColor,
-                  }
+                  },
                 ]}
                 onPress={() => setRole("tutor")}
               >
-                <GraduationCap 
-                  size={18} 
-                  color={role === "tutor" ? "white" : "#64748B"} 
+                <GraduationCap
+                  size={18}
+                  color={role === "tutor" ? "white" : "#64748B"}
                 />
                 <Text
                   style={[
                     styles.roleText,
-                    role === "tutor" && styles.roleTextActive
+                    role === "tutor" && styles.roleTextActive,
                   ]}
                 >
                   Tuteur
                 </Text>
                 {role === "tutor" && (
-                  <Sparkles size={14} color="white" style={styles.roleSparkle} />
+                  <Sparkles
+                    size={14}
+                    color="white"
+                    style={styles.roleSparkle}
+                  />
                 )}
               </TouchableOpacity>
             </View>
@@ -237,8 +252,18 @@ export default function SignUpScreen() {
                 <Text style={styles.tutorFieldLabel}>Matières enseignées</Text>
                 <View style={styles.tutorSubjects}>
                   {["Maths", "Français", "Sciences"].map((subject, idx) => (
-                    <View key={idx} style={[styles.subjectPill, { backgroundColor: roleLightColor }]}>
-                      <Text style={[styles.subjectPillText, { color: roleColor }]}>{subject}</Text>
+                    <View
+                      key={idx}
+                      style={[
+                        styles.subjectPill,
+                        { backgroundColor: roleLightColor },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.subjectPillText, { color: roleColor }]}
+                      >
+                        {subject}
+                      </Text>
                     </View>
                   ))}
                 </View>
@@ -247,11 +272,20 @@ export default function SignUpScreen() {
 
             {role === "parent" && (
               <View style={styles.parentField}>
-                <Text style={styles.parentFieldLabel}>Nombre d'enfants</Text>
+                <Text style={styles.parentFieldLabel}>
+                  Nombre d&apos;enfants
+                </Text>
                 <View style={styles.childrenCount}>
                   {[1, 2, 3, "4+"].map((count, idx) => (
-                    <TouchableOpacity key={idx} style={[styles.countPill, { borderColor: roleColor }]}>
-                      <Text style={[styles.countPillText, { color: roleColor }]}>{count}</Text>
+                    <TouchableOpacity
+                      key={idx}
+                      style={[styles.countPill, { borderColor: roleColor }]}
+                    >
+                      <Text
+                        style={[styles.countPillText, { color: roleColor }]}
+                      >
+                        {count}
+                      </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -259,7 +293,14 @@ export default function SignUpScreen() {
             )}
 
             {error && (
-              <Text style={{ color: "#EF4444", fontSize: 13, marginBottom: 12, textAlign: "center" }}>
+              <Text
+                style={{
+                  color: "#EF4444",
+                  fontSize: 13,
+                  marginBottom: 12,
+                  textAlign: "center",
+                }}
+              >
                 {error}
               </Text>
             )}
@@ -273,8 +314,10 @@ export default function SignUpScreen() {
             />
 
             <Text style={styles.termsText}>
-              En m'inscrivant, j'accepte les{" "}
-              <Text style={[styles.termsLink, { color: roleColor }]}>conditions d'utilisation</Text>
+              En m&apos;inscrivant, j&apos;accepte les{" "}
+              <Text style={[styles.termsLink, { color: roleColor }]}>
+                conditions d&apos;utilisation
+              </Text>
             </Text>
           </Animated.View>
 
@@ -285,7 +328,9 @@ export default function SignUpScreen() {
           >
             <Text style={styles.footerText}>Déjà un compte ? </Text>
             <TouchableOpacity onPress={() => router.push("/sign-in")}>
-              <Text style={[styles.signInText, { color: roleColor }]}>Se connecter</Text>
+              <Text style={[styles.signInText, { color: roleColor }]}>
+                Se connecter
+              </Text>
             </TouchableOpacity>
           </Animated.View>
         </ScrollView>
@@ -307,7 +352,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     zIndex: 1,
   },
-  
+
   // Bouton retour
   backButton: {
     width: 44,

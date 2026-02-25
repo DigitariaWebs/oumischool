@@ -99,12 +99,16 @@ const fallbackTutor = {
   ],
 };
 
-
 /** Returns the ISO datetime string for the next occurrence of `dayName` at `time` ("HH:MM") in UTC. */
 function getNextOccurrenceIso(dayName: string, time: string): string {
   const dayMap: Record<string, number> = {
-    monday: 1, tuesday: 2, wednesday: 3, thursday: 4,
-    friday: 5, saturday: 6, sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6,
+    sunday: 0,
   };
   const targetDay = dayMap[dayName.toLowerCase()] ?? 1;
   const [hours, minutes] = time.split(":").map(Number);
@@ -133,7 +137,8 @@ export default function TutorProfileScreen() {
   const tutorId = Array.isArray(params.id) ? params.id[0] : params.id;
   const { data: tutorData } = useTutorDetail(tutorId ?? "");
   const { data: availabilityData = [] } = useTutorAvailability(tutorId ?? "");
-  const { data: childrenFromApi = [], isLoading: childrenLoading } = useChildren();
+  const { data: childrenFromApi = [], isLoading: childrenLoading } =
+    useChildren();
   const [bookingModalVisible, setBookingModalVisible] = useState(false);
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
   const [selectedMode, setSelectedMode] = useState<"online" | "inPerson">(
@@ -696,11 +701,19 @@ export default function TutorProfileScreen() {
                 !canBook && styles.confirmButtonDisabled,
               ]}
               onPress={() => {
-                const [startStr, endStr] = (selectedTimeSlot ?? "09:00-10:00").split("-");
-                const startTime = getNextOccurrenceIso(selectedDay ?? "monday", startStr.trim());
-                const endTime = getNextOccurrenceIso(selectedDay ?? "monday", endStr.trim());
+                const [startStr, endStr] = (
+                  selectedTimeSlot ?? "09:00-10:00"
+                ).split("-");
+                const startTime = getNextOccurrenceIso(
+                  selectedDay ?? "monday",
+                  startStr.trim(),
+                );
+                const endTime = getNextOccurrenceIso(
+                  selectedDay ?? "monday",
+                  endStr.trim(),
+                );
                 const children = bookingChildren.filter((c) =>
-                  selectedChildren.includes(c.id)
+                  selectedChildren.includes(c.id),
                 );
                 setBookingModalVisible(false);
                 router.push({

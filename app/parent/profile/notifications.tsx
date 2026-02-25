@@ -86,10 +86,16 @@ export default function ParentNotificationsScreen() {
   useEffect(() => {
     if (parentProfile?.notificationPreferences && !initialized.current) {
       initialized.current = true;
-      const np = parentProfile.notificationPreferences as Record<string, boolean>;
-      if (np.sessionReminders !== undefined) setSessionReminders(np.sessionReminders);
-      if (np.sessionConfirmations !== undefined) setSessionConfirmations(np.sessionConfirmations);
-      if (np.sessionCancellations !== undefined) setSessionCancellations(np.sessionCancellations);
+      const np = parentProfile.notificationPreferences as Record<
+        string,
+        boolean
+      >;
+      if (np.sessionReminders !== undefined)
+        setSessionReminders(np.sessionReminders);
+      if (np.sessionConfirmations !== undefined)
+        setSessionConfirmations(np.sessionConfirmations);
+      if (np.sessionCancellations !== undefined)
+        setSessionCancellations(np.sessionCancellations);
       if (np.messages !== undefined) setMessages(np.messages);
       if (np.messageReplies !== undefined) setMessageReplies(np.messageReplies);
       if (np.reviews !== undefined) setReviews(np.reviews);
@@ -101,10 +107,17 @@ export default function ParentNotificationsScreen() {
     }
   }, [parentProfile]);
 
-  const handleToggle = (key: string, value: boolean, setter: (v: boolean) => void) => {
+  const handleToggle = (
+    key: string,
+    value: boolean,
+    setter: (v: boolean) => void,
+  ) => {
     setter(value);
-    const current = (parentProfile?.notificationPreferences as Record<string, unknown>) ?? {};
-    updateParentProfile.mutate({ notificationPreferences: { ...current, [key]: value } });
+    const current =
+      (parentProfile?.notificationPreferences as Record<string, unknown>) ?? {};
+    updateParentProfile.mutate({
+      notificationPreferences: { ...current, [key]: value },
+    });
   };
 
   const notificationSettings = [
@@ -117,21 +130,24 @@ export default function ParentNotificationsScreen() {
           title: "Rappels de session",
           description: "Notification 1h avant chaque session",
           value: sessionReminders,
-          onValueChange: (v: boolean) => handleToggle("sessionReminders", v, setSessionReminders),
+          onValueChange: (v: boolean) =>
+            handleToggle("sessionReminders", v, setSessionReminders),
         },
         {
           icon: <Calendar size={18} color="#6366F1" />,
           title: "Confirmations",
           description: "Confirmation de réservation",
           value: sessionConfirmations,
-          onValueChange: (v: boolean) => handleToggle("sessionConfirmations", v, setSessionConfirmations),
+          onValueChange: (v: boolean) =>
+            handleToggle("sessionConfirmations", v, setSessionConfirmations),
         },
         {
           icon: <AlertCircle size={18} color="#6366F1" />,
           title: "Annulations",
           description: "Notification d'annulation",
           value: sessionCancellations,
-          onValueChange: (v: boolean) => handleToggle("sessionCancellations", v, setSessionCancellations),
+          onValueChange: (v: boolean) =>
+            handleToggle("sessionCancellations", v, setSessionCancellations),
         },
       ],
     },
@@ -144,14 +160,16 @@ export default function ParentNotificationsScreen() {
           title: "Nouveaux messages",
           description: "Messages des tuteurs",
           value: messages,
-          onValueChange: (v: boolean) => handleToggle("messages", v, setMessages),
+          onValueChange: (v: boolean) =>
+            handleToggle("messages", v, setMessages),
         },
         {
           icon: <MessageSquare size={18} color="#10B981" />,
           title: "Réponses",
           description: "Réponses à vos messages",
           value: messageReplies,
-          onValueChange: (v: boolean) => handleToggle("messageReplies", v, setMessageReplies),
+          onValueChange: (v: boolean) =>
+            handleToggle("messageReplies", v, setMessageReplies),
         },
       ],
     },
@@ -171,7 +189,8 @@ export default function ParentNotificationsScreen() {
           title: "Nouveaux avis",
           description: "Avis reçus des tuteurs",
           value: newReviews,
-          onValueChange: (v: boolean) => handleToggle("newReviews", v, setNewReviews),
+          onValueChange: (v: boolean) =>
+            handleToggle("newReviews", v, setNewReviews),
         },
       ],
     },
@@ -184,14 +203,16 @@ export default function ParentNotificationsScreen() {
           title: "Confirmations de paiement",
           description: "Paiements effectués",
           value: payments,
-          onValueChange: (v: boolean) => handleToggle("payments", v, setPayments),
+          onValueChange: (v: boolean) =>
+            handleToggle("payments", v, setPayments),
         },
         {
           icon: <CreditCard size={18} color="#8B5CF6" />,
           title: "Reçus",
           description: "Reçus de paiement",
           value: receipts,
-          onValueChange: (v: boolean) => handleToggle("receipts", v, setReceipts),
+          onValueChange: (v: boolean) =>
+            handleToggle("receipts", v, setReceipts),
         },
       ],
     },
@@ -204,14 +225,16 @@ export default function ParentNotificationsScreen() {
           title: "Mises à jour",
           description: "Nouvelles fonctionnalités",
           value: systemUpdates,
-          onValueChange: (v: boolean) => handleToggle("systemUpdates", v, setSystemUpdates),
+          onValueChange: (v: boolean) =>
+            handleToggle("systemUpdates", v, setSystemUpdates),
         },
         {
           icon: <Bell size={18} color="#64748B" />,
           title: "Promotions",
           description: "Offres et réductions",
           value: promotions,
-          onValueChange: (v: boolean) => handleToggle("promotions", v, setPromotions),
+          onValueChange: (v: boolean) =>
+            handleToggle("promotions", v, setPromotions),
         },
       ],
     },
@@ -228,7 +251,10 @@ export default function ParentNotificationsScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
             <ArrowLeft size={22} color="#1E293B" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Notifications</Text>
@@ -238,9 +264,13 @@ export default function ParentNotificationsScreen() {
         </View>
 
         {/* Description */}
-        <Animated.View entering={FadeInDown.delay(100).duration(400)} style={styles.description}>
+        <Animated.View
+          entering={FadeInDown.delay(100).duration(400)}
+          style={styles.description}
+        >
           <Text style={styles.descriptionText}>
-            Gérez vos préférences de notification pour rester informé de ce qui est important.
+            Gérez vos préférences de notification pour rester informé de ce qui
+            est important.
           </Text>
         </Animated.View>
 
