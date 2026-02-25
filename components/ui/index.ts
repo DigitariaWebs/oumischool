@@ -15,3 +15,6 @@ export { TabHeader } from "./TabHeader";
 export { StatsCard } from "./StatsCard";
 export { QuickActionCard } from "./QuickActionCard";
 export { FeatureCard } from "./FeatureCard";
+export { HapticPressable, HapticButton } from "./haptic-pressable";
+export { AnimatedProgress, ProgressWithLabel } from "./animated-progress";
+export { AnimatedCard, PressableRow } from "./animated-card";

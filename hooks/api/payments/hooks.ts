@@ -26,8 +26,7 @@ export function useParentOrders() {
 export function useAddPaymentMethod() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: AddPaymentMethodPayload) =>
-      paymentsApi.addMethod(body),
+    mutationFn: (body: AddPaymentMethodPayload) => paymentsApi.addMethod(body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: paymentKeys.methods() });
     },

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Pressable,
   Image,
   ActivityIndicator,
 } from "react-native";
@@ -20,9 +19,16 @@ import {
   Users,
 } from "lucide-react-native";
 
+import { THEME } from "@/config/theme";
 import { FONTS } from "@/config/fonts";
 import AddChildModal from "@/components/AddChildModal";
-import { useChildren, useCreateChild } from "@/hooks/api/parent";
+import {
+  useChildren,
+  useCreateChild,
+  useChildProgress,
+} from "@/hooks/api/parent";
+import { AnimatedProgress } from "@/components/ui/animated-progress";
+import { HapticPressable } from "@/components/ui/haptic-pressable";
 
 interface Child {
   id: string;
@@ -88,6 +94,10 @@ export default function ChildrenTab() {
     color: CHILD_COLORS[index % CHILD_COLORS.length],
   }));
 
+  const totalChildren = children.length;
+  const totalLessonsCompleted = 0;
+  const totalScheduledLessons = 0;
+
   const handleAddChild = async (childData: {
     name: string;
     dateOfBirth: string;
@@ -103,22 +113,51 @@ export default function ChildrenTab() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header simple */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mes enfants</Text>
-        <View style={styles.headerBadge}>
-          <Users size={18} color="#6366F1" />
-          <Text style={styles.headerBadgeText}>{children.length}</Text>
+        <View>
+          <Text style={styles.headerLabel}>ENFANTS</Text>
+          <Text style={styles.headerTitle}>Mes enfants</Text>
         </View>
+        <HapticPressable
+          style={styles.addButton}
+          onPress={() => setAddModalVisible(true)}
+          hapticType="medium"
+          scale={0.95}
+        >
+          <Plus size={18} color={THEME.colors.white} />
+          <Text style={styles.addButtonText}>Ajouter</Text>
+        </HapticPressable>
       </View>
+
+      {/* Stats Section */}
+      {totalChildren > 0 && (
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Users size={20} color={THEME.colors.primary} />
+            <Text style={styles.statLabelValue}>{totalChildren}</Text>
+            <Text style={styles.statLabel}>Enfants</Text>
+          </View>
+          <View style={styles.statCard}>
+            <BookOpen size={20} color={THEME.colors.success} />
+            <Text style={styles.statLabelValue}>{totalLessonsCompleted}</Text>
+            <Text style={styles.statLabel}>Leçons</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Calendar size={20} color={THEME.colors.accent} />
+            <Text style={styles.statLabelValue}>{totalScheduledLessons}</Text>
+            <Text style={styles.statLabel}>À venir</Text>
+          </View>
+        </View>
+      )}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        contentInsetAdjustmentBehavior="automatic"
       >
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#6366F1" />
+            <ActivityIndicator size="small" color={THEME.colors.primary} />
             <Text style={styles.loadingText}>Chargement des enfants...</Text>
           </View>
         ) : children.length === 0 ? (
@@ -145,84 +184,22 @@ export default function ChildrenTab() {
           </View>
         ) : (
           <>
-            {/* Liste des enfants avec images */}
             {children.map((child, index) => (
-              <Pressable
+              <ChildCard
                 key={child.id}
-                style={({ pressed }) => [
-                  styles.childCard,
-                  pressed && { opacity: 0.9 },
-                ]}
+                child={child}
                 onPress={() =>
                   router.push(`/parent/child/details?id=${child.id}`)
                 }
-              >
-                {/* En-tête avec avatar image et infos */}
-                <View style={styles.cardHeader}>
-                  <Image source={{ uri: child.avatar }} style={styles.avatar} />
-                  <View style={styles.childInfo}>
-                    <Text style={styles.childName}>{child.name}</Text>
-                    <Text style={styles.childDetails}>
-                      {calculateAge(child.dateOfBirth)} ans • {child.grade}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.editButton}
-                    onPress={() =>
-                      router.push(`/parent/child/details?id=${child.id}`)
-                    }
-                  >
-                    <Edit size={16} color="#94A3B8" />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Statistiques en ligne */}
-                <View style={styles.statsRow}>
-                  <View style={styles.statItem}>
-                    <BookOpen size={14} color="#64748B" />
-                    <Text style={styles.statValue}>
-                      {child.lessonsCompleted}/{child.totalLessons}
-                    </Text>
-                  </View>
-                  <View style={styles.statDivider} />
-                  <View style={styles.statItem}>
-                    <Calendar size={14} color="#64748B" />
-                    <Text style={styles.statValue}>5</Text>
-                  </View>
-                  <View style={styles.statDivider} />
-                  <View style={styles.statItem}>
-                    <TrendingUp size={14} color="#10B981" />
-                    <Text style={[styles.statValue, { color: "#10B981" }]}>
-                      +12%
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Barre de progression */}
-                <View style={styles.progressContainer}>
-                  <View style={styles.progressBar}>
-                    <View
-                      style={[
-                        styles.progressFill,
-                        {
-                          width: `${child.progress}%`,
-                          backgroundColor: child.color,
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.progressText}>{child.progress}%</Text>
-                </View>
-              </Pressable>
+              />
             ))}
 
-            {/* Bouton Ajouter (style "Add source" de l'image) */}
             <TouchableOpacity
-              style={styles.addButton}
+              style={styles.addChildButton}
               onPress={() => setAddModalVisible(true)}
             >
-              <Plus size={18} color="#64748B" />
-              <Text style={styles.addButtonText}>Ajouter un enfant</Text>
+              <Plus size={18} color={THEME.colors.subtext} />
+              <Text style={styles.addChildButtonText}>Ajouter un enfant</Text>
             </TouchableOpacity>
           </>
         )}
@@ -237,51 +214,171 @@ export default function ChildrenTab() {
   );
 }
 
+function ChildCard({ child, onPress }: { child: Child; onPress: () => void }) {
+  const { data: progressData, isLoading: progressLoading } = useChildProgress(
+    child.id,
+  );
+  const progress = progressData?.progress ?? child.progress;
+  const lessonsCompleted =
+    progressData?.lessonsCompleted ?? child.lessonsCompleted;
+  const totalLessons = progressData?.totalLessons ?? child.totalLessons;
+  const scheduledLessons = progressData?.scheduledLessons ?? 0;
+  const improvementPercentage = progressData?.improvementPercentage ?? 0;
+
+  return (
+    <HapticPressable
+      style={styles.childCard}
+      onPress={onPress}
+      hapticType="light"
+      scale={0.97}
+    >
+      <View style={styles.cardHeader}>
+        <Image source={{ uri: child.avatar }} style={styles.avatar} />
+        <View style={styles.childInfo}>
+          <Text style={styles.childName}>{child.name}</Text>
+          <Text style={styles.childDetails}>
+            {calculateAge(child.dateOfBirth)} ans • {child.grade}
+          </Text>
+        </View>
+        <TouchableOpacity style={styles.editButton} onPress={onPress}>
+          <Edit size={16} color={THEME.colors.secondaryText} />
+        </TouchableOpacity>
+      </View>
+
+      {progressLoading ? (
+        <View style={styles.statsRow}>
+          <ActivityIndicator size="small" color={THEME.colors.primary} />
+        </View>
+      ) : (
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <BookOpen size={14} color={THEME.colors.subtext} />
+            <Text style={styles.statItemValue}>
+              {lessonsCompleted}/{totalLessons}
+            </Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Calendar size={14} color={THEME.colors.subtext} />
+            <Text style={styles.statItemValue}>{scheduledLessons}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <TrendingUp size={14} color={THEME.colors.success} />
+            <Text
+              style={[
+                styles.statItemValue,
+                {
+                  color:
+                    improvementPercentage >= 0
+                      ? THEME.colors.success
+                      : THEME.colors.error,
+                },
+              ]}
+            >
+              {improvementPercentage >= 0 ? "+" : ""}
+              {improvementPercentage}%
+            </Text>
+          </View>
+        </View>
+      )}
+
+      <View style={styles.progressContainer}>
+        <AnimatedProgress
+          progress={progress}
+          height={6}
+          fillColor={child.color}
+          backgroundColor={THEME.colors.secondaryLight}
+          borderRadius={3}
+        />
+        <Text style={styles.progressText}>{progress}%</Text>
+      </View>
+    </HapticPressable>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: THEME.colors.white,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: THEME.spacing.xxl,
     paddingTop: 20,
-    paddingBottom: 16,
+    paddingBottom: THEME.spacing.lg,
+  },
+  headerLabel: {
+    fontFamily: FONTS.secondary,
+    fontSize: 12,
+    color: THEME.colors.primary,
+    letterSpacing: 1.2,
+    fontWeight: "700",
+    marginBottom: 4,
   },
   headerTitle: {
     fontFamily: FONTS.fredoka,
     fontSize: 28,
-    color: "#1E293B",
+    color: THEME.colors.text,
   },
-  headerBadge: {
+  addButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#F1F5F9",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    backgroundColor: THEME.colors.primary,
+    paddingHorizontal: THEME.spacing.lg,
+    paddingVertical: 10,
+    borderRadius: 24,
+    boxShadow: THEME.shadows.button,
   },
-  headerBadgeText: {
+  addButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: THEME.colors.white,
+  },
+  statsContainer: {
+    flexDirection: "row",
+    paddingHorizontal: THEME.spacing.xxl,
+    marginBottom: 20,
+    gap: THEME.spacing.md,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: THEME.colors.white,
+    borderRadius: THEME.radius.lg,
+    padding: THEME.spacing.lg,
+    alignItems: "center",
+    boxShadow: THEME.shadows.card,
+    borderWidth: 1,
+    borderColor: THEME.colors.border,
+  },
+  statLabelValue: {
     fontFamily: FONTS.fredoka,
-    fontSize: 16,
-    color: "#6366F1",
+    fontSize: 24,
+    color: THEME.colors.text,
+    marginTop: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: THEME.colors.subtext,
+    marginTop: 4,
   },
   scrollContent: {
-    padding: 24,
-    paddingTop: 8,
+    padding: THEME.spacing.xxl,
+    paddingTop: THEME.spacing.sm,
+    paddingBottom: 100,
   },
   loadingContainer: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 30,
-    gap: 8,
+    gap: THEME.spacing.sm,
   },
   loadingText: {
     fontSize: 14,
-    color: "#64748B",
+    color: THEME.colors.subtext,
   },
 
   // Empty state
@@ -293,62 +390,62 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontFamily: FONTS.fredoka,
     fontSize: 20,
-    color: "#1E293B",
-    marginBottom: 8,
+    color: THEME.colors.text,
+    marginBottom: THEME.spacing.sm,
   },
   emptyDescription: {
     fontSize: 14,
-    color: "#64748B",
+    color: THEME.colors.subtext,
     textAlign: "center",
     marginBottom: 24,
   },
   addFirstButton: {
-    backgroundColor: "#6366F1",
+    backgroundColor: THEME.colors.primary,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: THEME.spacing.sm,
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: THEME.spacing.md,
     borderRadius: 30,
   },
   addFirstButtonText: {
-    color: "white",
+    color: THEME.colors.white,
     fontSize: 16,
     fontWeight: "600",
   },
   retryButton: {
-    marginTop: 12,
-    paddingHorizontal: 16,
+    marginTop: THEME.spacing.md,
+    paddingHorizontal: THEME.spacing.lg,
     paddingVertical: 10,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#CBD5E1",
+    borderColor: THEME.colors.secondaryText,
   },
   retryButtonText: {
     fontSize: 14,
-    color: "#475569",
+    color: THEME.colors.secondaryTextDark,
     fontWeight: "600",
   },
 
   // Card style
   childCard: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: THEME.colors.secondaryLight,
+    borderRadius: THEME.radius.xl,
+    padding: THEME.spacing.lg,
+    marginBottom: THEME.spacing.lg,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: THEME.colors.border,
   },
   cardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: THEME.spacing.lg,
   },
   avatar: {
     width: 48,
     height: 48,
-    borderRadius: 16,
-    marginRight: 12,
+    borderRadius: THEME.radius.lg,
+    marginRight: THEME.spacing.md,
   },
   childInfo: {
     flex: 1,
@@ -356,22 +453,22 @@ const styles = StyleSheet.create({
   childName: {
     fontFamily: FONTS.fredoka,
     fontSize: 18,
-    color: "#1E293B",
+    color: THEME.colors.text,
     marginBottom: 2,
   },
   childDetails: {
     fontSize: 13,
-    color: "#64748B",
+    color: THEME.colors.subtext,
   },
   editButton: {
     width: 32,
     height: 32,
-    borderRadius: 8,
-    backgroundColor: "#FFFFFF",
+    borderRadius: THEME.radius.sm,
+    backgroundColor: THEME.colors.white,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: THEME.colors.border,
   },
 
   // Stats
@@ -379,26 +476,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
-    marginBottom: 16,
-    paddingVertical: 12,
+    marginBottom: THEME.spacing.lg,
+    paddingVertical: THEME.spacing.md,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: THEME.colors.border,
   },
   statItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
-  statValue: {
+  statItemValue: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#1E293B",
+    color: THEME.colors.text,
   },
   statDivider: {
     width: 1,
     height: 20,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: THEME.colors.border,
   },
 
   // Progress
@@ -407,40 +504,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  progressBar: {
-    flex: 1,
-    height: 6,
-    backgroundColor: "#F1F5F9",
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 3,
-  },
   progressText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#1E293B",
-    width: 35,
+    color: THEME.colors.text,
+    minWidth: 38,
+    textAlign: "right",
   },
 
   // Add button (style "Add source")
-  addButton: {
+  addChildButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    backgroundColor: "#F1F5F9",
-    paddingVertical: 14,
+    gap: THEME.spacing.sm,
+    backgroundColor: THEME.colors.secondaryLight,
+    paddingVertical: THEME.spacing.lg,
     borderRadius: 30,
-    marginTop: 8,
+    marginTop: THEME.spacing.sm,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: THEME.colors.secondaryBorder,
   },
-  addButtonText: {
+  addChildButtonText: {
     fontSize: 15,
-    color: "#64748B",
+    color: THEME.colors.subtext,
     fontWeight: "600",
   },
 });

@@ -4,6 +4,7 @@ import {
   CreateChildPayload,
   UpdateChildPayload,
   UpdateParentProfilePayload,
+  ChildProgress,
 } from "./api";
 import { parentKeys } from "./keys";
 
@@ -17,7 +18,8 @@ export function useParentMe() {
 export function useUpdateParentProfile() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: UpdateParentProfilePayload) => parentApi.updateProfile(body),
+    mutationFn: (body: UpdateParentProfilePayload) =>
+      parentApi.updateProfile(body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: parentKeys.me() });
     },
@@ -69,13 +71,8 @@ export function useCreateChild() {
 export function useUpdateChild() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      id,
-      body,
-    }: {
-      id: string;
-      body: UpdateChildPayload;
-    }) => parentApi.updateChild(id, body),
+    mutationFn: ({ id, body }: { id: string; body: UpdateChildPayload }) =>
+      parentApi.updateChild(id, body),
     onSuccess: (_, { id }) => {
       qc.invalidateQueries({ queryKey: parentKeys.child(id) });
       qc.invalidateQueries({ queryKey: parentKeys.children() });
@@ -89,6 +86,41 @@ export function useDeleteChild() {
     mutationFn: (id: string) => parentApi.deleteChild(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: parentKeys.children() });
+    },
+  });
+}
+
+export function useChildProgress(childId: string) {
+  return useQuery({
+    queryKey: parentKeys.child(childId).concat(["progress"]),
+    queryFn: () => parentApi.getChildProgress(childId),
+    enabled: !!childId,
+  });
+}
+
+export function useFavoriteTutors() {
+  return useQuery({
+    queryKey: ["favorites"],
+    queryFn: () => parentApi.getFavoriteTutors(),
+  });
+}
+
+export function useAddFavoriteTutor() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (tutorId: string) => parentApi.addFavoriteTutor(tutorId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["favorites"] });
+    },
+  });
+}
+
+export function useRemoveFavoriteTutor() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (tutorId: string) => parentApi.removeFavoriteTutor(tutorId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["favorites"] });
     },
   });
 }

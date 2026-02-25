@@ -2,32 +2,25 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
-  TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
-  Platform,
-  Dimensions,
   Modal,
   FlatList,
+  useWindowDimensions,
 } from "react-native";
-
-import { useSafeBack } from "@/hooks/useSafeBack";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 import {
   ArrowLeft,
-  Send,
   Sparkles,
-  Copy,
-  ThumbsUp,
-  ThumbsDown,
+  User,
+  X,
   Ruler,
   FileText,
   Calculator,
   Globe,
-  User,
-  X,
   BookOpen,
   Beaker,
   TrendingUp,
@@ -38,11 +31,7 @@ import {
   HelpCircle,
   Search,
 } from "lucide-react-native";
-import Animated, {
-  FadeInDown,
-  FadeInUp,
-  Layout,
-} from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
@@ -59,9 +48,17 @@ import { getRoleBasedConfig, getIconForPrompt } from "@/utils/chatbotConfig";
 import { generateAIResponse } from "@/utils/aiResponseGenerator";
 import { AIChatMessage } from "@/types";
 
-const { width } = Dimensions.get("window");
+import {
+  TypingIndicator,
+  MessageBubble,
+  InputBar,
+  ContextIndicator,
+} from "@/components/ai-chat";
 
-const iconComponents: Record<string, any> = {
+const iconComponents: Record<
+  string,
+  React.ComponentType<{ size?: number; color?: string }>
+> = {
   Calculator,
   FileText,
   Beaker,
@@ -86,70 +83,36 @@ interface QuickPromptProps {
 
 const QuickPrompt: React.FC<QuickPromptProps> = ({ Icon, text, onPress }) => (
   <TouchableOpacity
-    style={styles.quickPromptButton}
     onPress={onPress}
     activeOpacity={0.7}
+    style={{
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: COLORS.neutral.white,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      borderRadius: 16,
+      gap: 8,
+      boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+      borderWidth: 1,
+      borderColor: COLORS.neutral[100],
+    }}
   >
-    <View style={styles.quickPromptIcon}>
-      <Icon size={20} color="#8B5CF6" />
+    <View style={{ marginBottom: 2 }}>
+      <Icon size={18} color={COLORS.purple.DEFAULT} />
     </View>
-    <Text style={styles.quickPromptText}>{text}</Text>
+    <Text
+      style={{
+        fontFamily: FONTS.secondary,
+        fontSize: 13,
+        color: COLORS.secondary[700],
+        fontWeight: "500",
+      }}
+    >
+      {text}
+    </Text>
   </TouchableOpacity>
 );
-
-interface MessageBubbleProps {
-  message: Message;
-  delay: number;
-}
-
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message, delay }) => {
-  const isUser = message.type === "user";
-
-  return (
-    <Animated.View
-      entering={FadeInDown.delay(delay).duration(400)}
-      layout={Layout.duration(200)}
-      style={[
-        styles.messageBubbleContainer,
-        isUser ? styles.userMessageContainer : styles.aiMessageContainer,
-      ]}
-    >
-      {!isUser && (
-        <View style={styles.aiAvatar}>
-          <Sparkles size={16} color={COLORS.primary.DEFAULT} />
-        </View>
-      )}
-      <View
-        style={[
-          styles.messageBubble,
-          isUser ? styles.userBubble : styles.aiBubble,
-        ]}
-      >
-        <Text
-          style={[
-            styles.messageText,
-            isUser ? styles.userMessageText : styles.aiMessageText,
-          ]}
-        >
-          {message.content}
-        </Text>
-        {!isUser && (
-          <View style={styles.messageActions}>
-            <TouchableOpacity style={styles.actionButton}>
-              <Copy size={14} color={COLORS.secondary[500]} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <ThumbsUp size={14} color={COLORS.secondary[500]} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <ThumbsDown size={14} color={COLORS.secondary[500]} />
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-    </Animated.View>
-  );
-};
 
 interface ChildSelectorModalProps {
   visible: boolean;
@@ -171,11 +134,62 @@ const ChildSelectorModal: React.FC<ChildSelectorModalProps> = ({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Sélectionner un enfant</Text>
-            <TouchableOpacity onPress={onClose} style={styles.modalClose}>
+      <View style={{ flex: 1, justifyContent: "flex-end" }}>
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }}
+          onPress={onClose}
+          activeOpacity={1}
+        />
+        <View
+          style={{
+            backgroundColor: COLORS.neutral.white,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            maxHeight: "70%",
+            paddingBottom: 32,
+          }}
+        >
+          <View
+            style={{
+              width: 40,
+              height: 4,
+              backgroundColor: COLORS.neutral[300],
+              borderRadius: 2,
+              alignSelf: "center",
+              marginTop: 12,
+              marginBottom: 8,
+            }}
+          />
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: 20,
+              borderBottomWidth: 1,
+              borderBottomColor: COLORS.neutral[100],
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: FONTS.fredoka,
+                fontSize: 20,
+                color: COLORS.secondary[900],
+              }}
+            >
+              Sélectionner un enfant
+            </Text>
+            <TouchableOpacity
+              onPress={onClose}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: COLORS.neutral[100],
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
               <X size={24} color={COLORS.secondary[700]} />
             </TouchableOpacity>
           </View>
@@ -184,28 +198,104 @@ const ChildSelectorModal: React.FC<ChildSelectorModalProps> = ({
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={styles.childOption}
                 onPress={() => {
                   onSelectChild(item.id);
                   onClose();
                 }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  padding: 16,
+                  borderBottomWidth: 1,
+                  borderBottomColor: COLORS.neutral[100],
+                }}
               >
                 <View
-                  style={[
-                    styles.childOptionAvatar,
-                    { backgroundColor: item.color + "20" },
-                  ]}
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 26,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginRight: 14,
+                    backgroundColor: item.color + "20",
+                  }}
                 >
                   <User size={20} color={item.color} />
                 </View>
-                <View style={styles.childOptionInfo}>
-                  <Text style={styles.childOptionName}>{item.name}</Text>
-                  <Text style={styles.childOptionGrade}>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    selectable
+                    style={{
+                      fontFamily: FONTS.fredoka,
+                      fontSize: 17,
+                      color: COLORS.secondary[900],
+                      marginBottom: 4,
+                    }}
+                  >
+                    {item.name}
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: FONTS.secondary,
+                      fontSize: 14,
+                      color: COLORS.secondary[500],
+                    }}
+                  >
                     {item.grade} • {item.progress}% de progression
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    borderRadius: 12,
+                    borderWidth: 1.5,
+                    borderColor: item.color,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: FONTS.secondary,
+                      fontSize: 13,
+                      fontWeight: "600",
+                      color: item.color,
+                    }}
+                  >
+                    Choisir
                   </Text>
                 </View>
               </TouchableOpacity>
             )}
+            contentContainerStyle={
+              children.length === 0 && { flex: 1, justifyContent: "center" }
+            }
+            ListEmptyComponent={
+              <View style={{ alignItems: "center", paddingVertical: 48 }}>
+                <User size={48} color={COLORS.neutral[300]} />
+                <Text
+                  selectable
+                  style={{
+                    fontFamily: FONTS.fredoka,
+                    fontSize: 18,
+                    color: COLORS.secondary[600],
+                    marginTop: 16,
+                  }}
+                >
+                  Aucun enfant enregistré
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: FONTS.secondary,
+                    fontSize: 14,
+                    color: COLORS.secondary[400],
+                    marginTop: 4,
+                  }}
+                >
+                  Ajoutez un enfant pour commencer
+                </Text>
+              </View>
+            }
           />
         </View>
       </View>
@@ -214,11 +304,12 @@ const ChildSelectorModal: React.FC<ChildSelectorModalProps> = ({
 };
 
 export default function AICoachScreen() {
-  const handleBack = useSafeBack();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Redux state
   const user = useAppSelector((state) => state.auth.user);
   const children = useAppSelector((state) => state.children.children);
   const context = useAppSelector((state) => state.aiContext.context);
@@ -231,13 +322,10 @@ export default function AICoachScreen() {
     user?.role,
   );
 
-  // Get role-based configuration
   const roleConfig = getRoleBasedConfig(user?.role || "child");
 
-  // Initialize chat on mount or when role changes
   useEffect(() => {
     if (messagesFromStore.length === 0 || currentRole !== user?.role) {
-      // Clear previous context when role changes
       if (currentRole !== user?.role && currentRole !== undefined) {
         dispatch(clearContext());
       }
@@ -256,11 +344,36 @@ export default function AICoachScreen() {
   const messages = messagesFromStore;
   const isTyping = isTypingFromStore;
 
+  const getMode = () => {
+    switch (user?.role) {
+      case "parent":
+        return "parent";
+      case "tutor":
+        return "tutor";
+      default:
+        return "child";
+    }
+  };
+
+  const getGradientColors = (): [string, string, ...string[]] => {
+    switch (user?.role) {
+      case "parent":
+        return ["#8B5CF6", "#6366F1"];
+      case "tutor":
+        return ["#10B981", "#059669"];
+      default:
+        return ["#F59E0B", "#D97706"];
+    }
+  };
+
   const handleSendMessage = (text?: string) => {
     const messageText = text || inputText.trim();
     if (!messageText) return;
 
-    // Add user message
+    if (process.env.EXPO_OS === "ios") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+
     const userMessage: AIChatMessage = {
       id: `${Date.now()}`,
       type: "user",
@@ -271,8 +384,13 @@ export default function AICoachScreen() {
     setInputText("");
     dispatch(setIsTyping(true));
 
-    // Generate AI response
+    const typingDelay = 1500 + Math.random() * 1000;
+
     setTimeout(() => {
+      if (process.env.EXPO_OS === "ios") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+
       const aiResponse = generateAIResponse({
         userMessage: messageText,
         role: user?.role || "child",
@@ -288,7 +406,7 @@ export default function AICoachScreen() {
       };
       dispatch(addMessage(aiMessage));
       dispatch(setIsTyping(false));
-    }, 1500);
+    }, typingDelay);
   };
 
   const handleSelectChild = (childId: string) => {
@@ -301,7 +419,6 @@ export default function AICoachScreen() {
         }),
       );
 
-      // Send context confirmation message
       const contextMessage: AIChatMessage = {
         id: `${Date.now()}`,
         type: "ai",
@@ -313,6 +430,10 @@ export default function AICoachScreen() {
   };
 
   const handleQuickPrompt = (prompt: any) => {
+    if (process.env.EXPO_OS === "ios") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+
     if (prompt.requiresContext && user?.role === "parent" && !context.childId) {
       setShowChildSelector(true);
       return;
@@ -321,6 +442,10 @@ export default function AICoachScreen() {
   };
 
   const handleClearContext = () => {
+    if (process.env.EXPO_OS === "ios") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+
     dispatch(clearContext());
     const contextMessage: AIChatMessage = {
       id: `${Date.now()}`,
@@ -332,221 +457,483 @@ export default function AICoachScreen() {
   };
 
   useEffect(() => {
-    // Auto-scroll to bottom when new messages arrive
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 100);
   }, [messages]);
 
+  const getHeaderTitle = () => {
+    switch (user?.role) {
+      case "parent":
+        return "Assistant Parental";
+      case "tutor":
+        return "Assistant Pédagogique";
+      default:
+        return "Assistant d'Apprentissage";
+    }
+  };
+
+  const getRoleBadgeText = () => {
+    switch (user?.role) {
+      case "parent":
+        return "PARENT";
+      case "tutor":
+        return "TUTEUR";
+      default:
+        return "ÉLÈVE";
+    }
+  };
+
+  const gradientColors = getGradientColors();
+  const mode = getMode();
+
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: "#0F172A",
+        paddingTop: insets.top,
+      }}
+    >
       <LinearGradient
-        colors={
-          user?.role === "parent"
-            ? ["#8B5CF6", "#6366F1"]
-            : user?.role === "tutor"
-              ? ["#10B981", "#059669"]
-              : ["#F59E0B", "#D97706"]
-        }
+        colors={gradientColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.header}
       >
-        <View style={styles.headerContent}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <ArrowLeft size={24} color={COLORS.neutral.white} />
-          </TouchableOpacity>
-          <View style={styles.headerInfo}>
-            <View
-              style={[
-                styles.aiHeaderAvatar,
-                user?.role === "parent"
-                  ? styles.parentAvatar
-                  : user?.role === "tutor"
-                    ? styles.tutorAvatar
-                    : styles.childAvatar,
-              ]}
+        <View style={{ paddingHorizontal: 16, paddingBottom: 16, gap: 12 }}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <TouchableOpacity
+              onPress={() => {
+                if (process.env.EXPO_OS === "ios") {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace("/(tabs)");
+                }
+              }}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: "rgba(255,255,255,0.2)",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
             >
-              <Sparkles size={20} color="white" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <View style={styles.headerTitleRow}>
-                <Text style={styles.headerTitle}>
-                  {user?.role === "parent"
-                    ? "Assistant Parental"
-                    : user?.role === "tutor"
-                      ? "Assistant Pédagogique"
-                      : "Assistant d'Apprentissage"}
-                </Text>
+              <ArrowLeft size={24} color={COLORS.neutral.white} />
+            </TouchableOpacity>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                flex: 1,
+                marginLeft: 12,
+              }}
+            >
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: "rgba(255,255,255,0.3)",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  marginRight: 12,
+                }}
+              >
+                <Sparkles size={20} color="white" />
+              </View>
+              <View style={{ flex: 1 }}>
                 <View
-                  style={[
-                    styles.roleBadge,
-                    user?.role === "parent"
-                      ? styles.parentBadge
-                      : user?.role === "tutor"
-                        ? styles.tutorBadge
-                        : styles.childBadge,
-                  ]}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
                 >
-                  <Text style={styles.roleBadgeText}>
-                    {user?.role === "parent"
-                      ? "PARENT"
-                      : user?.role === "tutor"
-                        ? "TUTEUR"
-                        : "ÉLÈVE"}
+                  <Text
+                    style={{
+                      fontFamily: FONTS.fredoka,
+                      fontSize: 18,
+                      color: COLORS.neutral.white,
+                    }}
+                  >
+                    {getHeaderTitle()}
+                  </Text>
+                  <View
+                    style={{
+                      paddingHorizontal: 8,
+                      paddingVertical: 2,
+                      borderRadius: 8,
+                      backgroundColor: "rgba(255,255,255,0.3)",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: FONTS.secondary,
+                        fontSize: 10,
+                        fontWeight: "700",
+                        color: COLORS.neutral.white,
+                        letterSpacing: 0.5,
+                      }}
+                    >
+                      {getRoleBadgeText()}
+                    </Text>
+                  </View>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 2,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: "#10B981",
+                      marginRight: 6,
+                    }}
+                  />
+                  <Text
+                    style={{
+                      fontFamily: FONTS.secondary,
+                      fontSize: 11,
+                      color: COLORS.neutral[100],
+                    }}
+                  >
+                    {context.childId && context.childData
+                      ? `Contexte: ${context.childData.name}`
+                      : "En ligne"}
                   </Text>
                 </View>
               </View>
-              <View style={styles.onlineIndicator}>
-                <View style={styles.onlineDot} />
-                <Text style={styles.onlineText}>
-                  {context.childId && context.childData
-                    ? `Contexte: ${context.childData.name}`
-                    : "En ligne"}
-                </Text>
-              </View>
             </View>
+            {user?.role === "parent" && (
+              <TouchableOpacity
+                onPress={() =>
+                  context.childId
+                    ? handleClearContext()
+                    : setShowChildSelector(true)
+                }
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: "rgba(255,255,255,0.2)",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                {context.childId ? (
+                  <X size={18} color={COLORS.neutral.white} />
+                ) : (
+                  <User size={18} color={COLORS.neutral.white} />
+                )}
+              </TouchableOpacity>
+            )}
           </View>
-          {user?.role === "parent" && context.childId && (
-            <TouchableOpacity
-              style={styles.contextButton}
-              onPress={handleClearContext}
-            >
-              <X size={18} color={COLORS.neutral.white} />
-            </TouchableOpacity>
-          )}
-          {user?.role === "parent" && !context.childId && (
-            <TouchableOpacity
-              style={styles.contextButton}
-              onPress={() => setShowChildSelector(true)}
-            >
-              <User size={18} color={COLORS.neutral.white} />
-            </TouchableOpacity>
-          )}
         </View>
       </LinearGradient>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior="padding"
         style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        keyboardVerticalOffset={0}
       >
-        {/* Messages */}
         <ScrollView
           ref={scrollViewRef}
-          style={styles.messagesContainer}
-          contentContainerStyle={styles.messagesContent}
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            padding: 16,
+            paddingBottom: 8,
+            gap: 12,
+            backgroundColor: "#0F172A",
+          }}
           showsVerticalScrollIndicator={false}
+          contentInsetAdjustmentBehavior="automatic"
         >
           {messages.map((message, index) => (
             <MessageBubble
               key={message.id}
               message={message}
               delay={index * 50}
+              onQuickReply={(text) => handleSendMessage(text)}
             />
           ))}
 
           {isTyping && (
             <Animated.View
               entering={FadeInDown.duration(300)}
-              style={styles.typingIndicatorContainer}
+              style={{ marginBottom: 16, marginLeft: 40 }}
             >
-              <View style={styles.aiAvatar}>
-                <Sparkles size={16} color={COLORS.primary.DEFAULT} />
-              </View>
-              <View style={styles.typingBubble}>
-                <View style={styles.typingDots}>
-                  <View style={styles.typingDot} />
-                  <View style={styles.typingDot} />
-                  <View style={styles.typingDot} />
-                </View>
-              </View>
+              <TypingIndicator size="large" />
             </Animated.View>
           )}
 
-          {/* Role Capabilities Card (show when chat is fresh) */}
-          {messages.length === 1 && (
+          {messages.length === 1 && !isTyping && (
             <Animated.View
               entering={FadeInUp.delay(200).duration(600)}
-              style={styles.capabilitiesCard}
+              style={{
+                backgroundColor: COLORS.neutral.white,
+                borderRadius: 20,
+                padding: 20,
+                marginTop: 16,
+                marginBottom: 16,
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
+                borderWidth: 1,
+                borderColor: COLORS.primary[100],
+                borderCurve: "continuous",
+              }}
             >
-              <Text style={styles.capabilitiesTitle}>
-                {user?.role === "parent"
-                  ? "🎯 Ce que je peux faire pour vous"
-                  : user?.role === "tutor"
-                    ? "📚 Outils à votre disposition"
-                    : "✨ Je peux t'aider avec"}
-              </Text>
-              <View style={styles.capabilitiesList}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  marginBottom: 16,
+                }}
+              >
+                <Sparkles size={20} color={COLORS.purple.DEFAULT} />
+                <Text
+                  style={{
+                    fontFamily: FONTS.fredoka,
+                    fontSize: 17,
+                    color: COLORS.secondary[900],
+                  }}
+                >
+                  {user?.role === "parent"
+                    ? "Ce que je peux faire pour vous"
+                    : user?.role === "tutor"
+                      ? "Outils à votre disposition"
+                      : "Je peux t'aider avec"}
+                </Text>
+              </View>
+              <View style={{ gap: 10 }}>
                 {user?.role === "parent" ? (
                   <>
-                    <Text style={styles.capabilityItem}>
+                    <Text
+                      selectable
+                      style={{
+                        fontFamily: FONTS.secondary,
+                        fontSize: 14,
+                        color: COLORS.secondary[700],
+                        lineHeight: 20,
+                      }}
+                    >
                       ✓ Analyser les performances de vos enfants
                     </Text>
-                    <Text style={styles.capabilityItem}>
+                    <Text
+                      selectable
+                      style={{
+                        fontFamily: FONTS.secondary,
+                        fontSize: 14,
+                        color: COLORS.secondary[700],
+                        lineHeight: 20,
+                      }}
+                    >
                       ✓ Identifier forces et faiblesses
                     </Text>
-                    <Text style={styles.capabilityItem}>
+                    <Text
+                      selectable
+                      style={{
+                        fontFamily: FONTS.secondary,
+                        fontSize: 14,
+                        color: COLORS.secondary[700],
+                        lineHeight: 20,
+                      }}
+                    >
                       ✓ Recommandations personnalisées
                     </Text>
-                    <Text style={styles.capabilityItem}>
+                    <Text
+                      selectable
+                      style={{
+                        fontFamily: FONTS.secondary,
+                        fontSize: 14,
+                        color: COLORS.secondary[700],
+                        lineHeight: 20,
+                      }}
+                    >
                       ✓ Suivre la progression mensuelle
                     </Text>
-                    <Text style={styles.capabilityNote}>
-                      💡 Sélectionnez un enfant pour commencer
-                    </Text>
+                    <View
+                      style={{
+                        marginTop: 8,
+                        backgroundColor: COLORS.primary[50],
+                        padding: 12,
+                        borderRadius: 10,
+                      }}
+                    >
+                      <Text
+                        selectable
+                        style={{
+                          fontFamily: FONTS.secondary,
+                          fontSize: 13,
+                          color: COLORS.primary.DEFAULT,
+                          fontStyle: "italic",
+                        }}
+                      >
+                        💡 Sélectionnez un enfant pour commencer
+                      </Text>
+                    </View>
                   </>
                 ) : user?.role === "tutor" ? (
                   <>
-                    <Text style={styles.capabilityItem}>
+                    <Text
+                      selectable
+                      style={{
+                        fontFamily: FONTS.secondary,
+                        fontSize: 14,
+                        color: COLORS.secondary[700],
+                        lineHeight: 20,
+                      }}
+                    >
                       ✓ Créer des plans de leçons
                     </Text>
-                    <Text style={styles.capabilityItem}>
+                    <Text
+                      selectable
+                      style={{
+                        fontFamily: FONTS.secondary,
+                        fontSize: 14,
+                        color: COLORS.secondary[700],
+                        lineHeight: 20,
+                      }}
+                    >
                       ✓ Générer des exercices variés
                     </Text>
-                    <Text style={styles.capabilityItem}>
+                    <Text
+                      selectable
+                      style={{
+                        fontFamily: FONTS.secondary,
+                        fontSize: 14,
+                        color: COLORS.secondary[700],
+                        lineHeight: 20,
+                      }}
+                    >
                       ✓ Concevoir des quiz et évaluations
                     </Text>
-                    <Text style={styles.capabilityItem}>
+                    <Text
+                      selectable
+                      style={{
+                        fontFamily: FONTS.secondary,
+                        fontSize: 14,
+                        color: COLORS.secondary[700],
+                        lineHeight: 20,
+                      }}
+                    >
                       ✓ Trouver des ressources pédagogiques
                     </Text>
-                    <Text style={styles.capabilityNote}>
-                      💡 Spécifiez le niveau et la matière
-                    </Text>
+                    <View
+                      style={{
+                        marginTop: 8,
+                        backgroundColor: COLORS.primary[50],
+                        padding: 12,
+                        borderRadius: 10,
+                      }}
+                    >
+                      <Text
+                        selectable
+                        style={{
+                          fontFamily: FONTS.secondary,
+                          fontSize: 13,
+                          color: COLORS.primary.DEFAULT,
+                          fontStyle: "italic",
+                        }}
+                      >
+                        💡 Spécifiez le niveau et la matière
+                      </Text>
+                    </View>
                   </>
                 ) : (
                   <>
-                    <Text style={styles.capabilityItem}>
+                    <Text
+                      selectable
+                      style={{
+                        fontFamily: FONTS.secondary,
+                        fontSize: 14,
+                        color: COLORS.secondary[700],
+                        lineHeight: 20,
+                      }}
+                    >
                       ✓ Expliquer les concepts difficiles
                     </Text>
-                    <Text style={styles.capabilityItem}>
+                    <Text
+                      selectable
+                      style={{
+                        fontFamily: FONTS.secondary,
+                        fontSize: 14,
+                        color: COLORS.secondary[700],
+                        lineHeight: 20,
+                      }}
+                    >
                       ✓ Aide pour tes devoirs
                     </Text>
-                    <Text style={styles.capabilityItem}>
+                    <Text
+                      selectable
+                      style={{
+                        fontFamily: FONTS.secondary,
+                        fontSize: 14,
+                        color: COLORS.secondary[700],
+                        lineHeight: 20,
+                      }}
+                    >
                       ✓ Répondre à tes questions
                     </Text>
-                    <Text style={styles.capabilityItem}>
+                    <Text
+                      selectable
+                      style={{
+                        fontFamily: FONTS.secondary,
+                        fontSize: 14,
+                        color: COLORS.secondary[700],
+                        lineHeight: 20,
+                      }}
+                    >
                       ✓ Toutes les matières
                     </Text>
-                    <Text style={styles.capabilityNote}>
-                      💡 Pose-moi n&apos;importe quelle question
-                    </Text>
+                    <View
+                      style={{
+                        marginTop: 8,
+                        backgroundColor: COLORS.primary[50],
+                        padding: 12,
+                        borderRadius: 10,
+                      }}
+                    >
+                      <Text
+                        selectable
+                        style={{
+                          fontFamily: FONTS.secondary,
+                          fontSize: 13,
+                          color: COLORS.primary.DEFAULT,
+                          fontStyle: "italic",
+                        }}
+                      >
+                        💡 Pose-moi n&apos;importe quelle question
+                      </Text>
+                    </View>
                   </>
                 )}
               </View>
             </Animated.View>
           )}
 
-          {/* Quick Prompts (show when chat is empty) */}
-          {messages.length <= 2 && (
+          {messages.length <= 2 && !isTyping && (
             <Animated.View
               entering={FadeInUp.delay(400).duration(600)}
-              style={styles.quickPromptsContainer}
+              style={{ marginTop: 16 }}
             >
-              <Text style={styles.quickPromptsTitle}>Suggestions rapides</Text>
-              <View style={styles.quickPromptsGrid}>
-                {roleConfig.quickPrompts.map((prompt, index) => {
+              <Text
+                style={{
+                  fontFamily: FONTS.secondary,
+                  fontSize: 14,
+                  color: COLORS.secondary[500],
+                  marginBottom: 12,
+                  fontWeight: "600",
+                }}
+              >
+                Suggestions rapides
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {roleConfig.quickPrompts.map((prompt) => {
                   const IconComponent =
                     iconComponents[getIconForPrompt(prompt.icon)] || Sparkles;
                   return (
@@ -563,486 +950,51 @@ export default function AICoachScreen() {
           )}
         </ScrollView>
 
-        {/* Child Selector Modal */}
         <ChildSelectorModal
           visible={showChildSelector}
           onClose={() => setShowChildSelector(false)}
           onSelectChild={handleSelectChild}
         />
 
-        {/* Input */}
-        <View style={styles.inputContainer}>
-          {/* Show parent context requirement */}
-          {user?.role === "parent" && !context.childId && (
-            <TouchableOpacity
-              style={styles.contextRequiredBanner}
-              onPress={() => setShowChildSelector(true)}
-            >
-              <User size={20} color={COLORS.primary.DEFAULT} />
-              <Text style={styles.contextRequiredText}>
-                Sélectionnez un enfant pour poser des questions
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.input}
-              placeholder={
-                user?.role === "parent"
-                  ? context.childId
-                    ? "Demandez des insights sur cet enfant..."
-                    : "Sélectionnez d'abord un enfant..."
-                  : user?.role === "tutor"
-                    ? "Créez du contenu pédagogique..."
-                    : "Pose ta question..."
-              }
-              placeholderTextColor={COLORS.neutral[400]}
-              value={inputText}
-              onChangeText={setInputText}
-              multiline
-              maxLength={500}
-              editable={user?.role === "parent" ? !!context.childId : true}
+        {user?.role === "parent" && (
+          <View
+            style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}
+          >
+            <ContextIndicator
+              childName={context.childData?.name}
+              subjectName={context.subjectName}
+              onClearContext={handleClearContext}
+              onSelectChild={() => setShowChildSelector(true)}
             />
-            <TouchableOpacity
-              style={[
-                styles.sendButton,
-                (!inputText.trim() ||
-                  (user?.role === "parent" && !context.childId)) &&
-                  styles.sendButtonDisabled,
-              ]}
-              onPress={() => handleSendMessage()}
-              disabled={
-                !inputText.trim() ||
-                (user?.role === "parent" && !context.childId)
-              }
-            >
-              <Send
-                size={20}
-                color={
-                  inputText.trim() &&
-                  (user?.role !== "parent" || context.childId)
-                    ? COLORS.neutral.white
-                    : COLORS.neutral[400]
-                }
-              />
-            </TouchableOpacity>
           </View>
-          <Text style={styles.inputHint}>
-            {user?.role === "parent"
+        )}
+
+        <InputBar
+          value={inputText}
+          onChangeText={setInputText}
+          onSend={() => handleSendMessage()}
+          placeholder={
+            user?.role === "parent"
               ? context.childId
-                ? "Mode Parent • Analyse de performance"
-                : "Mode Parent • Sélection requise"
+                ? "Demandez des insights sur cet enfant..."
+                : "Sélectionnez d'abord un enfant..."
               : user?.role === "tutor"
-                ? "Mode Tuteur • Génération de contenu"
-                : "Mode Apprentissage • Aide aux devoirs"}{" "}
-            • IA
-          </Text>
-        </View>
+                ? "Créez du contenu pédagogique..."
+                : "Pose ta question..."
+          }
+          disabled={user?.role === "parent" ? !context.childId : false}
+          showContextBanner={user?.role === "parent" && !context.childId}
+          contextBannerText="Sélectionnez un enfant pour poser des questions"
+          onContextBannerPress={() => setShowChildSelector(true)}
+          mode={mode}
+        />
+        <View
+          style={{
+            height: insets.bottom,
+            backgroundColor: COLORS.neutral.white,
+          }}
+        />
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.neutral[50],
-  },
-  // Header
-  header: {
-    paddingBottom: 16,
-  },
-  headerContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-    marginLeft: 12,
-  },
-  headerTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  aiHeaderAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  headerTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.neutral.white,
-  },
-  roleBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-    backgroundColor: "rgba(255,255,255,0.3)",
-  },
-  roleBadgeText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 10,
-    fontWeight: "700",
-    color: COLORS.neutral.white,
-    letterSpacing: 0.5,
-  },
-  parentBadge: {
-    backgroundColor: "rgba(139, 92, 246, 0.4)",
-  },
-  tutorBadge: {
-    backgroundColor: "rgba(16, 185, 129, 0.4)",
-  },
-  childBadge: {
-    backgroundColor: "rgba(245, 158, 11, 0.4)",
-  },
-  parentAvatar: {
-    backgroundColor: "rgba(139, 92, 246, 0.3)",
-  },
-  tutorAvatar: {
-    backgroundColor: "rgba(16, 185, 129, 0.3)",
-  },
-  childAvatar: {
-    backgroundColor: "rgba(245, 158, 11, 0.3)",
-  },
-  onlineIndicator: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  onlineDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#10B981",
-    marginRight: 6,
-    marginBottom: 4,
-  },
-  onlineText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 11,
-    color: COLORS.neutral[100],
-  },
-  contextButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  // Messages
-  messagesContainer: {
-    flex: 1,
-  },
-  messagesContent: {
-    padding: 16,
-    paddingBottom: 24,
-  },
-  messageBubbleContainer: {
-    flexDirection: "row",
-    marginBottom: 16,
-    alignItems: "flex-end",
-  },
-  userMessageContainer: {
-    justifyContent: "flex-end",
-  },
-  aiMessageContainer: {
-    justifyContent: "flex-start",
-  },
-  aiAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.primary[50],
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 8,
-  },
-  messageBubble: {
-    maxWidth: width * 0.75,
-    borderRadius: 20,
-    padding: 14,
-  },
-  userBubble: {
-    backgroundColor: COLORS.primary.DEFAULT,
-    borderBottomRightRadius: 4,
-  },
-  aiBubble: {
-    backgroundColor: COLORS.neutral.white,
-    borderBottomLeftRadius: 4,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  messageText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  userMessageText: {
-    color: COLORS.neutral.white,
-  },
-  aiMessageText: {
-    color: COLORS.secondary[800],
-  },
-  messageActions: {
-    flexDirection: "row",
-    marginTop: 12,
-    gap: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.neutral[100],
-  },
-  actionButton: {
-    padding: 6,
-    borderRadius: 8,
-    backgroundColor: COLORS.neutral[50],
-  },
-  // Typing Indicator
-  typingIndicatorContainer: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    marginBottom: 16,
-  },
-  typingBubble: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 20,
-    borderBottomLeftRadius: 4,
-    padding: 14,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  typingDots: {
-    flexDirection: "row",
-    gap: 6,
-  },
-  typingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.secondary[300],
-  },
-  // Quick Prompts
-  quickPromptsContainer: {
-    marginTop: 24,
-  },
-  quickPromptsTitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[500],
-    marginBottom: 12,
-    fontWeight: "600",
-  },
-  quickPromptsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  quickPromptButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.neutral.white,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 16,
-    gap: 8,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  quickPromptIcon: {
-    marginBottom: 6,
-  },
-  quickPromptText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[700],
-    fontWeight: "500",
-  },
-  // Input
-  inputContainer: {
-    padding: 16,
-    backgroundColor: COLORS.neutral.white,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.neutral[200],
-  },
-  inputWrapper: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    backgroundColor: COLORS.neutral[50],
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginBottom: 8,
-  },
-  input: {
-    flex: 1,
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    color: COLORS.secondary[900],
-    maxHeight: 100,
-    paddingVertical: 8,
-  },
-  sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.primary.DEFAULT,
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 8,
-  },
-  sendButtonDisabled: {
-    backgroundColor: COLORS.neutral[200],
-  },
-  inputHint: {
-    fontFamily: FONTS.secondary,
-    fontSize: 11,
-    color: COLORS.secondary[400],
-    textAlign: "center",
-  },
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    backgroundColor: COLORS.neutral.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: "70%",
-    paddingBottom: 32,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral[200],
-  },
-  modalTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 20,
-    color: COLORS.secondary[900],
-  },
-  modalClose: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.neutral[100],
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  childOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral[100],
-  },
-  childOptionAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  childOptionInfo: {
-    flex: 1,
-  },
-  childOptionName: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 16,
-    color: COLORS.secondary[900],
-    marginBottom: 4,
-  },
-  childOptionGrade: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[500],
-  },
-  // Capabilities Card
-  capabilitiesCard: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: COLORS.primary[100],
-  },
-  capabilitiesTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 18,
-    color: COLORS.secondary[900],
-    marginBottom: 16,
-  },
-  capabilitiesList: {
-    gap: 10,
-  },
-  capabilityItem: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[700],
-    lineHeight: 20,
-  },
-  capabilityNote: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.primary.DEFAULT,
-    marginTop: 8,
-    fontStyle: "italic",
-  },
-  // Context Required Banner
-  contextRequiredBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.primary[50],
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: COLORS.primary[200],
-  },
-  contextRequiredText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.primary.DEFAULT,
-    fontWeight: "600",
-  },
-});

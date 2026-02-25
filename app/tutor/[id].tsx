@@ -31,7 +31,13 @@ import {
 
 import { FONTS } from "@/config/fonts";
 import { useTutorAvailability, useTutorDetail } from "@/hooks/api/tutors";
-import { useChildren } from "@/hooks/api/parent";
+import {
+  useChildren,
+  useFavoriteTutors,
+  useAddFavoriteTutor,
+  useRemoveFavoriteTutor,
+} from "@/hooks/api/parent";
+import { useTutorReviews } from "@/hooks/api/reviews";
 
 // Mock data
 const fallbackTutor = {
@@ -137,8 +143,12 @@ export default function TutorProfileScreen() {
   const tutorId = Array.isArray(params.id) ? params.id[0] : params.id;
   const { data: tutorData } = useTutorDetail(tutorId ?? "");
   const { data: availabilityData = [] } = useTutorAvailability(tutorId ?? "");
+  const { data: reviewsData = [] } = useTutorReviews(tutorId ?? "");
   const { data: childrenFromApi = [], isLoading: childrenLoading } =
     useChildren();
+  const { data: favoriteTutorIds = [] } = useFavoriteTutors();
+  const addFavorite = useAddFavoriteTutor();
+  const removeFavorite = useRemoveFavoriteTutor();
   const [bookingModalVisible, setBookingModalVisible] = useState(false);
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
   const [selectedMode, setSelectedMode] = useState<"online" | "inPerson">(
@@ -149,13 +159,35 @@ export default function TutorProfileScreen() {
   const [expandedCurriculum, setExpandedCurriculum] = useState<string | null>(
     null,
   );
-  const [isFavorite, setIsFavorite] = useState(false);
+
+  const isFavorite = tutorId ? favoriteTutorIds.includes(tutorId) : false;
+
+  const toggleFavorite = async () => {
+    if (!tutorId) return;
+    if (isFavorite) {
+      await removeFavorite.mutateAsync(tutorId);
+    } else {
+      await addFavorite.mutateAsync(tutorId);
+    }
+  };
 
   const bookingChildren = childrenFromApi.map((child) => ({
     id: child.id,
     name: child.name,
     age: 0,
     grade: child.grade,
+  }));
+
+  const reviews = reviewsData.map((review) => ({
+    id: review.id,
+    parentName: review.parentId.slice(0, 8),
+    childName: "",
+    rating: review.rating,
+    date: new Date(review.createdAt).toLocaleDateString("fr-FR", {
+      year: "numeric",
+      month: "short",
+    }),
+    comment: review.comment || "",
   }));
 
   const tutor = useMemo(() => {
@@ -201,8 +233,9 @@ export default function TutorProfileScreen() {
             }))
           : fallbackTutor.subjects,
       availability,
+      reviews: reviews.length > 0 ? reviews : fallbackTutor.reviews,
     };
-  }, [availabilityData, tutorData]);
+  }, [availabilityData, tutorData, reviews]);
 
   const toggleChildSelection = (childId: string) => {
     setSelectedChildren((prev) =>
@@ -238,7 +271,7 @@ export default function TutorProfileScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.favoriteButton}
-          onPress={() => setIsFavorite(!isFavorite)}
+          onPress={toggleFavorite}
         >
           <Heart size={20} color={isFavorite ? "#EF4444" : "#64748B"} />
         </TouchableOpacity>

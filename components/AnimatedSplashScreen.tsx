@@ -10,7 +10,7 @@ import Animated, {
   withSpring,
   Easing,
 } from "react-native-reanimated";
-import { Image } from "expo-image"; 
+import { Image } from "expo-image";
 import { ASSETS } from "@/config/assets";
 
 const { width, height } = Dimensions.get("window");
@@ -26,14 +26,26 @@ export const AnimatedSplashScreen: React.FC<{
   // Animation du Logo
   const logoScale = useSharedValue(0);
   const logoOpacity = useSharedValue(0);
-  
+
   // Animation des Textes
   const contentOpacity = useSharedValue(0);
 
   // Valeurs animées pour les 3 photos
-  const p1 = { s: useSharedValue(0), y: useSharedValue(40), r: useSharedValue(0) };
-  const p2 = { s: useSharedValue(0), y: useSharedValue(40), r: useSharedValue(0) };
-  const p3 = { s: useSharedValue(0), y: useSharedValue(40), r: useSharedValue(0) };
+  const p1 = {
+    s: useSharedValue(0),
+    y: useSharedValue(40),
+    r: useSharedValue(0),
+  };
+  const p2 = {
+    s: useSharedValue(0),
+    y: useSharedValue(40),
+    r: useSharedValue(0),
+  };
+  const p3 = {
+    s: useSharedValue(0),
+    y: useSharedValue(40),
+    r: useSharedValue(0),
+  };
 
   useEffect(() => {
     // 1. Apparition du logo
@@ -43,18 +55,37 @@ export const AnimatedSplashScreen: React.FC<{
     // 2. Fonction d'animation pour les photos
     const animatePhoto = (photo: any, delay: number) => {
       photo.s.value = withDelay(delay, withSpring(1));
-      photo.y.value = withDelay(delay, withRepeat(
-        withSequence(
-          withTiming(-12, { duration: 1800, easing: Easing.inOut(Easing.sin) }),
-          withTiming(12, { duration: 1800, easing: Easing.inOut(Easing.sin) })
-        ), -1, true
-      ));
-      photo.r.value = withDelay(delay, withRepeat(
-        withSequence(
-          withTiming(-4, { duration: 1400, easing: Easing.inOut(Easing.sin) }), 
-          withTiming(4, { duration: 1400, easing: Easing.inOut(Easing.sin) })
-        ), -1, true
-      ));
+      photo.y.value = withDelay(
+        delay,
+        withRepeat(
+          withSequence(
+            withTiming(-12, {
+              duration: 1800,
+              easing: Easing.inOut(Easing.sin),
+            }),
+            withTiming(12, {
+              duration: 1800,
+              easing: Easing.inOut(Easing.sin),
+            }),
+          ),
+          -1,
+          true,
+        ),
+      );
+      photo.r.value = withDelay(
+        delay,
+        withRepeat(
+          withSequence(
+            withTiming(-4, {
+              duration: 1400,
+              easing: Easing.inOut(Easing.sin),
+            }),
+            withTiming(4, { duration: 1400, easing: Easing.inOut(Easing.sin) }),
+          ),
+          -1,
+          true,
+        ),
+      );
     };
 
     // Lancement des photos en cascade
@@ -76,13 +107,14 @@ export const AnimatedSplashScreen: React.FC<{
     transform: [{ scale: logoScale.value }],
   }));
 
-  const getPhotoStyle = (photo: any) => useAnimatedStyle(() => ({
-    transform: [
-      { scale: photo.s.value }, 
-      { translateY: photo.y.value }, 
-      { rotate: `${photo.r.value}deg` }
-    ],
-  }));
+  const getPhotoStyle = (photo: any) =>
+    useAnimatedStyle(() => ({
+      transform: [
+        { scale: photo.s.value },
+        { translateY: photo.y.value },
+        { rotate: `${photo.r.value}deg` },
+      ],
+    }));
 
   const contentStyle = useAnimatedStyle(() => ({
     opacity: contentOpacity.value,
@@ -92,29 +124,54 @@ export const AnimatedSplashScreen: React.FC<{
     <View style={styles.container}>
       {/* Arrière-plan (Nuages simplifiés) */}
       <View style={styles.cloudsContainer}>
-        <View style={[styles.cloud, { top: "10%", left: "5%", width: 100, height: 50 }]} />
-        <View style={[styles.cloud, { top: "20%", right: "10%", width: 120, height: 60 }]} />
-        <View style={[styles.cloud, { bottom: "15%", left: "15%", width: 80, height: 40 }]} />
+        <View
+          style={[
+            styles.cloud,
+            { top: "10%", left: "5%", width: 100, height: 50 },
+          ]}
+        />
+        <View
+          style={[
+            styles.cloud,
+            { top: "20%", right: "10%", width: 120, height: 60 },
+          ]}
+        />
+        <View
+          style={[
+            styles.cloud,
+            { bottom: "15%", left: "15%", width: 80, height: 40 },
+          ]}
+        />
       </View>
 
       {/* --- LOGO --- */}
       <Animated.View style={[styles.logoWrapper, logoStyle]}>
         <View style={styles.logoCard}>
-          <Image source={ASSETS.logo} style={styles.logoImage} contentFit="contain" />
+          <Image
+            source={ASSETS.logo}
+            style={styles.logoImage}
+            contentFit="contain"
+          />
         </View>
       </Animated.View>
 
       {/* --- PHOTOS SVG --- */}
       <View style={styles.photosWrapper}>
-        <Animated.View style={[styles.photoBox, styles.sidePhoto, getPhotoStyle(p1)]}>
+        <Animated.View
+          style={[styles.photoBox, styles.sidePhoto, getPhotoStyle(p1)]}
+        >
           <Image source={PHOTO_1} style={styles.svgImage} />
         </Animated.View>
-        
-        <Animated.View style={[styles.photoBox, styles.centerPhoto, getPhotoStyle(p2)]}>
+
+        <Animated.View
+          style={[styles.photoBox, styles.centerPhoto, getPhotoStyle(p2)]}
+        >
           <Image source={PHOTO_2} style={styles.svgImage} />
         </Animated.View>
-        
-        <Animated.View style={[styles.photoBox, styles.sidePhoto, getPhotoStyle(p3)]}>
+
+        <Animated.View
+          style={[styles.photoBox, styles.sidePhoto, getPhotoStyle(p3)]}
+        >
           <Image source={PHOTO_3} style={styles.svgImage} />
         </Animated.View>
       </View>
@@ -123,10 +180,10 @@ export const AnimatedSplashScreen: React.FC<{
       <Animated.View style={[styles.textContainer, contentStyle]}>
         <Text style={styles.welcomeText}>Bienvenue sur</Text>
         <Text style={styles.brandText}>Oumi'School</Text>
-        
+
         {/* Barre de chargement stylisée */}
         <View style={styles.loadingBarContainer}>
-           <Animated.View style={styles.loadingBarFill} />
+          <Animated.View style={styles.loadingBarFill} />
         </View>
       </Animated.View>
 
@@ -138,7 +195,7 @@ export const AnimatedSplashScreen: React.FC<{
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#F0F7FF", 
+    backgroundColor: "#F0F7FF",
     justifyContent: "center",
     alignItems: "center",
   },

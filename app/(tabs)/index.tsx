@@ -5,70 +5,149 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Pressable,
-  Image,
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+
 import {
   BookOpen,
   Plus,
   Calendar,
   Sparkles,
   Bell,
-  Baby,
-  TrendingUp,
   Play,
+  Baby,
 } from "lucide-react-native";
+import * as Haptics from "expo-haptics";
 
+import { THEME } from "@/config/theme";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector } from "@/store/hooks";
-import { useChildren } from "@/hooks/api/parent";
+import { useChildren, useChildProgress } from "@/hooks/api/parent";
+import { AnimatedProgress } from "@/components/ui/animated-progress";
+import { HapticPressable } from "@/components/ui/haptic-pressable";
+
+const COLORS = {
+  primary: THEME.colors.primary,
+  secondary: THEME.colors.secondaryLight,
+  text: THEME.colors.text,
+  subtext: THEME.colors.subtext,
+  accent: THEME.colors.accent,
+  success: THEME.colors.success,
+  white: THEME.colors.white,
+};
+
+function ChildCard({
+  child,
+  onPress,
+}: {
+  child: {
+    id: string;
+    name: string;
+    grade: string;
+    lessonsCompleted: number;
+    totalLessons: number;
+    scheduledLessons: number;
+  };
+  onPress: () => void;
+}) {
+  const { data: progressData, isLoading } = useChildProgress(child.id);
+  const progress = progressData?.progress ?? 0;
+  const lessonsCompleted =
+    progressData?.lessonsCompleted ?? child.lessonsCompleted;
+  const totalLessons = progressData?.totalLessons ?? child.totalLessons;
+  const scheduledLessons =
+    progressData?.scheduledLessons ?? child.scheduledLessons;
+
+  return (
+    <HapticPressable
+      style={styles.childCard}
+      onPress={onPress}
+      hapticType="light"
+      scale={0.97}
+    >
+      <View style={styles.childCardHeader}>
+        <View style={styles.childAvatarPlaceholder}>
+          <Text style={styles.childAvatarText}>
+            {child.name.charAt(0).toUpperCase()}
+          </Text>
+        </View>
+        <View style={styles.childInfo}>
+          <Text style={styles.childName}>{child.name}</Text>
+          <Text style={styles.childGrade}>{child.grade}</Text>
+        </View>
+        <View style={styles.childProgress}>
+          <Text style={styles.childProgressText}>{progress}%</Text>
+        </View>
+      </View>
+
+      {isLoading ? (
+        <View style={styles.childStatsLoading}>
+          <ActivityIndicator size="small" color={THEME.colors.primary} />
+        </View>
+      ) : (
+        <View style={styles.childStats}>
+          <View style={styles.childStat}>
+            <BookOpen size={12} color={THEME.colors.subtext} />
+            <Text style={styles.childStatText}>
+              {lessonsCompleted}/{totalLessons}
+            </Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.childStat}>
+            <Play
+              size={12}
+              color={THEME.colors.subtext}
+              fill={THEME.colors.subtext}
+            />
+            <Text style={styles.childStatText}>{scheduledLessons} actives</Text>
+          </View>
+        </View>
+      )}
+    </HapticPressable>
+  );
+}
 
 export default function HomeScreen() {
   const router = useRouter();
   const user = useAppSelector((state) => state.auth.user);
   const { data: childrenFromApi = [], isLoading } = useChildren();
-  const userName = user?.name || "Parent";
-
-  // Images pour les enfants (comme dans tuteur)
-  const childImages = [
-    "https://cdn-icons-png.flaticon.com/512/4140/4140048.png",
-    "https://cdn-icons-png.flaticon.com/512/4140/4140049.png",
-    "https://cdn-icons-png.flaticon.com/512/4140/4140050.png",
-    "https://cdn-icons-png.flaticon.com/512/4140/4140051.png",
-  ];
+  const userName = user?.firstName || user?.email?.split("@")[0] || "Parent";
 
   const children = childrenFromApi.map((child) => ({
     id: child.id,
     name: child.name,
     grade: child.grade,
-    progress: 0,
     lessonsCompleted: 0,
     totalLessons: 20,
+    scheduledLessons: 0,
   }));
 
   const quickActions = [
     {
-      icon: <Plus size={20} color="#64748B" />,
+      icon: <Plus size={20} color={THEME.colors.subtext} />,
       title: "Ajouter",
       onPress: () => router.push("/children-tab"),
+      hapticType: "medium" as const,
     },
     {
-      icon: <Calendar size={20} color="#64748B" />,
+      icon: <Calendar size={20} color={THEME.colors.subtext} />,
       title: "Plan",
       onPress: () => router.push("/weekly-plan"),
+      hapticType: "selection" as const,
     },
     {
-      icon: <Sparkles size={20} color="#64748B" />,
+      icon: <Sparkles size={20} color={THEME.colors.subtext} />,
       title: "Coach IA",
       onPress: () => router.push("/ai-coach"),
+      hapticType: "selection" as const,
     },
     {
-      icon: <BookOpen size={20} color="#64748B" />,
+      icon: <BookOpen size={20} color={THEME.colors.subtext} />,
       title: "Ressources",
       onPress: () => router.push("/resources"),
+      hapticType: "selection" as const,
     },
   ];
 
@@ -77,6 +156,7 @@ export default function HomeScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        contentInsetAdjustmentBehavior="automatic"
       >
         {/* Header simple */}
         <View style={styles.header}>
@@ -84,26 +164,38 @@ export default function HomeScreen() {
             <Text style={styles.headerLabel}>OUMI&apos;SCHOOL</Text>
             <Text style={styles.headerTitle}>Bonjour, {userName}</Text>
           </View>
-          <TouchableOpacity style={styles.notificationButton}>
+          <TouchableOpacity
+            style={styles.notificationButton}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+          >
             <Bell size={22} color="#1E293B" />
             <View style={styles.notificationBadge} />
           </TouchableOpacity>
         </View>
 
-        {/* Progression globale - style carte simple */}
+        {/* Progression globale */}
         <View style={styles.progressCard}>
           <View style={styles.progressHeader}>
             <Text style={styles.progressTitle}>Progression globale</Text>
             <View style={styles.progressBadge}>
-              <TrendingUp size={14} color="#10B981" />
+              <Sparkles size={12} color="white" />
               <Text style={styles.progressBadgeText}>
                 {children.length} enfant{children.length > 1 ? "s" : ""}
               </Text>
             </View>
           </View>
           <Text style={styles.progressValue}>68%</Text>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: "68%" }]} />
+          <Text style={styles.progressSubtitle}>Objectif mensuel</Text>
+          <View style={styles.progressBarWrapper}>
+            <AnimatedProgress
+              progress={68}
+              height={6}
+              fillColor={THEME.colors.white}
+              backgroundColor="rgba(255,255,255,0.3)"
+              borderRadius={3}
+            />
           </View>
         </View>
 
@@ -111,62 +203,32 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleContainer}>
-              <Baby size={18} color="#EF4444" />
+              <Baby size={18} color={THEME.colors.error} />
               <Text style={styles.sectionTitle}>Mes enfants</Text>
             </View>
-            <Pressable onPress={() => router.push("/children-tab")}>
+            <HapticPressable
+              onPress={() => router.push("/children-tab")}
+              hapticType="selection"
+            >
               <Text style={styles.seeAllText}>Voir tout</Text>
-            </Pressable>
+            </HapticPressable>
           </View>
 
           {isLoading ? (
             <View style={styles.childrenLoadingContainer}>
-              <ActivityIndicator size="small" color="#6366F1" />
+              <ActivityIndicator size="small" color={THEME.colors.primary} />
               <Text style={styles.childrenLoadingText}>Chargement...</Text>
             </View>
           ) : children.length > 0 ? (
             <View style={styles.childrenList}>
-              {children.slice(0, 2).map((child, index) => (
-                <Pressable
+              {children.slice(0, 2).map((child) => (
+                <ChildCard
                   key={child.id}
-                  style={({ pressed }) => [
-                    styles.childCard,
-                    pressed && { opacity: 0.9 },
-                  ]}
+                  child={child}
                   onPress={() =>
                     router.push(`/parent/child/details?id=${child.id}`)
                   }
-                >
-                  <View style={styles.childCardHeader}>
-                    <Image
-                      source={{ uri: childImages[index % childImages.length] }}
-                      style={styles.childAvatar}
-                    />
-                    <View style={styles.childInfo}>
-                      <Text style={styles.childName}>{child.name}</Text>
-                      <Text style={styles.childGrade}>{child.grade}</Text>
-                    </View>
-                    <View style={styles.childProgress}>
-                      <Text style={styles.childProgressText}>
-                        {child.progress}%
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.childStats}>
-                    <View style={styles.childStat}>
-                      <BookOpen size={12} color="#64748B" />
-                      <Text style={styles.childStatText}>
-                        {child.lessonsCompleted}/{child.totalLessons}
-                      </Text>
-                    </View>
-                    <View style={styles.statDivider} />
-                    <View style={styles.childStat}>
-                      <Play size={12} color="#64748B" fill="#64748B" />
-                      <Text style={styles.childStatText}>5 actives</Text>
-                    </View>
-                  </View>
-                </Pressable>
+                />
               ))}
             </View>
           ) : (
@@ -188,52 +250,19 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Actions rapides</Text>
           <View style={styles.quickActionsGrid}>
             {quickActions.map((action, index) => (
-              <TouchableOpacity
+              <HapticPressable
                 key={index}
                 style={styles.quickActionCard}
                 onPress={action.onPress}
+                hapticType={action.hapticType}
+                scale={0.95}
               >
                 <View style={styles.quickActionIcon}>{action.icon}</View>
                 <Text style={styles.quickActionText}>{action.title}</Text>
-              </TouchableOpacity>
+              </HapticPressable>
             ))}
           </View>
         </View>
-
-        {/* Section Fonctionnalités */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Fonctionnalités</Text>
-
-          <View style={styles.featureCard}>
-            <View style={[styles.featureIcon, { backgroundColor: "#EEF2FF" }]}>
-              <BookOpen size={24} color="#6366F1" />
-            </View>
-            <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>Programme structuré</Text>
-              <Text style={styles.featureDescription}>
-                Curriculum clair avec plan hebdomadaire
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.featureCard}>
-            <View style={[styles.featureIcon, { backgroundColor: "#DBEAFE" }]}>
-              <Sparkles size={24} color="#3B82F6" />
-            </View>
-            <View style={styles.featureContent}>
-              <Text style={styles.featureTitle}>Coach IA éducatif</Text>
-              <Text style={styles.featureDescription}>
-                Assistant personnalisé pour votre enfant
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Bouton Add source (style image) */}
-        <TouchableOpacity style={styles.sourceButton}>
-          <Plus size={18} color="#64748B" />
-          <Text style={styles.sourceButtonText}>Ajouter une ressource</Text>
-        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -253,14 +282,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: THEME.spacing.xxl,
     paddingTop: 20,
-    paddingBottom: 16,
+    paddingBottom: THEME.spacing.lg,
   },
   headerLabel: {
     fontFamily: FONTS.secondary,
     fontSize: 12,
-    color: "#6366F1",
+    color: THEME.colors.primary,
     letterSpacing: 1.2,
     fontWeight: "700",
     marginBottom: 4,
@@ -268,15 +297,15 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: FONTS.fredoka,
     fontSize: 24,
-    color: "#1E293B",
+    color: THEME.colors.text,
   },
   notificationButton: {
     width: 44,
     height: 44,
-    borderRadius: 14,
-    backgroundColor: "#F8FAFC",
+    borderRadius: THEME.radius.md,
+    backgroundColor: THEME.colors.secondaryLight,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: THEME.colors.border,
     justifyContent: "center",
     alignItems: "center",
     position: "relative",
@@ -288,56 +317,56 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#EF4444",
+    backgroundColor: THEME.colors.error,
     borderWidth: 2,
-    borderColor: "#F8FAFC",
+    borderColor: THEME.colors.secondaryLight,
   },
 
   // Progress Card
   progressCard: {
-    backgroundColor: "#F8FAFC",
-    marginHorizontal: 24,
-    marginBottom: 24,
+    marginHorizontal: THEME.spacing.xxl,
+    marginBottom: THEME.spacing.xxl,
+    borderRadius: THEME.radius.xxl,
+    overflow: "hidden",
+    backgroundColor: COLORS.primary,
     padding: 20,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
+  },
+  progressBarWrapper: {
+    marginTop: THEME.spacing.md,
   },
   progressHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: THEME.spacing.sm,
   },
   progressTitle: {
     fontSize: 14,
-    color: "#64748B",
+    color: "rgba(255,255,255,0.8)",
   },
   progressBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#D1FAE5",
+    backgroundColor: "rgba(255,255,255,0.2)",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
   },
   progressBadgeText: {
     fontSize: 12,
-    color: "#065F46",
+    color: "white",
     fontWeight: "600",
   },
   progressValue: {
     fontFamily: FONTS.fredoka,
-    fontSize: 36,
-    color: "#1E293B",
-    marginBottom: 12,
+    fontSize: 42,
+    color: "white",
+    marginBottom: 4,
   },
-  progressBar: {
-    height: 8,
-    backgroundColor: "#F1F5F9",
-    borderRadius: 4,
-    overflow: "hidden",
+  progressSubtitle: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.7)",
   },
   childrenLoadingContainer: {
     alignItems: "center",
@@ -347,62 +376,66 @@ const styles = StyleSheet.create({
   },
   childrenLoadingText: {
     fontSize: 13,
-    color: "#64748B",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#6366F1",
-    borderRadius: 4,
+    color: COLORS.subtext,
   },
 
   // Section
   section: {
-    paddingHorizontal: 24,
+    paddingHorizontal: THEME.spacing.xxl,
     marginBottom: 28,
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: THEME.spacing.lg,
   },
   sectionTitleContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: THEME.spacing.sm,
   },
   sectionTitle: {
     fontFamily: FONTS.fredoka,
     fontSize: 18,
-    color: "#1E293B",
+    color: THEME.colors.text,
   },
   seeAllText: {
     fontSize: 14,
-    color: "#6366F1",
+    color: THEME.colors.primary,
     fontWeight: "600",
   },
 
   // Children
   childrenList: {
-    gap: 12,
+    gap: THEME.spacing.md,
   },
   childCard: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 20,
-    padding: 16,
+    backgroundColor: COLORS.white,
+    borderRadius: THEME.radius.xl,
+    padding: THEME.spacing.lg,
+    boxShadow: THEME.shadows.card,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: THEME.colors.border,
   },
   childCardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: THEME.spacing.md,
   },
-  childAvatar: {
+  childAvatarPlaceholder: {
     width: 48,
     height: 48,
-    borderRadius: 16,
-    marginRight: 12,
+    borderRadius: THEME.radius.lg,
+    marginRight: THEME.spacing.md,
+    backgroundColor: COLORS.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  childAvatarText: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "white",
   },
   childInfo: {
     flex: 1,
@@ -410,33 +443,31 @@ const styles = StyleSheet.create({
   childName: {
     fontFamily: FONTS.fredoka,
     fontSize: 16,
-    color: "#1E293B",
+    color: COLORS.text,
     marginBottom: 2,
   },
   childGrade: {
     fontSize: 13,
-    color: "#64748B",
+    color: COLORS.subtext,
   },
   childProgress: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
+    backgroundColor: COLORS.secondary,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: THEME.radius.md,
   },
   childProgressText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#1E293B",
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.primary,
   },
   childStats: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingTop: 12,
+    gap: THEME.spacing.md,
+    paddingTop: THEME.spacing.md,
     borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
+    borderTopColor: THEME.colors.border,
   },
   childStat: {
     flexDirection: "row",
@@ -445,35 +476,40 @@ const styles = StyleSheet.create({
   },
   childStatText: {
     fontSize: 12,
-    color: "#64748B",
+    color: COLORS.subtext,
   },
   statDivider: {
     width: 1,
     height: 12,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: THEME.colors.border,
+  },
+  childStatsLoading: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: THEME.spacing.md,
   },
 
   // Empty state
   emptyState: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 20,
-    padding: 24,
+    backgroundColor: COLORS.white,
+    borderRadius: THEME.radius.xl,
+    padding: 32,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)",
   },
   emptyStateText: {
     fontSize: 15,
-    color: "#64748B",
-    marginBottom: 16,
+    color: COLORS.subtext,
+    marginBottom: THEME.spacing.lg,
   },
   addButton: {
-    backgroundColor: "#6366F1",
+    backgroundColor: COLORS.primary,
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 20,
+    paddingVertical: THEME.spacing.md,
     borderRadius: 30,
   },
   addButtonText: {
@@ -486,85 +522,32 @@ const styles = StyleSheet.create({
   quickActionsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
-    marginTop: 8,
+    gap: THEME.spacing.md,
+    marginTop: THEME.spacing.sm,
   },
   quickActionCard: {
-    width: "48%",
-    backgroundColor: "#F8FAFC",
-    borderRadius: 18,
-    padding: 16,
+    flex: 1,
+    minWidth: "45%",
+    backgroundColor: COLORS.white,
+    borderRadius: THEME.radius.xl,
+    padding: THEME.spacing.lg,
     alignItems: "center",
+    boxShadow: THEME.shadows.card,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: THEME.colors.border,
   },
   quickActionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
+    width: 48,
+    height: 48,
+    borderRadius: THEME.radius.md,
+    backgroundColor: COLORS.secondary,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
+    marginBottom: 10,
   },
   quickActionText: {
     fontSize: 14,
-    color: "#1E293B",
-    fontWeight: "600",
-  },
-
-  // Features
-  featureCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F8FAFC",
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-  },
-  featureIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 14,
-  },
-  featureContent: {
-    flex: 1,
-  },
-  featureTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 16,
-    color: "#1E293B",
-    marginBottom: 4,
-  },
-  featureDescription: {
-    fontSize: 13,
-    color: "#64748B",
-  },
-
-  // Source Button
-  sourceButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: "#F1F5F9",
-    marginHorizontal: 24,
-    marginTop: 8,
-    paddingVertical: 14,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  sourceButtonText: {
-    fontSize: 15,
-    color: "#64748B",
+    color: COLORS.text,
     fontWeight: "600",
   },
 });

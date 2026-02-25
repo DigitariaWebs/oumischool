@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Pressable,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -22,11 +15,14 @@ import {
   MessageSquare,
   Sparkles,
 } from "lucide-react-native";
+import * as Haptics from "expo-haptics";
 
+import { THEME } from "@/config/theme";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
 import { useLogout } from "@/hooks/api/auth";
+import { HapticPressable } from "@/components/ui/haptic-pressable";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -78,6 +74,7 @@ export default function ProfileScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        contentInsetAdjustmentBehavior="automatic"
       >
         {/* Header simple */}
         <View style={styles.header}>
@@ -88,7 +85,9 @@ export default function ProfileScreen() {
         {/* Carte profil */}
         <View style={styles.profileCard}>
           <View style={styles.avatarSection}>
-            <View style={[styles.avatar, { backgroundColor: "#6366F1" }]}>
+            <View
+              style={[styles.avatar, { backgroundColor: THEME.colors.primary }]}
+            >
               <Text style={styles.avatarText}>
                 {user?.name?.charAt(0) || "U"}
               </Text>
@@ -128,14 +127,15 @@ export default function ProfileScreen() {
           <Text style={styles.sectionTitle}>Paramètres</Text>
           <View style={styles.menuCard}>
             {menuItems.map((item, index) => (
-              <Pressable
+              <HapticPressable
                 key={index}
-                style={({ pressed }) => [
+                style={[
                   styles.menuItem,
-                  pressed && { backgroundColor: "#F8FAFC" },
                   index === menuItems.length - 1 && { borderBottomWidth: 0 },
                 ]}
                 onPress={item.onPress}
+                hapticType="selection"
+                scale={0.98}
               >
                 <View style={styles.menuItemLeft}>
                   <View style={styles.menuIcon}>{item.icon}</View>
@@ -148,39 +148,32 @@ export default function ProfileScreen() {
                     )}
                   </View>
                 </View>
-                <ChevronRight size={16} color="#CBD5E1" />
-              </Pressable>
+                <ChevronRight size={16} color={THEME.colors.secondaryText} />
+              </HapticPressable>
             ))}
           </View>
         </View>
 
         {/* Déconnexion */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.logoutButton,
-            pressed && { opacity: 0.7 },
-          ]}
+        <HapticPressable
+          style={styles.logoutButton}
           onPress={async () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             await logoutMutation.mutateAsync().catch(() => {});
             dispatch(logout());
             router.replace("/sign-in");
           }}
+          hapticType="warning"
+          scale={0.98}
         >
-          <LogOut size={18} color="#EF4444" />
+          <LogOut size={18} color={THEME.colors.error} />
           <Text style={styles.logoutText}>Se déconnecter</Text>
-        </Pressable>
+        </HapticPressable>
 
         {/* Version */}
         <View style={styles.versionContainer}>
           <Text style={styles.versionText}>Oumi&apos;School v1.0.0</Text>
         </View>
-
-        {/* Bouton Add source */}
-        <TouchableOpacity style={styles.sourceButton}>
-          <Text style={styles.sourceButtonText}>
-            + Ajouter un mode de paiement
-          </Text>
-        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -189,22 +182,22 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: THEME.colors.white,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
 
   // Header
   header: {
-    paddingHorizontal: 24,
+    paddingHorizontal: THEME.spacing.xxl,
     paddingTop: 20,
-    paddingBottom: 16,
+    paddingBottom: THEME.spacing.lg,
   },
   headerLabel: {
     fontFamily: FONTS.secondary,
     fontSize: 12,
-    color: "#6366F1",
+    color: THEME.colors.primary,
     letterSpacing: 1.2,
     fontWeight: "700",
     marginBottom: 4,
@@ -212,36 +205,37 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: FONTS.fredoka,
     fontSize: 24,
-    color: "#1E293B",
+    color: THEME.colors.text,
   },
 
   // Profile Card
   profileCard: {
-    backgroundColor: "#F8FAFC",
-    marginHorizontal: 24,
-    marginBottom: 24,
+    backgroundColor: THEME.colors.secondaryLight,
+    marginHorizontal: THEME.spacing.xxl,
+    marginBottom: THEME.spacing.xxl,
     padding: 20,
-    borderRadius: 24,
+    borderRadius: THEME.radius.xxl,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: THEME.colors.border,
   },
   avatarSection: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: THEME.spacing.lg,
   },
   avatar: {
     width: 64,
     height: 64,
-    borderRadius: 20,
+    borderRadius: THEME.radius.xl,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: THEME.spacing.lg,
+    backgroundColor: THEME.colors.primary,
   },
   avatarText: {
     fontFamily: FONTS.fredoka,
     fontSize: 28,
-    color: "white",
+    color: THEME.colors.white,
   },
   profileInfo: {
     flex: 1,
@@ -249,7 +243,7 @@ const styles = StyleSheet.create({
   profileName: {
     fontFamily: FONTS.fredoka,
     fontSize: 20,
-    color: "#1E293B",
+    color: THEME.colors.text,
     marginBottom: 6,
   },
   roleBadge: {
@@ -257,57 +251,57 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "flex-start",
     gap: 6,
-    backgroundColor: "#EEF2FF",
+    backgroundColor: THEME.colors.primaryLight,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
   },
   roleBadgeText: {
     fontSize: 12,
-    color: "#6366F1",
+    color: THEME.colors.primary,
     fontWeight: "600",
   },
   contactSection: {
     borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
-    paddingTop: 16,
+    borderTopColor: THEME.colors.border,
+    paddingTop: THEME.spacing.lg,
   },
   contactItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginBottom: 8,
+    marginBottom: THEME.spacing.sm,
   },
   contactText: {
     fontSize: 14,
-    color: "#64748B",
+    color: THEME.colors.subtext,
   },
 
   // Menu Section
   menuSection: {
-    paddingHorizontal: 24,
-    marginBottom: 24,
+    paddingHorizontal: THEME.spacing.xxl,
+    marginBottom: THEME.spacing.xxl,
   },
   sectionTitle: {
     fontFamily: FONTS.fredoka,
     fontSize: 16,
-    color: "#1E293B",
-    marginBottom: 12,
+    color: THEME.colors.text,
+    marginBottom: THEME.spacing.md,
   },
   menuCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
+    backgroundColor: THEME.colors.white,
+    borderRadius: THEME.radius.xl,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: THEME.colors.border,
     overflow: "hidden",
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 16,
+    padding: THEME.spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
+    borderBottomColor: THEME.colors.border,
   },
   menuItemLeft: {
     flexDirection: "row",
@@ -317,26 +311,26 @@ const styles = StyleSheet.create({
   menuIcon: {
     width: 36,
     height: 36,
-    borderRadius: 10,
-    backgroundColor: "#F8FAFC",
+    borderRadius: THEME.radius.sm,
+    backgroundColor: THEME.colors.secondaryLight,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: THEME.spacing.md,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: THEME.colors.border,
   },
   menuItemText: {
     flex: 1,
   },
   menuItemTitle: {
     fontSize: 15,
-    color: "#1E293B",
+    color: THEME.colors.text,
     fontWeight: "600",
     marginBottom: 2,
   },
   menuItemSubtitle: {
     fontSize: 12,
-    color: "#64748B",
+    color: THEME.colors.subtext,
   },
 
   // Logout
@@ -344,17 +338,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    backgroundColor: "#FEF2F2",
-    marginHorizontal: 24,
-    paddingVertical: 14,
+    gap: THEME.spacing.sm,
+    backgroundColor: THEME.colors.error + "10",
+    marginHorizontal: THEME.spacing.xxl,
+    paddingVertical: THEME.spacing.md,
     borderRadius: 30,
     borderWidth: 1,
-    borderColor: "#FECACA",
+    borderColor: THEME.colors.error + "30",
   },
   logoutText: {
     fontSize: 15,
-    color: "#EF4444",
+    color: THEME.colors.error,
     fontWeight: "600",
   },
 
@@ -366,22 +360,6 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 12,
-    color: "#CBD5E1",
-  },
-
-  // Source Button
-  sourceButton: {
-    backgroundColor: "#F1F5F9",
-    marginHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 30,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  sourceButtonText: {
-    fontSize: 15,
-    color: "#64748B",
-    fontWeight: "600",
+    color: THEME.colors.secondaryText,
   },
 });

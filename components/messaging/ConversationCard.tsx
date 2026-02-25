@@ -47,10 +47,7 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
       style={styles.wrapper}
     >
       <TouchableOpacity
-        style={[
-          styles.container,
-          unreadCount > 0 && styles.containerUnread,
-        ]}
+        style={[styles.container, unreadCount > 0 && styles.containerUnread]}
         onPress={onPress}
         activeOpacity={0.7}
       >
@@ -74,7 +71,10 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
 
           <View style={styles.footer}>
             <Text
-              style={[styles.lastMessage, unreadCount > 0 && styles.lastMessageUnread]}
+              style={[
+                styles.lastMessage,
+                unreadCount > 0 && styles.lastMessageUnread,
+              ]}
               numberOfLines={2}
             >
               {lastMessage}

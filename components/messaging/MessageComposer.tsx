@@ -49,7 +49,12 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
     >
       <Animated.View entering={FadeIn.duration(300)} style={styles.container}>
         <View style={styles.inputWrapper}>
-          <View style={[styles.inputContainer, isFocused && styles.inputContainerFocused]}>
+          <View
+            style={[
+              styles.inputContainer,
+              isFocused && styles.inputContainerFocused,
+            ]}
+          >
             {/* Boutons à gauche */}
             <View style={styles.leftActions}>
               {onImagePick && (

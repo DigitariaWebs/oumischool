@@ -33,7 +33,8 @@ async function request<T>(
   const token = await getToken();
   const headers: Record<string, string> = {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
-  if (!isFormData && body !== undefined) headers["Content-Type"] = "application/json";
+  if (!isFormData && body !== undefined)
+    headers["Content-Type"] = "application/json";
 
   const res = await fetch(`${BASE_URL}${path}`, {
     method,

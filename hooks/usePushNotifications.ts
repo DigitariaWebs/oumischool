@@ -24,7 +24,7 @@ Notifications.setNotificationHandler({
 // ---------------------------------------------------------------------------
 function resolveNotificationRoute(
   type: string,
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
 ): string | null {
   switch (type) {
     case "SESSION_REQUESTED":
@@ -91,10 +91,8 @@ export function usePushNotifications() {
   useEffect(() => {
     responseListenerRef.current =
       Notifications.addNotificationResponseReceivedListener((response) => {
-        const data = (response.notification.request.content.data ?? {}) as Record<
-          string,
-          unknown
-        >;
+        const data = (response.notification.request.content.data ??
+          {}) as Record<string, unknown>;
         const type = data.type as string | undefined;
         if (type) {
           const route = resolveNotificationRoute(type, data);
@@ -131,7 +129,8 @@ async function registerAndSyncToken(): Promise<void> {
       });
     }
 
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
     if (existingStatus !== "granted") {
@@ -149,11 +148,15 @@ async function registerAndSyncToken(): Promise<void> {
       Constants.easConfig?.projectId;
 
     if (!projectId) {
-      console.warn("[push] No EAS projectId found in app config — skipping push token registration");
+      console.warn(
+        "[push] No EAS projectId found in app config — skipping push token registration",
+      );
       return;
     }
 
-    const tokenResponse = await Notifications.getExpoPushTokenAsync({ projectId });
+    const tokenResponse = await Notifications.getExpoPushTokenAsync({
+      projectId,
+    });
     const token = tokenResponse.data;
 
     // Persist to server (fire-and-forget from UI perspective)

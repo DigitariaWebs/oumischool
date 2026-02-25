@@ -1,5 +1,7 @@
-# OUMI'SCHOOL  
-## Parental Support Platform, Homeschooling and Intelligent Tutoring  
+# OUMI'SCHOOL
+
+## Parental Support Platform, Homeschooling and Intelligent Tutoring
+
 ### Product Roadmap (30 days) & SaaS Business Model
 
 ---
@@ -53,6 +55,7 @@ Oumi'School offers:
 ## 3.1 Dual User Journey
 
 ### Journey A — Support & Homeschooling (Product Core)
+
 - Parent dashboard
 - Children spaces
 - Pedagogical curriculum
@@ -61,6 +64,7 @@ Oumi'School offers:
 - Progress tracking
 
 ### Journey B — Tutoring (Premium Module)
+
 - Tutor marketplace
 - Booking
 - Payment
@@ -74,11 +78,14 @@ Oumi'School offers:
 
 ---
 
-## 🟢 SPRINT 1 (Day 1 → Day 10)  
+## 🟢 SPRINT 1 (Day 1 → Day 10)
+
 ### Objective: Build the homeschooling & parent core
 
 ### Day 1–2 — Product Vision & Architecture
+
 Deliverables:
+
 - detailed functional architecture
 - UX wireframes (homepage, parent dashboard, child space)
 - MVP module definition
@@ -86,7 +93,9 @@ Deliverables:
 ---
 
 ### Day 3–4 — User System
+
 Features:
+
 - parent registration
 - child profile creation
 - role management (parent, child, tutor)
@@ -94,7 +103,9 @@ Features:
 ---
 
 ### Day 5–6 — Parent Dashboard (MVP)
+
 Features:
+
 - children overview
 - subject progress
 - curriculum access
@@ -103,7 +114,9 @@ Features:
 ---
 
 ### Day 7–8 — Homeschooling Curriculum
+
 Features:
+
 - structured school program
 - weekly plan
 - automatic AI adaptation
@@ -111,7 +124,9 @@ Features:
 ---
 
 ### Day 9–10 — Pedagogical Library
+
 Features:
+
 - interactive textbooks
 - quizzes
 - PDF resources
@@ -119,26 +134,32 @@ Features:
 ---
 
 ### 🎯 Sprint 1 Result
+
 - functional homeschooling platform
 - parent-centered
 - tutoring absent (intentionally)
 
 ---
 
-## 🟡 SPRINT 2 (Day 11 → Day 20)  
+## 🟡 SPRINT 2 (Day 11 → Day 20)
+
 ### Objective: Strengthen pedagogical intelligence
 
 ---
 
 ### Day 11–12 — PDF Exercise Generator
+
 Features:
+
 - automatic exercise generation
 - PDF export / printing
 
 ---
 
 ### Day 13–14 — Advanced Pedagogical Tracking
+
 Features:
+
 - progress curves
 - monthly PDF reports
 - AI diagnosis
@@ -146,7 +167,9 @@ Features:
 ---
 
 ### Day 15–16 — Teacher-Parent AI Assistant
+
 Features:
+
 - pedagogical coach
 - concept explanations
 - educational recommendations
@@ -154,7 +177,9 @@ Features:
 ---
 
 ### Day 17–18 — Teacher-Parent Mode
+
 Features:
+
 - course creation
 - quiz creation
 - educational calendar
@@ -162,7 +187,9 @@ Features:
 ---
 
 ### Day 19–20 — UX & Testing
+
 Features:
+
 - UI/UX optimization
 - user testing
 - corrections
@@ -170,19 +197,23 @@ Features:
 ---
 
 ### 🎯 Sprint 2 Result
+
 - complete homeschooling platform
 - operational educational AI
 - powerful teacher-parent tools
 
 ---
 
-## 🔵 SPRINT 3 (Day 21 → Day 30)  
+## 🔵 SPRINT 3 (Day 21 → Day 30)
+
 ### Objective: Integrate tutoring as an option
 
 ---
 
 ### Day 21–22 — Tutoring Module
+
 Features:
+
 - tutor marketplace
 - tutor profiles
 - search filters
@@ -190,7 +221,9 @@ Features:
 ---
 
 ### Day 23–24 — Booking & Payment
+
 Features:
+
 - session booking
 - online payment
 - tutoring packages
@@ -198,14 +231,18 @@ Features:
 ---
 
 ### Day 25–26 — Tutoring Integration in Homeschooling
+
 Features:
+
 - AI tutor suggestions
 - "need a tutor" button
 
 ---
 
 ### Day 27–28 — Tutor Dashboard
+
 Features:
+
 - session management
 - revenue
 - feedback
@@ -213,7 +250,9 @@ Features:
 ---
 
 ### Day 29–30 — QA & Deployment
+
 Features:
+
 - QA testing
 - bug fixes
 - production deployment
@@ -221,6 +260,7 @@ Features:
 ---
 
 ### 🎯 Sprint 3 Result
+
 - integrated but non-dominant tutoring
 - complete platform ready for use
 
@@ -231,14 +271,17 @@ Features:
 ## 5.1 Customer Segments
 
 ### Segment 1 — Homeschooling Parents
+
 - need: pedagogical tools
 - high value
 
 ### Segment 2 — Traditional School Parents
+
 - need: support
 - large volume
 
 ### Segment 3 — Tutoring Users
+
 - need: occasional support
 
 ---
@@ -247,12 +290,12 @@ Features:
 
 ### 1) Homeschooling Subscription (core)
 
-| Offer | Price | Content |
-|-------|------|---------|
-| Basic | Free | limited access |
-| Family | €19/month | Homeschooling + AI + resources |
+| Offer   | Price     | Content                            |
+| ------- | --------- | ---------------------------------- |
+| Basic   | Free      | limited access                     |
+| Family  | €19/month | Homeschooling + AI + resources     |
 | Premium | €39/month | Advanced homeschooling + analytics |
-| Pro | €79/month | Multi-children + advanced AI |
+| Pro     | €79/month | Multi-children + advanced AI       |
 
 ---
 
@@ -332,11 +375,13 @@ It is:
 # 7. Long-term Vision
 
 ## Version 2 (6 months)
+
 - mobile application
 - parent community
 - advanced educational AI
 
 ## Version 3 (12 months)
+
 - homeschooling certification
 - global marketplace
 - AI parental coaching

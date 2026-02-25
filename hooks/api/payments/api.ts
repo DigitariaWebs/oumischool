@@ -93,11 +93,20 @@ export const paymentsApi = {
   getCustomer: () =>
     apiClient.post<StripeCustomerResponse>("/payments/customer"),
   createSessionIntent: (body: SessionIntentPayload) =>
-    apiClient.post<PaymentIntentResponse>("/payments/sessions/create-intent", body),
+    apiClient.post<PaymentIntentResponse>(
+      "/payments/sessions/create-intent",
+      body,
+    ),
   createResourceIntent: (body: { resourceId: string }) =>
-    apiClient.post<PaymentIntentResponse>("/payments/resources/create-intent", body),
+    apiClient.post<PaymentIntentResponse>(
+      "/payments/resources/create-intent",
+      body,
+    ),
   createSubscriptionIntent: (body: { planId: string }) =>
-    apiClient.post<PaymentIntentResponse>("/payments/subscriptions/create-intent", body),
+    apiClient.post<PaymentIntentResponse>(
+      "/payments/subscriptions/create-intent",
+      body,
+    ),
   getOrder: (orderId: string) =>
     apiClient.get<Order>(`/payments/orders/${orderId}`),
   listOrders: () => apiClient.get<Order[]>("/payments/orders"),

@@ -9,7 +9,11 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
  * Must be rendered inside both Redux Provider and NavigationContainer
  * (i.e. inside the Expo Router stack).
  */
-export function PushNotificationsProvider({ children }: { children: React.ReactNode }) {
+export function PushNotificationsProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   usePushNotifications();
   return <>{children}</>;
 }

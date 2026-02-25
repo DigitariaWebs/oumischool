@@ -151,8 +151,8 @@ export default function AvailabilityScreen() {
 
   const activeSlots = slots.filter((s) => s.isActive);
   const totalSlots = activeSlots.length;
-  const daysWithSlots = DAYS.filter(
-    (d) => slotsByDay[d.key]?.some((s) => s.isActive),
+  const daysWithSlots = DAYS.filter((d) =>
+    slotsByDay[d.key]?.some((s) => s.isActive),
   ).length;
 
   const openAddModal = () => {
@@ -416,9 +416,7 @@ export default function AvailabilityScreen() {
 
   const selectedAllActive = useMemo(() => {
     if (selectedIds.size === 0) return true;
-    return slots
-      .filter((s) => selectedIds.has(s.id))
-      .every((s) => s.isActive);
+    return slots.filter((s) => selectedIds.has(s.id)).every((s) => s.isActive);
   }, [selectedIds, slots]);
 
   const bulkToggleLabel = selectedAllActive ? "Désactiver" : "Activer";
@@ -636,10 +634,7 @@ export default function AvailabilityScreen() {
                             activeOpacity={0.7}
                           >
                             {isInactive ? (
-                              <EyeOff
-                                size={16}
-                                color={COLORS.secondary[300]}
-                              />
+                              <EyeOff size={16} color={COLORS.secondary[300]} />
                             ) : (
                               <Eye size={16} color={COLORS.primary.DEFAULT} />
                             )}
@@ -935,7 +930,12 @@ export default function AvailabilityScreen() {
                   {duplicateSlot.startTime} - {duplicateSlot.endTime}
                 </Text>
                 <Text style={styles.duplicatePreviewDuration}>
-                  ({getDurationLabel(duplicateSlot.startTime, duplicateSlot.endTime)})
+                  (
+                  {getDurationLabel(
+                    duplicateSlot.startTime,
+                    duplicateSlot.endTime,
+                  )}
+                  )
                 </Text>
               </View>
             )}
@@ -944,31 +944,31 @@ export default function AvailabilityScreen() {
               Dupliquer vers ces jours
             </Text>
             <View style={styles.modalDayGrid}>
-              {DAYS.filter(
-                (d) => d.key !== duplicateSlot?.dayOfWeek,
-              ).map((day) => {
-                const isSelected = duplicateDays.has(day.key);
-                return (
-                  <TouchableOpacity
-                    key={day.key}
-                    onPress={() => toggleDuplicateDay(day.key)}
-                    style={[
-                      styles.modalDayChip,
-                      isSelected && styles.modalDayChipActive,
-                    ]}
-                    activeOpacity={0.7}
-                  >
-                    <Text
+              {DAYS.filter((d) => d.key !== duplicateSlot?.dayOfWeek).map(
+                (day) => {
+                  const isSelected = duplicateDays.has(day.key);
+                  return (
+                    <TouchableOpacity
+                      key={day.key}
+                      onPress={() => toggleDuplicateDay(day.key)}
                       style={[
-                        styles.modalDayChipText,
-                        isSelected && styles.modalDayChipTextActive,
+                        styles.modalDayChip,
+                        isSelected && styles.modalDayChipActive,
                       ]}
+                      activeOpacity={0.7}
                     >
-                      {day.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+                      <Text
+                        style={[
+                          styles.modalDayChipText,
+                          isSelected && styles.modalDayChipTextActive,
+                        ]}
+                      >
+                        {day.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                },
+              )}
             </View>
 
             {duplicateDays.size > 0 && (

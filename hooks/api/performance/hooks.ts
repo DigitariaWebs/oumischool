@@ -4,7 +4,7 @@ import { performanceKeys } from "./keys";
 
 export function usePerformance(
   childId: string,
-  params?: Record<string, string>
+  params?: Record<string, string>,
 ) {
   return useQuery({
     queryKey: performanceKeys.records(childId, params),

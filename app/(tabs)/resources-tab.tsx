@@ -12,6 +12,7 @@ import {
   Alert,
   Share,
   Linking,
+  FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -22,27 +23,29 @@ import {
   ArrowLeft,
   Share2,
   CheckCircle2,
-  Lock,
+  X,
 } from "lucide-react-native";
+import * as Haptics from "expo-haptics";
+
+import { THEME } from "@/config/theme";
 import {
   resolveResourceUrl,
   useResources,
   useTrackResourceDownload,
 } from "@/hooks/api/resources";
 import { usePayment } from "@/hooks/usePayment";
+import { HapticPressable } from "@/components/ui/haptic-pressable";
 
-// --- Configuration & Design ---
 const COLORS = {
-  primary: "#6366F1",
-  secondary: "#F8FAFC",
-  text: "#1E293B",
-  subtext: "#64748B",
-  accent: "#F59E0B",
-  white: "#FFFFFF",
-  success: "#10B981",
+  primary: THEME.colors.primary,
+  secondary: THEME.colors.secondaryLight,
+  text: THEME.colors.text,
+  subtext: THEME.colors.subtext,
+  accent: THEME.colors.accent,
+  white: THEME.colors.white,
+  success: THEME.colors.success,
 };
 
-// --- Données Réelles ---
 interface Resource {
   id: string;
   title: string;
@@ -58,7 +61,7 @@ interface Resource {
   summary: string[];
   url?: string;
   isPaid: boolean;
-  price: number | null; // in cents
+  price: number | null;
   hasEntitlement: boolean;
 }
 
@@ -66,12 +69,20 @@ export default function LibraryScreen() {
   const { data: apiResources = [] } = useResources();
   const trackDownloadMutation = useTrackResourceDownload();
   const { payForResource } = usePayment();
-  const [selectedSubject] = useState("all");
+  const [selectedSubject, setSelectedSubject] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedResource, setSelectedResource] = useState<Resource | null>(
     null,
   );
   const [isViewerVisible, setIsViewerVisible] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+
+  const subjects = useMemo(() => {
+    const uniqueSubjects = new Set(
+      apiResources.map((r) => r.subject).filter(Boolean),
+    );
+    return ["all", ...Array.from(uniqueSubjects)];
+  }, [apiResources]);
 
   const serverResources = useMemo<Resource[]>(
     () =>
@@ -114,7 +125,6 @@ export default function LibraryScreen() {
       return;
     }
 
-    // Paywall gate: paid resource without entitlement
     if (resource.isPaid && !resource.hasEntitlement) {
       const priceLabel = resource.price
         ? `${(resource.price / 100).toFixed(2)} $`
@@ -154,82 +164,121 @@ export default function LibraryScreen() {
   const filteredResources = useMemo(() => {
     return serverResources.filter(
       (res) =>
-        (selectedSubject === "all" || res.subject.includes(selectedSubject)) &&
+        (selectedSubject === "all" || res.subject === selectedSubject) &&
         res.title.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [selectedSubject, searchQuery, serverResources]);
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* HEADER */}
       <View style={styles.header}>
         <View>
           <Text style={styles.headerLabel}>DOCUMENTS</Text>
           <Text style={styles.headerTitle}>Bibliothèque</Text>
         </View>
-        <TouchableOpacity style={styles.filterBtn}>
+        <TouchableOpacity
+          style={styles.filterBtn}
+          onPress={() => setShowFilters(true)}
+        >
           <Filter size={20} color={COLORS.text} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* RECHERCHE */}
-        <View style={styles.searchBox}>
-          <Search size={20} color={COLORS.subtext} />
-          <TextInput
-            placeholder="Chercher une leçon, un quiz..."
-            style={styles.searchInput}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
+      <View style={styles.searchBox}>
+        <Search size={20} color={COLORS.subtext} />
+        <TextInput
+          placeholder="Chercher une leçon, un quiz..."
+          style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
 
-        {/* LISTE DES CARTES */}
-        <View style={styles.listContainer}>
-          {filteredResources.map((item) => (
-            <Pressable
-              key={item.id}
-              onPress={() => {
-                setSelectedResource(item);
-                setIsViewerVisible(true);
-              }}
-              style={({ pressed }) => [
-                styles.card,
-                pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterScroll}
+        contentContainerStyle={styles.filterContainer}
+      >
+        {subjects.map((subject) => (
+          <HapticPressable
+            key={subject}
+            style={[
+              styles.filterChip,
+              selectedSubject === subject && styles.filterChipActive,
+            ]}
+            onPress={() => {
+              setSelectedSubject(subject);
+              Haptics.selectionAsync();
+            }}
+            hapticType="selection"
+            scale={0.95}
+          >
+            <Text
+              style={[
+                styles.filterChipText,
+                selectedSubject === subject && styles.filterChipTextActive,
               ]}
             >
-              <Image source={{ uri: item.image }} style={styles.cardImage} />
-              <View style={styles.cardContent}>
-                <View style={styles.cardBadge}>
-                  <Text style={[styles.badgeText, { color: item.color }]}>
-                    {item.type}
-                  </Text>
-                  <Text style={styles.levelText}>{item.level}</Text>
-                </View>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <View style={styles.cardFooter}>
-                  <View style={styles.row}>
-                    <Star
-                      size={14}
-                      color={COLORS.accent}
-                      fill={COLORS.accent}
-                    />
-                    <Text style={styles.ratingText}>{item.rating}</Text>
-                    <Text style={styles.downloadCount}>
-                      • {item.downloads} téléchargements
-                    </Text>
-                  </View>
-                  <TouchableOpacity onPress={() => handleDownload(item)}>
-                    <Download size={20} color={COLORS.primary} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </Pressable>
-          ))}
-        </View>
+              {subject === "all" ? "Tout" : subject}
+            </Text>
+          </HapticPressable>
+        ))}
       </ScrollView>
 
-      {/* MODAL LECTEUR INTERACTIF */}
+      <FlatList
+        data={filteredResources}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
+        renderItem={({ item }) => (
+          <HapticPressable
+            onPress={() => {
+              setSelectedResource(item);
+              setIsViewerVisible(true);
+            }}
+            hapticType="light"
+            scale={0.98}
+            style={styles.card}
+          >
+            <Image source={{ uri: item.image }} style={styles.cardImage} />
+            <View style={styles.cardContent}>
+              <View style={styles.cardBadge}>
+                <Text style={[styles.badgeText, { color: item.color }]}>
+                  {item.type}
+                </Text>
+                <Text style={styles.levelText}>{item.level}</Text>
+              </View>
+              <Text style={styles.cardTitle}>{item.title}</Text>
+              <Text style={styles.cardSubject} numberOfLines={1}>
+                {item.subject}
+              </Text>
+              <View style={styles.cardFooter}>
+                <View style={styles.row}>
+                  <Star
+                    size={14}
+                    color={THEME.colors.accent}
+                    fill={THEME.colors.accent}
+                  />
+                  <Text style={styles.ratingText}>{item.rating}</Text>
+                  <Text style={styles.downloadCount}>
+                    • {item.downloads} téléchargements
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => handleDownload(item)}>
+                  <Download size={20} color={THEME.colors.primary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </HapticPressable>
+        )}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>Aucune ressource trouvée</Text>
+          </View>
+        }
+      />
+
       <Modal visible={isViewerVisible} animationType="slide">
         <SafeAreaView style={styles.viewer}>
           <View style={styles.viewerHeader}>
@@ -305,60 +354,109 @@ export default function LibraryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.white },
+  container: { flex: 1, backgroundColor: THEME.colors.white },
   header: {
-    padding: 24,
+    padding: THEME.spacing.xxl,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   headerLabel: {
     fontSize: 12,
-    fontWeight: "800",
-    color: COLORS.primary,
-    letterSpacing: 1.5,
+    fontWeight: "700",
+    color: THEME.colors.primary,
+    letterSpacing: 1.2,
+    marginBottom: 4,
   },
-  headerTitle: { fontSize: 28, fontWeight: "bold", color: COLORS.text },
+  headerTitle: {
+    fontFamily: "Fredoka_400Regular",
+    fontSize: 28,
+    color: THEME.colors.text,
+  },
   filterBtn: {
     padding: 10,
-    backgroundColor: COLORS.secondary,
-    borderRadius: 12,
+    backgroundColor: THEME.colors.secondaryLight,
+    borderRadius: THEME.radius.md,
   },
   searchBox: {
-    marginHorizontal: 24,
-    marginBottom: 20,
+    marginHorizontal: THEME.spacing.xxl,
+    marginBottom: THEME.spacing.md,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.secondary,
-    padding: 12,
-    borderRadius: 16,
+    backgroundColor: THEME.colors.secondaryLight,
+    padding: THEME.spacing.md,
+    borderRadius: THEME.radius.lg,
+    borderWidth: 1,
+    borderColor: THEME.colors.border,
   },
   searchInput: { flex: 1, marginLeft: 10, fontSize: 16 },
-
-  listContainer: { paddingHorizontal: 24, paddingBottom: 40 },
-  card: {
-    backgroundColor: COLORS.white,
+  filterScroll: {
+    maxHeight: 56,
+    marginBottom: THEME.spacing.md,
+  },
+  filterContainer: {
+    paddingHorizontal: THEME.spacing.xxl,
+    gap: THEME.spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  filterChip: {
+    paddingHorizontal: THEME.spacing.lg,
+    paddingVertical: 7,
+    backgroundColor: THEME.colors.secondaryLight,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: THEME.colors.border,
+  },
+  filterChipActive: {
+    backgroundColor: THEME.colors.primary,
+    borderColor: THEME.colors.primary,
+  },
+  filterChipText: {
+    fontSize: 14,
+    color: THEME.colors.subtext,
+    fontWeight: "500",
+  },
+  filterChipTextActive: {
+    color: THEME.colors.white,
+  },
+  listContainer: { paddingHorizontal: THEME.spacing.xxl, paddingBottom: 40 },
+  emptyContainer: {
+    alignItems: "center",
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: THEME.colors.subtext,
+  },
+  card: {
+    backgroundColor: THEME.colors.white,
+    borderRadius: THEME.radius.xl,
     marginBottom: 20,
     overflow: "hidden",
+    boxShadow: THEME.shadows.card,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
-    elevation: 2,
+    borderColor: THEME.colors.border,
   },
   cardImage: { width: "100%", height: 140 },
-  cardContent: { padding: 16 },
+  cardContent: { padding: THEME.spacing.lg },
   cardBadge: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: THEME.spacing.sm,
   },
   badgeText: { fontWeight: "bold", fontSize: 11, letterSpacing: 0.5 },
-  levelText: { fontSize: 11, color: COLORS.subtext, fontWeight: "600" },
+  levelText: { fontSize: 11, color: THEME.colors.subtext, fontWeight: "600" },
   cardTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: COLORS.text,
-    marginBottom: 12,
+    color: THEME.colors.text,
+    marginBottom: 4,
+  },
+  cardSubject: {
+    fontSize: 13,
+    color: THEME.colors.subtext,
+    marginBottom: THEME.spacing.sm,
   },
   cardFooter: {
     flexDirection: "row",
@@ -369,16 +467,16 @@ const styles = StyleSheet.create({
   ratingText: {
     marginLeft: 4,
     fontWeight: "bold",
-    color: COLORS.text,
+    color: THEME.colors.text,
     fontSize: 13,
   },
-  downloadCount: { marginLeft: 8, color: COLORS.subtext, fontSize: 12 },
+  downloadCount: { marginLeft: 8, color: THEME.colors.subtext, fontSize: 12 },
 
   // Viewer
-  viewer: { flex: 1, backgroundColor: "#F1F5F9" },
+  viewer: { flex: 1, backgroundColor: THEME.colors.secondaryLight },
   viewerHeader: {
     padding: 20,
-    backgroundColor: COLORS.white,
+    backgroundColor: THEME.colors.white,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -389,25 +487,22 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginHorizontal: 15,
   },
-  viewerScroll: { padding: 16 },
+  viewerScroll: { padding: THEME.spacing.lg },
   paperPage: {
-    backgroundColor: COLORS.white,
-    borderRadius: 8,
-    padding: 24,
+    backgroundColor: THEME.colors.white,
+    borderRadius: THEME.radius.sm,
+    padding: THEME.spacing.xxl,
     minHeight: 600,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
+    boxShadow: THEME.shadows.elevated,
   },
   viewerImage: {
     width: "100%",
     height: 180,
-    borderRadius: 8,
+    borderRadius: THEME.radius.sm,
     marginBottom: 20,
   },
   pageSubject: {
-    color: COLORS.primary,
+    color: THEME.colors.primary,
     fontWeight: "bold",
     fontSize: 12,
     marginBottom: 4,
@@ -415,25 +510,25 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: COLORS.text,
+    color: THEME.colors.text,
     marginBottom: 15,
   },
   separator: {
     height: 3,
     width: 40,
-    backgroundColor: COLORS.primary,
+    backgroundColor: THEME.colors.primary,
     marginBottom: 20,
   },
   realWriting: {
     fontSize: 16,
     lineHeight: 26,
-    color: COLORS.text,
+    color: THEME.colors.text,
     marginBottom: 25,
   },
   subHeading: {
     fontSize: 18,
     fontWeight: "bold",
-    color: COLORS.text,
+    color: THEME.colors.text,
     marginBottom: 15,
   },
   pointRow: {
@@ -442,24 +537,28 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     gap: 10,
   },
-  pointText: { fontSize: 15, color: COLORS.subtext },
+  pointText: { fontSize: 15, color: THEME.colors.subtext },
   footerNote: {
     marginTop: 40,
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
+    borderTopColor: THEME.colors.border,
     alignItems: "center",
   },
-  noteText: { fontSize: 11, color: "#CBD5E1" },
-  viewerActions: { padding: 20, backgroundColor: COLORS.white },
+  noteText: { fontSize: 11, color: THEME.colors.secondaryText },
+  viewerActions: { padding: 20, backgroundColor: THEME.colors.white },
   mainDownloadBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: THEME.colors.primary,
     padding: 18,
-    borderRadius: 16,
+    borderRadius: THEME.radius.lg,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 10,
   },
-  mainDownloadText: { color: COLORS.white, fontWeight: "bold", fontSize: 16 },
+  mainDownloadText: {
+    color: THEME.colors.white,
+    fontWeight: "bold",
+    fontSize: 16,
+  },
 });

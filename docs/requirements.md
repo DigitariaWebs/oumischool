@@ -1,5 +1,7 @@
-# OUMI’SCHOOL  
-## Plateforme d’accompagnement parental, IEF et tutorat intelligent  
+# OUMI’SCHOOL
+
+## Plateforme d’accompagnement parental, IEF et tutorat intelligent
+
 ### Roadmap produit (30 jours) & Business Model SaaS
 
 ---
@@ -53,6 +55,7 @@ Oumi’School offre :
 ## 3.1 Double parcours utilisateur
 
 ### Parcours A — Accompagnement & IEF (cœur du produit)
+
 - Dashboard parent
 - Espaces enfants
 - Curriculum pédagogique
@@ -61,6 +64,7 @@ Oumi’School offre :
 - Suivi de progression
 
 ### Parcours B — Tutorat (module premium)
+
 - Marketplace de tuteurs
 - Réservation
 - Paiement
@@ -74,11 +78,14 @@ Oumi’School offre :
 
 ---
 
-## 🟢 SPRINT 1 (Jour 1 → Jour 10)  
+## 🟢 SPRINT 1 (Jour 1 → Jour 10)
+
 ### Objectif : construire le cœur IEF & parent
 
 ### Jour 1–2 — Vision produit & architecture
+
 Livrables :
+
 - architecture fonctionnelle détaillée
 - wireframes UX (homepage, dashboard parent, espace enfant)
 - définition des modules MVP
@@ -86,7 +93,9 @@ Livrables :
 ---
 
 ### Jour 3–4 — Système utilisateur
+
 Fonctionnalités :
+
 - inscription parent
 - création profils enfants
 - gestion rôles (parent, enfant, tuteur)
@@ -94,7 +103,9 @@ Fonctionnalités :
 ---
 
 ### Jour 5–6 — Dashboard Parent (MVP)
+
 Fonctionnalités :
+
 - vue globale des enfants
 - progression par matière
 - accès curriculum
@@ -103,7 +114,9 @@ Fonctionnalités :
 ---
 
 ### Jour 7–8 — Curriculum IEF
+
 Fonctionnalités :
+
 - programme scolaire structuré
 - plan hebdomadaire
 - adaptation automatique IA
@@ -111,7 +124,9 @@ Fonctionnalités :
 ---
 
 ### Jour 9–10 — Bibliothèque pédagogique
+
 Fonctionnalités :
+
 - manuels interactifs
 - quiz
 - ressources PDF
@@ -119,26 +134,32 @@ Fonctionnalités :
 ---
 
 ### 🎯 Résultat Sprint 1
+
 - plateforme IEF fonctionnelle
 - parent au centre
 - tutorat absent (volontairement)
 
 ---
 
-## 🟡 SPRINT 2 (Jour 11 → Jour 20)  
+## 🟡 SPRINT 2 (Jour 11 → Jour 20)
+
 ### Objectif : renforcer l’intelligence pédagogique
 
 ---
 
 ### Jour 11–12 — Générateur d’exercices PDF
+
 Fonctionnalités :
+
 - génération automatique d’exercices
 - export PDF / impression
 
 ---
 
 ### Jour 13–14 — Suivi pédagogique avancé
+
 Fonctionnalités :
+
 - courbes de progression
 - rapports mensuels PDF
 - diagnostic IA
@@ -146,7 +167,9 @@ Fonctionnalités :
 ---
 
 ### Jour 15–16 — Assistant IA Parent-Professeur
+
 Fonctionnalités :
+
 - coach pédagogique
 - explication de concepts
 - recommandations éducatives
@@ -154,7 +177,9 @@ Fonctionnalités :
 ---
 
 ### Jour 17–18 — Mode Parent-Professeur
+
 Fonctionnalités :
+
 - création de cours
 - création de quiz
 - calendrier éducatif
@@ -162,7 +187,9 @@ Fonctionnalités :
 ---
 
 ### Jour 19–20 — UX & tests
+
 Fonctionnalités :
+
 - optimisation UI/UX
 - tests utilisateurs
 - corrections
@@ -170,19 +197,23 @@ Fonctionnalités :
 ---
 
 ### 🎯 Résultat Sprint 2
+
 - plateforme IEF complète
 - IA éducative opérationnelle
 - outils parent-professeur puissants
 
 ---
 
-## 🔵 SPRINT 3 (Jour 21 → Jour 30)  
+## 🔵 SPRINT 3 (Jour 21 → Jour 30)
+
 ### Objectif : intégrer le tutorat comme option
 
 ---
 
 ### Jour 21–22 — Module tutorat
+
 Fonctionnalités :
+
 - marketplace de tuteurs
 - profils tuteurs
 - filtres de recherche
@@ -190,7 +221,9 @@ Fonctionnalités :
 ---
 
 ### Jour 23–24 — Réservation & paiement
+
 Fonctionnalités :
+
 - booking sessions
 - paiement en ligne
 - packs tutorat
@@ -198,14 +231,18 @@ Fonctionnalités :
 ---
 
 ### Jour 25–26 — Intégration tutorat dans l’IEF
+
 Fonctionnalités :
+
 - suggestion IA de tuteurs
 - bouton « besoin d’un tuteur »
 
 ---
 
 ### Jour 27–28 — Dashboard tuteur
+
 Fonctionnalités :
+
 - gestion sessions
 - revenus
 - feedbacks
@@ -213,7 +250,9 @@ Fonctionnalités :
 ---
 
 ### Jour 29–30 — QA & déploiement
+
 Fonctionnalités :
+
 - tests QA
 - corrections bugs
 - mise en production
@@ -221,6 +260,7 @@ Fonctionnalités :
 ---
 
 ### 🎯 Résultat Sprint 3
+
 - tutorat intégré mais non dominant
 - plateforme complète prête à l’usage
 
@@ -231,14 +271,17 @@ Fonctionnalités :
 ## 5.1 Segments clients
 
 ### Segment 1 — Parents IEF
+
 - besoin : outils pédagogiques
 - forte valeur
 
 ### Segment 2 — Parents école classique
+
 - besoin : accompagnement
 - volume important
 
 ### Segment 3 — Utilisateurs tutorat
+
 - besoin : soutien ponctuel
 
 ---
@@ -247,12 +290,12 @@ Fonctionnalités :
 
 ### 1) Abonnement IEF (core)
 
-| Offre | Prix | Contenu |
-|-------|------|--------|
-| Basic | Gratuit | accès limité |
-| Family | 19 €/mois | IEF + IA + ressources |
-| Premium | 39 €/mois | IEF avancé + analytics |
-| Pro | 79 €/mois | multi-enfants + IA avancée |
+| Offre   | Prix      | Contenu                    |
+| ------- | --------- | -------------------------- |
+| Basic   | Gratuit   | accès limité               |
+| Family  | 19 €/mois | IEF + IA + ressources      |
+| Premium | 39 €/mois | IEF avancé + analytics     |
+| Pro     | 79 €/mois | multi-enfants + IA avancée |
 
 ---
 
@@ -332,11 +375,13 @@ C’est :
 # 7. Vision long terme
 
 ## Version 2 (6 mois)
+
 - application mobile
 - communauté parents
 - IA éducative avancée
 
 ## Version 3 (12 mois)
+
 - certification IEF
 - marketplace mondiale
 - coaching parental IA

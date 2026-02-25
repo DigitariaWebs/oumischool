@@ -209,7 +209,7 @@ export default function AssignLessonModal({
     setSelectedLessons((prev) =>
       prev.includes(lessonId)
         ? prev.filter((id) => id !== lessonId)
-        : [...prev, lessonId]
+        : [...prev, lessonId],
     );
   };
 
@@ -229,10 +229,14 @@ export default function AssignLessonModal({
 
   const getRecommendationColor = (type: Recommendation["type"]) => {
     switch (type) {
-      case "reinforcement": return "#F59E0B";
-      case "advanced": return "#10B981";
-      case "popular": return "#3B82F6";
-      default: return "#6366F1";
+      case "reinforcement":
+        return "#F59E0B";
+      case "advanced":
+        return "#10B981";
+      case "popular":
+        return "#3B82F6";
+      default:
+        return "#6366F1";
     }
   };
 
@@ -246,7 +250,10 @@ export default function AssignLessonModal({
       <View style={styles.modalContainer}>
         <Pressable style={styles.backdrop} onPress={onClose} />
 
-        <Animated.View entering={FadeIn.duration(200)} style={styles.modalContent}>
+        <Animated.View
+          entering={FadeIn.duration(200)}
+          style={styles.modalContent}
+        >
           {/* Header */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Assigner des leçons</Text>
@@ -255,14 +262,21 @@ export default function AssignLessonModal({
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
             {/* Recommandations */}
             {recommendations.length > 0 && showRecommendations && (
               <View style={styles.recommendationsSection}>
                 <View style={styles.recommendationsHeader}>
                   <Sparkles size={16} color="#6366F1" />
-                  <Text style={styles.recommendationsTitle}>Recommandé pour vous</Text>
-                  <TouchableOpacity onPress={() => setShowRecommendations(false)}>
+                  <Text style={styles.recommendationsTitle}>
+                    Recommandé pour vous
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setShowRecommendations(false)}
+                  >
                     <X size={14} color="#94A3B8" />
                   </TouchableOpacity>
                 </View>
@@ -273,22 +287,35 @@ export default function AssignLessonModal({
                     entering={FadeInDown.delay(index * 50).duration(400)}
                   >
                     <TouchableOpacity
-                      style={[styles.recommendationCard, { borderLeftColor: getRecommendationColor(rec.type) }]}
+                      style={[
+                        styles.recommendationCard,
+                        { borderLeftColor: getRecommendationColor(rec.type) },
+                      ]}
                       onPress={() => handleQuickAssign(rec.lesson.id)}
                     >
                       <View style={styles.recommendationContent}>
                         <View style={styles.recommendationHeader}>
-                          <Text style={styles.recommendationTitle}>{rec.lesson.title}</Text>
+                          <Text style={styles.recommendationTitle}>
+                            {rec.lesson.title}
+                          </Text>
                           <View style={styles.recommendationMatch}>
-                            <Text style={styles.matchScore}>{rec.matchScore}%</Text>
+                            <Text style={styles.matchScore}>
+                              {rec.matchScore}%
+                            </Text>
                           </View>
                         </View>
-                        <Text style={styles.recommendationReason}>{rec.reason}</Text>
+                        <Text style={styles.recommendationReason}>
+                          {rec.reason}
+                        </Text>
                         <View style={styles.recommendationMeta}>
-                          <Text style={styles.recommendationSubject}>{rec.lesson.subject}</Text>
+                          <Text style={styles.recommendationSubject}>
+                            {rec.lesson.subject}
+                          </Text>
                           <Text style={styles.recommendationDot}>•</Text>
                           <Clock size={10} color="#94A3B8" />
-                          <Text style={styles.recommendationDuration}>{rec.lesson.duration}min</Text>
+                          <Text style={styles.recommendationDuration}>
+                            {rec.lesson.duration}min
+                          </Text>
                         </View>
                       </View>
                       <ChevronRight size={16} color="#CBD5E1" />
@@ -330,7 +357,8 @@ export default function AssignLessonModal({
                   <Text
                     style={[
                       styles.filterChipText,
-                      selectedSubject === subject && styles.filterChipTextActive,
+                      selectedSubject === subject &&
+                        styles.filterChipTextActive,
                     ]}
                   >
                     {subject}
@@ -342,7 +370,8 @@ export default function AssignLessonModal({
             {/* Liste des leçons */}
             <View style={styles.lessonsSection}>
               <Text style={styles.lessonsCount}>
-                {filteredLessons.length} leçon{filteredLessons.length > 1 ? "s" : ""}
+                {filteredLessons.length} leçon
+                {filteredLessons.length > 1 ? "s" : ""}
               </Text>
 
               {filteredLessons.map((lesson) => {
@@ -364,33 +393,66 @@ export default function AssignLessonModal({
                       {isSelected ? (
                         <CheckCircle2 size={20} color="#6366F1" />
                       ) : (
-                        <Circle size={20} color={isDisabled ? "#E2E8F0" : "#CBD5E1"} />
+                        <Circle
+                          size={20}
+                          color={isDisabled ? "#E2E8F0" : "#CBD5E1"}
+                        />
                       )}
                     </View>
 
                     <View style={styles.lessonContent}>
-                      <Text style={[styles.lessonTitle, isDisabled && styles.lessonTitleDisabled]}>
+                      <Text
+                        style={[
+                          styles.lessonTitle,
+                          isDisabled && styles.lessonTitleDisabled,
+                        ]}
+                      >
                         {lesson.title}
                       </Text>
-                      <Text style={[styles.lessonDescription, isDisabled && styles.lessonDescriptionDisabled]}>
+                      <Text
+                        style={[
+                          styles.lessonDescription,
+                          isDisabled && styles.lessonDescriptionDisabled,
+                        ]}
+                      >
                         {lesson.description}
                       </Text>
 
                       <View style={styles.lessonFooter}>
                         <View style={styles.lessonMeta}>
-                          <View style={[styles.difficultyBadge, { backgroundColor: 
-                            lesson.difficulty === "Débutant" ? "#D1FAE5" :
-                            lesson.difficulty === "Intermédiaire" ? "#FEF3C7" : "#FEE2E2"
-                          }]}>
-                            <Text style={[styles.difficultyText, { color:
-                              lesson.difficulty === "Débutant" ? "#10B981" :
-                              lesson.difficulty === "Intermédiaire" ? "#F59E0B" : "#EF4444"
-                            }]}>
+                          <View
+                            style={[
+                              styles.difficultyBadge,
+                              {
+                                backgroundColor:
+                                  lesson.difficulty === "Débutant"
+                                    ? "#D1FAE5"
+                                    : lesson.difficulty === "Intermédiaire"
+                                      ? "#FEF3C7"
+                                      : "#FEE2E2",
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.difficultyText,
+                                {
+                                  color:
+                                    lesson.difficulty === "Débutant"
+                                      ? "#10B981"
+                                      : lesson.difficulty === "Intermédiaire"
+                                        ? "#F59E0B"
+                                        : "#EF4444",
+                                },
+                              ]}
+                            >
                               {lesson.difficulty}
                             </Text>
                           </View>
                           <Clock size={12} color="#94A3B8" />
-                          <Text style={styles.durationText}>{lesson.duration}min</Text>
+                          <Text style={styles.durationText}>
+                            {lesson.duration}min
+                          </Text>
                         </View>
                         <Text style={styles.subjectText}>{lesson.subject}</Text>
                       </View>
@@ -409,11 +471,18 @@ export default function AssignLessonModal({
 
           {/* Bouton d'assignation */}
           {selectedLessons.length > 0 && (
-            <Animated.View entering={FadeInDown.duration(300)} style={styles.actionBar}>
-              <TouchableOpacity style={styles.assignButton} onPress={handleAssign}>
+            <Animated.View
+              entering={FadeInDown.duration(300)}
+              style={styles.actionBar}
+            >
+              <TouchableOpacity
+                style={styles.assignButton}
+                onPress={handleAssign}
+              >
                 <BookOpen size={18} color="white" />
                 <Text style={styles.assignButtonText}>
-                  Assigner {selectedLessons.length} leçon{selectedLessons.length > 1 ? "s" : ""}
+                  Assigner {selectedLessons.length} leçon
+                  {selectedLessons.length > 1 ? "s" : ""}
                 </Text>
               </TouchableOpacity>
             </Animated.View>

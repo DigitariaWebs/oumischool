@@ -1,4 +1,5 @@
 # OUMI'SCHOOL - Frontend Improvements Analysis
+
 ## Comparaison avec l'application Web & Recommandations
 
 ---
@@ -21,6 +22,7 @@
 ## 🎯 Vue d'ensemble
 
 ### Stack technique actuel (Mobile)
+
 - **Framework**: React Native + Expo
 - **Navigation**: Expo Router (file-based routing)
 - **State Management**: Redux Toolkit
@@ -30,6 +32,7 @@
 - **Icons**: lucide-react-native
 
 ### Stack technique Web (Référence)
+
 - **Framework**: React + Vite + TypeScript
 - **UI Library**: shadcn-ui (Radix UI)
 - **Styling**: Tailwind CSS
@@ -38,6 +41,7 @@
 - **Forms**: React Hook Form + Zod
 
 ### Points forts de l'app mobile
+
 ✅ Interface utilisateur attrayante et moderne
 ✅ Animations fluides avec Reanimated
 ✅ Design cohérent avec police Fredoka
@@ -45,6 +49,7 @@
 ✅ Séparation claire des rôles (parent/enfant/tuteur)
 
 ### Points à améliorer
+
 ❌ Données statiques/mockées
 ❌ Composants manquants (comparé au web)
 ❌ Fonctionnalités incomplètes
@@ -58,6 +63,7 @@
 ### ✅ Fonctionnalités présentes (Mobile)
 
 #### 1. **Authentification & Onboarding**
+
 - ✅ Écran de bienvenue
 - ✅ Onboarding
 - ✅ Connexion multi-rôles (mock)
@@ -65,6 +71,7 @@
 - ⚠️ **À améliorer**: Validation des formulaires, gestion des erreurs
 
 #### 2. **Dashboard Parent**
+
 - ✅ Vue d'ensemble des enfants
 - ✅ Actions rapides (cards)
 - ✅ Statistiques basiques
@@ -73,6 +80,7 @@
 - ❌ **Manque**: Graphiques de progression, activité récente détaillée
 
 #### 3. **Gestion des enfants**
+
 - ✅ Liste des enfants avec progression
 - ✅ Modal d'ajout d'enfant
 - ✅ Assignation de leçons (mock)
@@ -80,6 +88,7 @@
 - ❌ **Manque**: Édition, suppression, détails avancés
 
 #### 4. **Espace Enfant**
+
 - ✅ Exercices avec progression
 - ✅ Vue progression par matière
 - ✅ Badges (statiques)
@@ -87,6 +96,7 @@
 - ❌ **Manque**: Catalogue complet, quiz interactifs
 
 #### 5. **Tuteurs**
+
 - ✅ Liste de tuteurs (mock)
 - ✅ Filtres par matière
 - ✅ Mode navigation: par matière ou recommandations
@@ -96,6 +106,7 @@
 - ❌ **Manque**: Profils détaillés, réservation, reviews
 
 #### 6. **Ressources**
+
 - ✅ Catalogue de ressources (mock)
 - ✅ Filtres par matière
 - ✅ Recherche
@@ -104,6 +115,7 @@
 - ❌ **Manque**: Téléchargement, visualisation, favoris
 
 #### 7. **Planning Hebdomadaire**
+
 - ✅ Vue par jour
 - ✅ Leçons avec progression
 - ✅ Sélection d'enfant
@@ -112,6 +124,7 @@
 - ❌ **Manque**: Édition, génération IA, synchronisation
 
 #### 8. **AI Coach**
+
 - ✅ Interface de chat
 - ✅ Messages utilisateur/IA
 - ✅ Modes contextuels (parent/tuteur/enfant)
@@ -122,6 +135,7 @@
 - ❌ **Manque**: Historique, export
 
 #### 9. **Espace Tuteur**
+
 - ✅ Dashboard avec statistiques
 - ✅ Liste des sessions
 - ✅ Demandes de réservation
@@ -130,6 +144,7 @@
 - ❌ **Manque**: Calendrier, earnings, resources
 
 #### 10. **Notifications**
+
 - ✅ Drawer avec animations
 - ✅ Filtres (tout/non lu)
 - ✅ Types de notifications
@@ -142,7 +157,9 @@
 ### ❌ Fonctionnalités manquantes (présentes dans le web)
 
 #### 1. **Messagerie** (Priorité élevée)
+
 **Composants à créer**:
+
 - `MessagingScreen.tsx` - Écran principal
 - `ConversationList.tsx` - Liste des conversations
 - `ConversationCard.tsx` - Carte conversation
@@ -152,6 +169,7 @@
 - `MessageAttachment.tsx` - Pièces jointes
 
 **Fonctionnalités**:
+
 - Liste des conversations (parent ↔ tuteur)
 - Messages en temps réel
 - Compteur de non-lus
@@ -161,13 +179,16 @@
 - Timestamp avec formatage relatif
 
 **Design considerations**:
+
 - Style WhatsApp/Messenger
 - Animations d'entrée des messages
 - Swipe actions (archive, delete)
 - Long-press menu
 
 #### 2. **Sessions Vidéo** (Priorité moyenne)
+
 **Composants à créer**:
+
 - `VideoSessionScreen.tsx`
 - `WaitingRoom.tsx`
 - `VideoControls.tsx`
@@ -175,6 +196,7 @@
 - `ChatOverlay.tsx`
 
 **Fonctionnalités**:
+
 - Salle d'attente
 - Contrôles vidéo/audio
 - Chat pendant session
@@ -182,13 +204,16 @@
 - Indicateurs de connexion
 
 **SDK options**:
+
 - Agora RTC
 - Daily.co
 - Stream Video
 - 100ms
 
 #### 3. **Paiements** (Priorité élevée)
+
 **Composants à créer**:
+
 - `PaymentScreen.tsx`
 - `PricingPlans.tsx`
 - `PlanCard.tsx`
@@ -197,6 +222,7 @@
 - `InvoiceList.tsx`
 
 **Fonctionnalités**:
+
 - Affichage des plans
 - Comparaison des offres
 - Formulaire de paiement
@@ -205,13 +231,16 @@
 - Gestion d'abonnement
 
 **Design patterns**:
+
 - Cards avec animations
 - Badges "Popular", "Best Value"
 - Prix barrés pour promotions
 - CTA buttons bien visibles
 
 #### 4. **Gamification complète** (Priorité moyenne)
+
 **Composants à créer**:
+
 - `AchievementsList.tsx`
 - `AchievementCard.tsx`
 - `BadgeShowcase.tsx`
@@ -221,6 +250,7 @@
 - `Leaderboard.tsx`
 
 **Fonctionnalités**:
+
 - Système de points XP
 - Déblocage de badges
 - Suivi des séries (streaks)
@@ -229,13 +259,16 @@
 - Récompenses visuelles
 
 **Animations importantes**:
+
 - Badge unlock avec confetti
 - XP gain popup
 - Level up animation
 - Streak flame animation
 
 #### 5. **Analytics & Rapports** (Priorité moyenne)
+
 **Composants à créer**:
+
 - `ProgressChartsScreen.tsx`
 - `SubjectPerformanceChart.tsx`
 - `WeeklyActivityChart.tsx`
@@ -245,6 +278,7 @@
 - `ExportReportButton.tsx`
 
 **Bibliothèques recommandées**:
+
 ```typescript
 bun add react-native-chart-kit
 // ou
@@ -254,13 +288,16 @@ bun add react-native-svg-charts
 ```
 
 **Types de graphiques**:
+
 - Line charts (progression temporelle)
 - Bar charts (performance par matière)
 - Pie charts (répartition du temps)
 - Progress circles (taux de complétion)
 
 #### 6. **Calendrier complet** (Priorité moyenne)
+
 **Composants à créer**:
+
 - `CalendarScreen.tsx`
 - `MonthView.tsx`
 - `WeekView.tsx`
@@ -269,11 +306,13 @@ bun add react-native-svg-charts
 - `EventModal.tsx`
 
 **Bibliothèque recommandée**:
+
 ```typescript
 bun add react-native-calendars
 ```
 
 **Fonctionnalités**:
+
 - Vue mois/semaine/jour
 - Marqueurs de sessions
 - Ajout d'événements
@@ -281,7 +320,9 @@ bun add react-native-calendars
 - Synchronisation
 
 #### 7. **Budget Management** (Priorité basse)
+
 **Composants à créer**:
+
 - `BudgetScreen.tsx`
 - `BudgetSetup.tsx`
 - `BudgetProgress.tsx`
@@ -289,6 +330,7 @@ bun add react-native-calendars
 - `BudgetAlert.tsx`
 
 **Fonctionnalités**:
+
 - Définir budget mensuel
 - Tracker les dépenses
 - Alertes de seuil
@@ -296,7 +338,9 @@ bun add react-native-calendars
 - Graphiques de dépenses
 
 #### 8. **Système de Parrainage** (Priorité basse)
+
 **Composants à créer**:
+
 - `ReferralScreen.tsx`
 - `ReferralCodeCard.tsx`
 - `ShareReferralButton.tsx`
@@ -304,6 +348,7 @@ bun add react-native-calendars
 - `RewardsTracker.tsx`
 
 **Fonctionnalités**:
+
 - Génération de codes
 - Partage (React Native Share)
 - Tracking des parrainages
@@ -311,7 +356,9 @@ bun add react-native-calendars
 - Historique
 
 #### 9. **Profils détaillés** (Priorité élevée)
+
 **Composants à créer**:
+
 - `TutorProfileScreen.tsx`
 - `StudentProfileScreen.tsx`
 - `ProfileHeader.tsx`
@@ -321,6 +368,7 @@ bun add react-native-calendars
 - `RatingStars.tsx`
 
 **Fonctionnalités**:
+
 - Profil complet tuteur
 - Bio, expérience, diplômes
 - Reviews et notes
@@ -329,7 +377,9 @@ bun add react-native-calendars
 - Tarifs détaillés
 
 #### 10. **Ressources interactives** (Priorité moyenne)
+
 **Composants à créer**:
+
 - `InteractiveResourceViewer.tsx`
 - `PDFViewer.tsx`
 - `VideoPlayer.tsx`
@@ -338,12 +388,14 @@ bun add react-native-calendars
 - `ProgressTracker.tsx`
 
 **Bibliothèques nécessaires**:
+
 ```typescript
 bun add react-native-pdf
 bun add expo-av  // for video/audio
 ```
 
 **Fonctionnalités**:
+
 - Visualisation PDF
 - Player vidéo
 - Quiz interactifs
@@ -356,6 +408,7 @@ bun add expo-av  // for video/audio
 ## 🏗️ Architecture frontend
 
 ### Structure actuelle
+
 ```
 oumischool/
 ├── app/                    # Screens (Expo Router)
@@ -384,6 +437,7 @@ oumischool/
 ```
 
 ### Structure recommandée
+
 ```
 oumischool/
 ├── app/                           # Screens (Expo Router)
@@ -475,6 +529,7 @@ oumischool/
 #### Composants manquants à créer
 
 ##### `Card.tsx`
+
 ```typescript
 // oumischool/components/ui/Card.tsx
 import React from 'react';
@@ -526,6 +581,7 @@ const styles = StyleSheet.create({
 ```
 
 ##### `Badge.tsx`
+
 ```typescript
 // oumischool/components/ui/Badge.tsx
 import React from 'react';
@@ -587,6 +643,7 @@ const styles = StyleSheet.create({
 ```
 
 ##### `BottomSheet.tsx`
+
 ```typescript
 // oumischool/components/ui/BottomSheet.tsx
 import React from 'react';
@@ -658,6 +715,7 @@ const styles = StyleSheet.create({
 ```
 
 ##### `Skeleton.tsx`
+
 ```typescript
 // oumischool/components/ui/Skeleton.tsx
 import React, { useEffect } from 'react';
@@ -719,6 +777,7 @@ const styles = StyleSheet.create({
 ```
 
 ##### `Toast.tsx`
+
 ```typescript
 // oumischool/components/ui/Toast.tsx
 import React, { useEffect } from 'react';
@@ -801,6 +860,7 @@ const styles = StyleSheet.create({
 ### 2. **États de chargement et erreurs**
 
 #### `LoadingState.tsx`
+
 ```typescript
 // oumischool/components/shared/LoadingState.tsx
 import React from 'react';
@@ -837,6 +897,7 @@ const styles = StyleSheet.create({
 ```
 
 #### `EmptyState.tsx`
+
 ```typescript
 // oumischool/components/shared/EmptyState.tsx
 import React from 'react';
@@ -898,6 +959,7 @@ const styles = StyleSheet.create({
 ### 3. **Système de formulaires**
 
 #### `FormField.tsx`
+
 ```typescript
 // oumischool/components/ui/FormField.tsx
 import React, { useState } from 'react';
@@ -981,6 +1043,7 @@ const styles = StyleSheet.create({
 ### 4. **Animations réutilisables**
 
 #### Configuration d'animations
+
 ```typescript
 // oumischool/config/animations.ts
 export const ANIMATIONS = {
@@ -1015,7 +1078,9 @@ export const ANIMATION_CONFIGS = {
 ### Priorité 1: Messagerie
 
 #### `ConversationList.tsx`
+
 **Fonctionnalités**:
+
 - Liste des conversations avec scroll infini
 - Avatar du correspondant
 - Dernier message preview
@@ -1025,13 +1090,16 @@ export const ANIMATION_CONFIGS = {
 - Pull to refresh
 
 **Design**:
+
 - Card style avec shadow subtil
 - Animation d'entrée en cascade
 - Highlight pour non-lus
 - Skeleton loader pendant chargement
 
 #### `MessageThread.tsx`
+
 **Fonctionnalités**:
+
 - Messages groupés par date
 - Bulles alignées droite/gauche
 - Timestamps
@@ -1041,13 +1109,16 @@ export const ANIMATION_CONFIGS = {
 - Long press menu (copier, supprimer)
 
 **Design**:
+
 - Style WhatsApp moderne
 - Couleurs différentes user/correspondant
 - Animations d'apparition des messages
 - Sticky date headers
 
 #### `MessageComposer.tsx`
+
 **Fonctionnalités**:
+
 - Input avec auto-resize
 - Bouton pièce jointe
 - Sélection photo/document
@@ -1058,7 +1129,9 @@ export const ANIMATION_CONFIGS = {
 ### Priorité 2: Paiements
 
 #### `PricingPlans.tsx`
+
 **Fonctionnalités**:
+
 - Grille de plans (2 colonnes sur mobile)
 - Badge "Populaire", "Meilleure valeur"
 - Prix avec animations
@@ -1066,13 +1139,16 @@ export const ANIMATION_CONFIGS = {
 - Toggle mensuel/annuel
 
 **Design**:
+
 - Cards avec gradient pour plan populaire
 - Icons pour chaque feature
 - Prix barré pour promotions
 - Animations au scroll
 
 #### `PaymentForm.tsx`
+
 **Fonctionnalités**:
+
 - Inputs validés (numéro carte, CVV, date)
 - Logos des cartes acceptées
 - Sauvegarde de carte (optionnel)
@@ -1080,6 +1156,7 @@ export const ANIMATION_CONFIGS = {
 - Gestion des erreurs
 
 **Bibliothèques**:
+
 ```typescript
 bun add @stripe/stripe-react-native
 ```
@@ -1087,7 +1164,9 @@ bun add @stripe/stripe-react-native
 ### Priorité 3: Gamification
 
 #### `BadgeShowcase.tsx`
+
 **Fonctionnalités**:
+
 - Grille de badges
 - Badges locked/unlocked
 - Progression vers prochain badge
@@ -1095,13 +1174,16 @@ bun add @stripe/stripe-react-native
 - Animation de déblocage
 
 **Animations importantes**:
+
 - Shake pour badges proches
 - Glow effect pour nouveaux
 - Confetti lors du déblocage
 - Scale animation au tap
 
 #### `XPProgressBar.tsx`
+
 **Fonctionnalités**:
+
 - Barre de progression animée
 - XP actuel / XP requis
 - Niveau actuel
@@ -1111,7 +1193,9 @@ bun add @stripe/stripe-react-native
 ### Priorité 4: Analytics
 
 #### `ProgressCharts.tsx`
+
 **Types de graphiques**:
+
 - **Line Chart**: Progression temporelle
 - **Bar Chart**: Performance par matière
 - **Pie Chart**: Répartition du temps d'étude
@@ -1119,12 +1203,14 @@ bun add @stripe/stripe-react-native
 - **Progress Circles**: Taux de complétion
 
 **Interactions**:
+
 - Tap pour voir détails
 - Swipe entre périodes
 - Zoom sur graphiques
 - Export en image
 
 **Bibliothèque**:
+
 ```typescript
 bun add react-native-chart-kit
 ```
@@ -1136,7 +1222,9 @@ bun add react-native-chart-kit
 ### Améliorations recommandées
 
 #### 1. **Deep linking**
+
 Configurer les deep links pour:
+
 ```typescript
 // app.json
 {
@@ -1161,12 +1249,14 @@ Configurer les deep links pour:
 ```
 
 **Routes à supporter**:
+
 - `oumischool://message/[conversationId]`
 - `oumischool://lesson/[lessonId]`
 - `oumischool://tutor/[tutorId]`
 - `oumischool://session/[sessionId]`
 
 #### 2. **Navigation Guards**
+
 ```typescript
 // app/_layout.tsx - amélioration
 import { useAuth } from '@/hooks/useAuth';
@@ -1183,6 +1273,7 @@ function ProtectedRoute({ children }) {
 ```
 
 #### 3. **Transitions personnalisées**
+
 ```typescript
 // app/_layout.tsx
 <Stack
@@ -1204,23 +1295,25 @@ function ProtectedRoute({ children }) {
 #### 1. **Séparer UI state et Server state**
 
 **Redux → UI State uniquement**:
+
 ```typescript
 // store/slices/uiSlice.ts
 interface UIState {
   drawerVisible: boolean;
   modalVisible: boolean;
   selectedTab: string;
-  theme: 'light' | 'dark';
+  theme: "light" | "dark";
 }
 ```
 
 **Context API → Données mockées temporaires**:
+
 ```typescript
 // contexts/MockDataContext.tsx
 export const MockDataProvider = ({ children }) => {
   const [students, setStudents] = useState(MOCK_STUDENTS);
   const [tutors, setTutors] = useState(MOCK_TUTORS);
-  
+
   return (
     <MockDataContext.Provider value={{ students, tutors }}>
       {children}
@@ -1248,7 +1341,7 @@ export function useDebounce<T>(value: T, delay: number): T {
 }
 
 // Usage dans un composant
-const [searchQuery, setSearchQuery] = useState('');
+const [searchQuery, setSearchQuery] = useState("");
 const debouncedQuery = useDebounce(searchQuery, 300);
 
 useEffect(() => {
@@ -1264,11 +1357,11 @@ export function useForm<T>(initialValues: T, validate: (values: T) => any) {
   const [touched, setTouched] = useState({});
 
   const handleChange = (field: keyof T, value: any) => {
-    setValues(prev => ({ ...prev, [field]: value }));
+    setValues((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleBlur = (field: keyof T) => {
-    setTouched(prev => ({ ...prev, [field]: true }));
+    setTouched((prev) => ({ ...prev, [field]: true }));
     const validationErrors = validate(values);
     setErrors(validationErrors);
   };
@@ -1333,7 +1426,7 @@ export const AnimatedButton = ({ onPress, children }) => {
 
 ```typescript
 // hooks/usePageTransition.ts
-import { useSharedValue, withTiming } from 'react-native-reanimated';
+import { useSharedValue, withTiming } from "react-native-reanimated";
 
 export const usePageTransition = () => {
   const opacity = useSharedValue(0);
@@ -1420,6 +1513,7 @@ export const SwipeableCard = ({ onSwipeLeft, onSwipeRight, children }) => {
 ### Améliorations nécessaires
 
 #### 1. **Labels accessibles**
+
 ```typescript
 <TouchableOpacity
   accessible
@@ -1432,6 +1526,7 @@ export const SwipeableCard = ({ onSwipeLeft, onSwipeRight, children }) => {
 ```
 
 #### 2. **Navigation au clavier**
+
 ```typescript
 import { Platform } from 'react-native';
 
@@ -1447,8 +1542,9 @@ import { Platform } from 'react-native';
 ```
 
 #### 3. **Tailles de texte dynamiques**
+
 ```typescript
-import { useWindowDimensions, PixelRatio } from 'react-native';
+import { useWindowDimensions, PixelRatio } from "react-native";
 
 const { fontScale } = useWindowDimensions();
 
@@ -1460,7 +1556,9 @@ const styles = StyleSheet.create({
 ```
 
 #### 4. **Contraste des couleurs**
+
 Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
+
 - Texte normal: ratio 4.5:1
 - Texte large: ratio 3:1
 
@@ -1471,6 +1569,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 ### Phase 1: Fondations UI (Semaines 1-2)
 
 #### Semaine 1: Composants de base
+
 - [ ] Créer `Card`, `Badge`, `Avatar` composants
 - [ ] Créer `BottomSheet`, `Modal` réutilisables
 - [ ] Implémenter `Skeleton` loaders
@@ -1478,6 +1577,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 - [ ] Améliorer `Button` et `Input`
 
 #### Semaine 2: États et formulaires
+
 - [ ] Créer `LoadingState`, `EmptyState`, `ErrorState`
 - [ ] Implémenter `FormField` avec validation
 - [ ] Créer custom hooks (`useForm`, `useDebounce`)
@@ -1487,6 +1587,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 ### Phase 2: Fonctionnalités Messagerie (Semaines 3-4)
 
 #### Semaine 3: Structure
+
 - [ ] Créer `MessagingScreen` et routing
 - [ ] Implémenter `ConversationList`
 - [ ] Créer `ConversationCard` avec animations
@@ -1494,6 +1595,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 - [ ] Créer `MessageThread` structure
 
 #### Semaine 4: Interactions
+
 - [ ] `MessageBubble` avec styles
 - [ ] `MessageComposer` avec attachments
 - [ ] Swipe actions (archive/delete)
@@ -1503,6 +1605,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 ### Phase 3: Gamification (Semaines 5-6)
 
 #### Semaine 5: XP et niveaux
+
 - [ ] Créer `XPProgressBar`
 - [ ] Implémenter `LevelIndicator`
 - [ ] Animations de gain XP
@@ -1510,6 +1613,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 - [ ] XP popup component
 
 #### Semaine 6: Badges et achievements
+
 - [ ] Créer `BadgeShowcase`
 - [ ] Implémenter `AchievementCard`
 - [ ] Animation de déblocage avec confetti
@@ -1519,6 +1623,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 ### Phase 4: Analytics (Semaines 7-8)
 
 #### Semaine 7: Graphiques
+
 - [ ] Intégrer bibliothèque de charts
 - [ ] Créer `LineChart` progression
 - [ ] Créer `BarChart` par matière
@@ -1526,6 +1631,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 - [ ] `ProgressCircles` component
 
 #### Semaine 8: Rapports
+
 - [ ] Screen `Analytics` complet
 - [ ] Filtres de période
 - [ ] Export capabilities
@@ -1535,6 +1641,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 ### Phase 5: Paiements (Semaines 9-10)
 
 #### Semaine 9: UI Pricing
+
 - [ ] Créer `PricingPlans` screen
 - [ ] Implémenter `PlanCard`
 - [ ] Comparaison des features
@@ -1542,6 +1649,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 - [ ] Toggle mensuel/annuel
 
 #### Semaine 10: Intégration
+
 - [ ] Intégrer SDK de paiement
 - [ ] Créer `PaymentForm`
 - [ ] `PaymentHistory` screen
@@ -1551,6 +1659,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 ### Phase 6: Profils détaillés (Semaines 11-12)
 
 #### Semaine 11: Tuteurs
+
 - [ ] Créer `TutorProfileScreen`
 - [ ] Afficher stats et reviews
 - [ ] `ReviewsList` component
@@ -1558,6 +1667,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 - [ ] Booking flow UI
 
 #### Semaine 12: Étudiants
+
 - [ ] Créer `StudentProfileScreen`
 - [ ] Timeline d'activité
 - [ ] Historique des sessions
@@ -1567,6 +1677,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 ### Phase 7: Vidéo & Calendrier (Semaines 13-14)
 
 #### Semaine 13: Vidéo
+
 - [ ] Intégrer SDK vidéo
 - [ ] Créer `VideoSessionScreen`
 - [ ] Implémenter `WaitingRoom`
@@ -1574,6 +1685,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 - [ ] Chat overlay
 
 #### Semaine 14: Calendrier
+
 - [ ] Intégrer react-native-calendars
 - [ ] Créer `CalendarScreen`
 - [ ] Vues mois/semaine/jour
@@ -1583,6 +1695,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 ### Phase 8: Polish & Performance (Semaines 15-16)
 
 #### Semaine 15: Optimisations
+
 - [ ] Image caching et optimization
 - [ ] Code splitting
 - [ ] Bundle size reduction
@@ -1590,6 +1703,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 - [ ] Memory leaks fix
 
 #### Semaine 16: Tests & Déploiement
+
 - [ ] Tests unitaires composants
 - [ ] Tests d'intégration
 - [ ] Tests E2E critiques
@@ -1601,6 +1715,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 ## 📝 Checklist des améliorations
 
 ### Composants UI
+
 - [ ] Card avec variants
 - [ ] Badge avec couleurs
 - [ ] Avatar avec fallback
@@ -1613,6 +1728,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 - [ ] Accordion component
 
 ### États
+
 - [ ] LoadingState
 - [ ] EmptyState
 - [ ] ErrorState avec retry
@@ -1620,6 +1736,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 - [ ] Success state
 
 ### Formulaires
+
 - [ ] FormField validé
 - [ ] Select/Picker
 - [ ] DatePicker
@@ -1631,6 +1748,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 - [ ] Switch/Toggle
 
 ### Navigation
+
 - [ ] Deep linking
 - [ ] Navigation guards
 - [ ] Custom transitions
@@ -1638,6 +1756,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 - [ ] Back button logic
 
 ### Animations
+
 - [ ] Page transitions
 - [ ] List animations
 - [ ] Button feedback
@@ -1647,6 +1766,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 - [ ] Confetti effects
 
 ### Accessibilité
+
 - [ ] Screen reader support
 - [ ] Keyboard navigation
 - [ ] Focus management
@@ -1655,6 +1775,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 - [ ] Touch targets 44x44
 
 ### Performance
+
 - [ ] Image optimization
 - [ ] List virtualization
 - [ ] Memoization
@@ -1666,6 +1787,7 @@ Vérifier que toutes les combinaisons respectent WCAG 2.1 AA:
 ## 🎓 Ressources et bibliothèques recommandées
 
 ### UI & Components
+
 ```bash
 bun add @gorhom/bottom-sheet          # Bottom sheets
 bun add react-native-gesture-handler   # Gestures
@@ -1674,6 +1796,7 @@ bun add react-native-svg               # SVG support (déjà installé)
 ```
 
 ### Charts & Visualization
+
 ```bash
 bun add react-native-chart-kit        # Charts simples
 bun add victory-native                # Charts avancés
@@ -1681,18 +1804,21 @@ bun add react-native-svg-charts       # Charts personnalisables
 ```
 
 ### Forms & Validation
+
 ```bash
 bun add react-hook-form               # Gestion de formulaires
 bun add zod                           # Validation de schémas
 ```
 
 ### Calendar & Date
+
 ```bash
 bun add react-native-calendars        # Calendrier
 bun add date-fns                      # Manipulation de dates
 ```
 
 ### Media
+
 ```bash
 bun add react-native-pdf              # PDF viewer
 bun add expo-av                       # Audio/Video player
@@ -1700,6 +1826,7 @@ bun add expo-image                    # Image optimisée
 ```
 
 ### Utilities
+
 ```bash
 bun add react-native-share            # Partage natif
 bun add @react-native-async-storage/async-storage  # Storage local
@@ -1711,6 +1838,7 @@ bun add react-native-haptic-feedback  # Vibrations
 ## 🎨 Guide de style
 
 ### Espacements
+
 ```typescript
 export const SPACING = {
   xs: 4,
@@ -1723,6 +1851,7 @@ export const SPACING = {
 ```
 
 ### Rayons de bordure
+
 ```typescript
 export const RADIUS = {
   sm: 8,
@@ -1734,24 +1863,25 @@ export const RADIUS = {
 ```
 
 ### Ombres
+
 ```typescript
 export const SHADOWS = {
   sm: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
   md: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
   },
   lg: {
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
@@ -1765,18 +1895,21 @@ export const SHADOWS = {
 ## 📊 Métriques de succès
 
 ### Performance
+
 - [ ] Time to Interactive < 3s
 - [ ] Frame rate stable à 60fps
 - [ ] Bundle size < 15MB
 - [ ] Memory usage < 200MB
 
 ### Qualité
+
 - [ ] 80% de couverture de tests
 - [ ] 0 erreurs critiques
 - [ ] Accessibilité score > 90
 - [ ] Pas de memory leaks
 
 ### UX
+
 - [ ] Toutes les interactions < 100ms feedback
 - [ ] Animations fluides 60fps
 - [ ] États de chargement partout
@@ -1802,6 +1935,7 @@ Cette analyse détaille toutes les améliorations frontend nécessaires pour que
 L'approche recommandée est d'implémenter progressivement chaque fonctionnalité avec des données mockées d'abord, puis de les connecter au backend une fois celui-ci disponible. Cela permet de valider l'UX et les interactions avant l'intégration complète.
 
 **Focus clés**:
+
 - ✅ Composants UI robustes et réutilisables
 - ✅ Animations fluides et performantes
 - ✅ États de chargement et d'erreur partout

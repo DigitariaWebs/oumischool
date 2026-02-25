@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Pressable,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -19,11 +20,14 @@ import {
   DollarSign,
   X,
 } from "lucide-react-native";
+import * as Haptics from "expo-haptics";
 
+import { THEME } from "@/config/theme";
 import { FONTS } from "@/config/fonts";
 import { useTutors } from "@/hooks/api/tutors";
 import type { TutorListItem } from "@/hooks/api/tutors/api";
 import { useChildren } from "@/hooks/api/parent";
+import { HapticPressable } from "@/components/ui/haptic-pressable";
 
 interface Subject {
   id: string;
@@ -162,6 +166,7 @@ export default function TutorsTab() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        contentInsetAdjustmentBehavior="automatic"
       >
         {/* Carte statistiques simple */}
         <View style={styles.statsCard}>
@@ -186,16 +191,23 @@ export default function TutorsTab() {
         {/* Mode Toggle */}
         <View style={styles.modeToggleContainer}>
           <View style={styles.modeToggle}>
-            <TouchableOpacity
+            <HapticPressable
               style={[
                 styles.modeButton,
                 browseMode === "recommended" && styles.modeButtonActive,
               ]}
-              onPress={() => setBrowseMode("recommended")}
+              onPress={() => {
+                setBrowseMode("recommended");
+                Haptics.selectionAsync();
+              }}
+              hapticType="selection"
+              scale={0.95}
             >
               <Sparkles
                 size={16}
-                color={browseMode === "recommended" ? "white" : "#64748B"}
+                color={
+                  browseMode === "recommended" ? "white" : THEME.colors.subtext
+                }
               />
               <Text
                 style={[
@@ -205,17 +217,22 @@ export default function TutorsTab() {
               >
                 Recommandés
               </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </HapticPressable>
+            <HapticPressable
               style={[
                 styles.modeButton,
                 browseMode === "tutor" && styles.modeButtonActive,
               ]}
-              onPress={() => setBrowseMode("tutor")}
+              onPress={() => {
+                setBrowseMode("tutor");
+                Haptics.selectionAsync();
+              }}
+              hapticType="selection"
+              scale={0.95}
             >
               <Users
                 size={16}
-                color={browseMode === "tutor" ? "white" : "#64748B"}
+                color={browseMode === "tutor" ? "white" : THEME.colors.subtext}
               />
               <Text
                 style={[
@@ -225,7 +242,7 @@ export default function TutorsTab() {
               >
                 Tous
               </Text>
-            </TouchableOpacity>
+            </HapticPressable>
           </View>
         </View>
 
@@ -242,12 +259,17 @@ export default function TutorsTab() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.subjectsContainer}
               >
-                <TouchableOpacity
+                <HapticPressable
                   style={[
                     styles.subjectChip,
                     selectedSubject === "all" && styles.subjectChipActive,
                   ]}
-                  onPress={() => setSelectedSubject("all")}
+                  onPress={() => {
+                    setSelectedSubject("all");
+                    Haptics.selectionAsync();
+                  }}
+                  hapticType="selection"
+                  scale={0.95}
                 >
                   <Text
                     style={[
@@ -257,9 +279,9 @@ export default function TutorsTab() {
                   >
                     Tout
                   </Text>
-                </TouchableOpacity>
+                </HapticPressable>
                 {subjects.map((subject) => (
-                  <TouchableOpacity
+                  <HapticPressable
                     key={subject.id}
                     style={[
                       styles.subjectChip,
@@ -268,7 +290,12 @@ export default function TutorsTab() {
                         borderColor: subject.color,
                       },
                     ]}
-                    onPress={() => setSelectedSubject(subject.id)}
+                    onPress={() => {
+                      setSelectedSubject(subject.id);
+                      Haptics.selectionAsync();
+                    }}
+                    hapticType="selection"
+                    scale={0.95}
                   >
                     <Text
                       style={[
@@ -280,7 +307,7 @@ export default function TutorsTab() {
                     >
                       {subject.name}
                     </Text>
-                  </TouchableOpacity>
+                  </HapticPressable>
                 ))}
               </ScrollView>
             </View>
@@ -345,13 +372,12 @@ export default function TutorsTab() {
               {filteredTutors.map((tutor) => {
                 const primarySubject = getPrimarySubject(tutor);
                 return (
-                  <Pressable
+                  <HapticPressable
                     key={tutor.id}
-                    style={({ pressed }) => [
-                      styles.tutorCard,
-                      pressed && { opacity: 0.9 },
-                    ]}
+                    style={styles.tutorCard}
                     onPress={() => router.push(`/tutor/${tutor.id}`)}
+                    hapticType="light"
+                    scale={0.98}
                   >
                     <View style={styles.tutorHeader}>
                       <View
@@ -426,7 +452,7 @@ export default function TutorsTab() {
                         </>
                       )}
                     </View>
-                  </Pressable>
+                  </HapticPressable>
                 );
               })}
             </View>
@@ -551,12 +577,11 @@ export default function TutorsTab() {
                         </View>
                       </View>
 
-                      <Pressable
-                        style={({ pressed }) => [
-                          styles.tutorCard,
-                          pressed && { opacity: 0.9 },
-                        ]}
+                      <HapticPressable
+                        style={styles.tutorCard}
                         onPress={() => router.push(`/tutor/${tutor.id}`)}
+                        hapticType="light"
+                        scale={0.98}
                       >
                         <View style={styles.tutorHeader}>
                           <View
@@ -597,7 +622,7 @@ export default function TutorsTab() {
                             {tutor.experience} ans d&apos;exp.
                           </Text>
                         </View>
-                      </Pressable>
+                      </HapticPressable>
                     </View>
                   );
                 })
@@ -607,7 +632,16 @@ export default function TutorsTab() {
         )}
 
         {/* Bouton Add source */}
-        <TouchableOpacity style={styles.sourceButton}>
+        <TouchableOpacity
+          style={styles.sourceButton}
+          onPress={() =>
+            Alert.alert(
+              "Demander un tuteur",
+              "Cette fonctionnalité sera bientôt disponible. Nous vous informerons dès qu'un tuteur correspondant à vos besoins sera disponible.",
+              [{ text: "OK" }],
+            )
+          }
+        >
           <Text style={styles.sourceButtonText}>+ Demander un tuteur</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -618,7 +652,7 @@ export default function TutorsTab() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: THEME.colors.white,
   },
 
   // Header
@@ -626,14 +660,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: THEME.spacing.xxl,
     paddingTop: 20,
-    paddingBottom: 16,
+    paddingBottom: THEME.spacing.lg,
   },
   headerLabel: {
     fontFamily: FONTS.secondary,
     fontSize: 12,
-    color: "#6366F1",
+    color: THEME.colors.primary,
     letterSpacing: 1.2,
     fontWeight: "700",
     marginBottom: 4,
@@ -641,10 +675,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: FONTS.fredoka,
     fontSize: 24,
-    color: "#1E293B",
+    color: THEME.colors.text,
   },
   headerBadge: {
-    backgroundColor: "#F1F5F9",
+    backgroundColor: THEME.colors.secondaryLight,
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
@@ -652,7 +686,7 @@ const styles = StyleSheet.create({
   headerBadgeText: {
     fontFamily: FONTS.fredoka,
     fontSize: 16,
-    color: "#6366F1",
+    color: THEME.colors.primary,
   },
 
   scrollContent: {
@@ -661,13 +695,14 @@ const styles = StyleSheet.create({
 
   // Stats Card
   statsCard: {
-    backgroundColor: "#F8FAFC",
-    marginHorizontal: 24,
+    backgroundColor: THEME.colors.white,
+    marginHorizontal: THEME.spacing.xxl,
     marginBottom: 20,
     padding: 20,
-    borderRadius: 24,
+    borderRadius: THEME.radius.xxl,
+    boxShadow: THEME.shadows.card,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: THEME.colors.border,
   },
   statsRow: {
     flexDirection: "row",
@@ -680,28 +715,28 @@ const styles = StyleSheet.create({
   statValue: {
     fontFamily: FONTS.fredoka,
     fontSize: 22,
-    color: "#1E293B",
+    color: THEME.colors.text,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: "#64748B",
+    color: THEME.colors.subtext,
   },
   statDivider: {
     width: 1,
     height: 30,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: THEME.colors.border,
   },
 
   // Mode Toggle
   modeToggleContainer: {
-    paddingHorizontal: 24,
+    paddingHorizontal: THEME.spacing.xxl,
     marginBottom: 20,
   },
   modeToggle: {
     flexDirection: "row",
-    backgroundColor: "#F1F5F9",
-    borderRadius: 16,
+    backgroundColor: THEME.colors.secondaryLight,
+    borderRadius: THEME.radius.lg,
     padding: 4,
   },
   modeButton: {
@@ -710,74 +745,74 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 10,
-    borderRadius: 14,
+    borderRadius: THEME.radius.md,
     gap: 6,
   },
   modeButtonActive: {
-    backgroundColor: "#6366F1",
+    backgroundColor: THEME.colors.primary,
   },
   modeButtonText: {
     fontSize: 14,
-    color: "#64748B",
+    color: THEME.colors.subtext,
     fontWeight: "600",
   },
   modeButtonTextActive: {
-    color: "white",
+    color: THEME.colors.white,
   },
 
   // Filters
   filtersSection: {
-    paddingHorizontal: 24,
+    paddingHorizontal: THEME.spacing.xxl,
     marginBottom: 20,
   },
   filterHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 12,
+    gap: THEME.spacing.sm,
+    marginBottom: THEME.spacing.md,
   },
   filterTitle: {
     fontSize: 14,
-    color: "#1E293B",
+    color: THEME.colors.text,
     fontWeight: "600",
   },
   subjectsContainer: {
     gap: 10,
   },
   subjectChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: "#F8FAFC",
+    paddingHorizontal: THEME.spacing.lg,
+    paddingVertical: THEME.spacing.sm,
+    backgroundColor: THEME.colors.secondaryLight,
     borderRadius: 30,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: THEME.colors.border,
   },
   subjectChipActive: {
-    backgroundColor: "#6366F1",
-    borderColor: "#6366F1",
+    backgroundColor: THEME.colors.primary,
+    borderColor: THEME.colors.primary,
   },
   subjectChipText: {
     fontSize: 14,
-    color: "#64748B",
+    color: THEME.colors.subtext,
   },
   subjectChipTextActive: {
-    color: "white",
+    color: THEME.colors.white,
   },
 
   // Sort
   sortSection: {
-    paddingHorizontal: 24,
+    paddingHorizontal: THEME.spacing.xxl,
     marginBottom: 20,
   },
   sortHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 12,
+    gap: THEME.spacing.sm,
+    marginBottom: THEME.spacing.md,
   },
   sortTitle: {
     fontSize: 14,
-    color: "#1E293B",
+    color: THEME.colors.text,
     fontWeight: "600",
   },
   sortButtons: {
@@ -788,54 +823,54 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: "#F8FAFC",
+    paddingVertical: THEME.spacing.sm,
+    backgroundColor: THEME.colors.secondaryLight,
     borderRadius: 30,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: THEME.colors.border,
     gap: 6,
   },
   sortButtonActive: {
-    backgroundColor: "#6366F1",
-    borderColor: "#6366F1",
+    backgroundColor: THEME.colors.primary,
+    borderColor: THEME.colors.primary,
   },
   sortButtonText: {
     fontSize: 13,
-    color: "#64748B",
+    color: THEME.colors.subtext,
   },
   sortButtonTextActive: {
-    color: "white",
+    color: THEME.colors.white,
   },
 
   // Tutors List
   tutorsList: {
-    paddingHorizontal: 24,
+    paddingHorizontal: THEME.spacing.xxl,
   },
   tutorsCount: {
     fontSize: 14,
-    color: "#64748B",
-    marginBottom: 12,
+    color: THEME.colors.subtext,
+    marginBottom: THEME.spacing.md,
   },
   tutorCard: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: THEME.colors.secondaryLight,
+    borderRadius: THEME.radius.xl,
+    padding: THEME.spacing.lg,
+    marginBottom: THEME.spacing.md,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: THEME.colors.border,
   },
   tutorHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: THEME.spacing.md,
   },
   tutorAvatar: {
     width: 48,
     height: 48,
-    borderRadius: 16,
+    borderRadius: THEME.radius.lg,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: THEME.spacing.md,
   },
   tutorAvatarText: {
     fontFamily: FONTS.fredoka,
@@ -848,7 +883,7 @@ const styles = StyleSheet.create({
   tutorName: {
     fontFamily: FONTS.fredoka,
     fontSize: 16,
-    color: "#1E293B",
+    color: THEME.colors.text,
     marginBottom: 4,
   },
   tutorRating: {
@@ -858,23 +893,23 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 13,
-    color: "#F59E0B",
+    color: THEME.colors.accent,
     fontWeight: "600",
   },
   reviewsText: {
     fontSize: 12,
-    color: "#64748B",
+    color: THEME.colors.subtext,
   },
   tutorSubjects: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: THEME.spacing.sm,
     marginBottom: 10,
   },
   subjectBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: THEME.radius.sm,
   },
   subjectBadgeText: {
     fontSize: 11,
@@ -882,17 +917,18 @@ const styles = StyleSheet.create({
   },
   tutorBio: {
     fontSize: 13,
-    color: "#64748B",
-    marginBottom: 14,
+    color: THEME.colors.subtext,
+    marginBottom: THEME.spacing.md,
     lineHeight: 18,
   },
   tutorFooter: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    padding: 12,
-    gap: 12,
+    justifyContent: "space-between",
+    backgroundColor: THEME.colors.secondaryLight,
+    borderRadius: THEME.radius.md,
+    padding: THEME.spacing.md,
+    gap: THEME.spacing.md,
   },
   priceContainer: {
     flex: 1,
@@ -900,28 +936,29 @@ const styles = StyleSheet.create({
   },
   priceLabel: {
     fontSize: 10,
-    color: "#94A3B8",
+    color: THEME.colors.secondaryText,
     marginBottom: 4,
     textTransform: "uppercase",
   },
   priceValue: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#10B981",
+    color: THEME.colors.success,
   },
   priceDivider: {
     width: 1,
     height: 30,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: THEME.colors.border,
   },
   experienceText: {
     fontSize: 13,
-    color: "#64748B",
+    color: THEME.colors.subtext,
+    fontWeight: "500",
   },
 
   // Child Filter
   childFilterSection: {
-    paddingHorizontal: 24,
+    paddingHorizontal: THEME.spacing.xxl,
     marginBottom: 20,
   },
   clearButton: {
@@ -932,26 +969,26 @@ const styles = StyleSheet.create({
   },
   clearButtonText: {
     fontSize: 12,
-    color: "#64748B",
+    color: THEME.colors.subtext,
   },
   childrenContainer: {
     gap: 10,
-    marginTop: 8,
+    marginTop: THEME.spacing.sm,
   },
   childChip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: "#F8FAFC",
+    paddingHorizontal: THEME.spacing.lg,
+    paddingVertical: THEME.spacing.sm,
+    backgroundColor: THEME.colors.secondaryLight,
     borderRadius: 30,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: THEME.colors.border,
     gap: 6,
   },
   childChipActive: {
-    backgroundColor: "#6366F1",
-    borderColor: "#6366F1",
+    backgroundColor: THEME.colors.primary,
+    borderColor: THEME.colors.primary,
   },
   childDot: {
     width: 8,
@@ -960,52 +997,52 @@ const styles = StyleSheet.create({
   },
   childChipText: {
     fontSize: 14,
-    color: "#64748B",
+    color: THEME.colors.subtext,
   },
   childChipTextActive: {
-    color: "white",
+    color: THEME.colors.white,
   },
 
   // Recommendations
   recommendationsList: {
-    paddingHorizontal: 24,
+    paddingHorizontal: THEME.spacing.xxl,
   },
   emptyRecommendations: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: THEME.colors.secondaryLight,
+    borderRadius: THEME.radius.lg,
+    padding: THEME.spacing.lg,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: THEME.colors.border,
   },
   emptyRecommendationsText: {
     fontSize: 13,
-    color: "#64748B",
+    color: THEME.colors.subtext,
     lineHeight: 18,
   },
   recommendationCard: {
-    marginBottom: 16,
+    marginBottom: THEME.spacing.lg,
   },
   recommendationHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
+    paddingHorizontal: THEME.spacing.lg,
     paddingVertical: 10,
-    backgroundColor: "#F8FAFC",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    backgroundColor: THEME.colors.secondaryLight,
+    borderTopLeftRadius: THEME.radius.lg,
+    borderTopRightRadius: THEME.radius.lg,
     borderLeftWidth: 4,
-    borderColor: "#6366F1",
+    borderColor: THEME.colors.primary,
   },
   recommendationFor: {
     fontSize: 13,
-    color: "#1E293B",
+    color: THEME.colors.text,
     fontWeight: "600",
   },
   recommendationSubject: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: THEME.radius.sm,
   },
   recommendationSubjectText: {
     fontSize: 11,
@@ -1013,26 +1050,27 @@ const styles = StyleSheet.create({
   },
   recommendationReason: {
     fontSize: 13,
-    color: "#64748B",
+    color: THEME.colors.subtext,
     fontStyle: "italic",
-    marginBottom: 12,
+    marginBottom: THEME.spacing.md,
     lineHeight: 18,
   },
 
   // Source Button
   sourceButton: {
-    backgroundColor: "#F1F5F9",
-    marginHorizontal: 24,
-    marginTop: 20,
-    paddingVertical: 14,
+    backgroundColor: THEME.colors.secondaryLight,
+    marginHorizontal: THEME.spacing.xxl,
+    marginTop: THEME.spacing.sm,
+    marginBottom: THEME.spacing.xxl,
+    paddingVertical: THEME.spacing.md,
     borderRadius: 30,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: THEME.colors.secondaryBorder,
   },
   sourceButtonText: {
     fontSize: 15,
-    color: "#64748B",
+    color: THEME.colors.subtext,
     fontWeight: "600",
   },
 });

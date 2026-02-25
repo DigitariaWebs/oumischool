@@ -9,12 +9,70 @@ import {
 } from "lucide-react-native";
 import { View, StyleSheet, Pressable, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
 
+import { THEME } from "@/config/theme";
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 
+function TabItem({
+  onPress,
+  isFocused,
+  icon,
+  label,
+  getIconColor,
+  getLabelColor,
+}: {
+  onPress: () => void;
+  isFocused: boolean;
+  icon: any;
+  label: string;
+  getIconColor: (isFocused: boolean) => string;
+  getLabelColor: (isFocused: boolean) => string;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.tabItemWrapper,
+        pressed && styles.tabItemPressed,
+      ]}
+    >
+      <View
+        style={[
+          styles.tabIconContainer,
+          isFocused && styles.tabIconContainerActive,
+        ]}
+      >
+        {icon &&
+          icon({
+            color: getIconColor(isFocused),
+            focused: isFocused,
+          })}
+      </View>
+      <Text
+        style={[
+          styles.tabLabel,
+          { color: getLabelColor(isFocused) },
+          isFocused && styles.tabLabelActive,
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
+
+  const getIconColor = (isFocused: boolean) => {
+    return isFocused ? THEME.colors.primary : COLORS.secondary[400];
+  };
+
+  const getLabelColor = (isFocused: boolean) => {
+    return isFocused ? THEME.colors.primary : COLORS.secondary[400];
+  };
 
   return (
     <View
@@ -26,6 +84,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           const isFocused = state.index === index;
 
           const onPress = () => {
+            Haptics.selectionAsync();
             const event = navigation.emit({
               type: "tabPress",
               target: route.key,
@@ -38,32 +97,15 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           };
 
           return (
-            <Pressable
+            <TabItem
               key={route.key}
               onPress={onPress}
-              style={({ pressed }) => [
-                styles.tabItemWrapper,
-                pressed && { opacity: 0.7, transform: [{ scale: 0.96 }] },
-              ]}
-            >
-              <View
-                style={[
-                  styles.tabIconContainer,
-                  isFocused && styles.tabIconContainerActive,
-                ]}
-              >
-                {options.tabBarIcon &&
-                  options.tabBarIcon({
-                    color: isFocused ? "#6366F1" : "#94A3B8",
-                    focused: isFocused,
-                  })}
-              </View>
-              <Text
-                style={[styles.tabLabel, isFocused && styles.tabLabelActive]}
-              >
-                {options.title}
-              </Text>
-            </Pressable>
+              isFocused={isFocused}
+              icon={options.tabBarIcon}
+              label={options.title}
+              getIconColor={getIconColor}
+              getLabelColor={getLabelColor}
+            />
           );
         })}
       </View>
@@ -133,23 +175,22 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: "row",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: THEME.colors.white,
     borderRadius: 40,
     paddingHorizontal: 12,
     paddingVertical: 8,
     width: "92%",
     borderWidth: 1,
-    borderColor: "#F1F5F9",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+    borderColor: THEME.colors.border,
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
   },
   tabItemWrapper: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  tabItemPressed: {
+    opacity: 0.7,
   },
   tabIconContainer: {
     width: 44,
@@ -161,16 +202,16 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   tabIconContainerActive: {
-    backgroundColor: "#EEF2FF",
+    backgroundColor: COLORS.primary[50],
   },
   tabLabel: {
     fontFamily: FONTS.secondary,
     fontSize: 11,
     fontWeight: "600",
-    color: "#94A3B8",
+    color: COLORS.secondary[400],
   },
   tabLabelActive: {
-    color: "#6366F1",
+    color: THEME.colors.primary,
     fontWeight: "700",
   },
 });

@@ -78,7 +78,9 @@ export const Input: React.FC<InputProps> = ({
     <View style={containerStyle as any}>
       {label && <Text style={styles.label}>{label}</Text>}
 
-      <Animated.View style={[styles.inputContainer, animatedContainerStyle, style] as any}>
+      <Animated.View
+        style={[styles.inputContainer, animatedContainerStyle, style] as any}
+      >
         {icon && <View style={styles.iconContainer}>{icon}</View>}
 
         <TextInput

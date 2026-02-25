@@ -31,7 +31,7 @@ export const paymentSlice = createSlice({
     },
     paymentSuccess: (
       state,
-      action: PayloadAction<{ orderId: string; status: OrderStatus }>
+      action: PayloadAction<{ orderId: string; status: OrderStatus }>,
     ) => {
       state.isLoading = false;
       state.currentOrderId = action.payload.orderId;

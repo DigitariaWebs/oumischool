@@ -38,7 +38,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   return (
     <Animated.View
       entering={isOwn ? FadeInRight.duration(300) : FadeInLeft.duration(300)}
-      style={[styles.container, isOwn ? styles.containerOwn : styles.containerOther]}
+      style={[
+        styles.container,
+        isOwn ? styles.containerOwn : styles.containerOther,
+      ]}
     >
       {!isOwn && senderAvatar && (
         <View style={styles.avatarContainer}>
@@ -51,7 +54,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           <Text style={styles.senderName}>{senderName}</Text>
         )}
 
-        <View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
+        <View
+          style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}
+        >
           {attachment && attachment.type === "image" && (
             <View style={styles.imageContainer}>
               <Image
@@ -62,7 +67,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </View>
           )}
 
-          {content && <Text style={[styles.text, isOwn && styles.textOwn]}>{content}</Text>}
+          {content && (
+            <Text style={[styles.text, isOwn && styles.textOwn]}>
+              {content}
+            </Text>
+          )}
 
           <View style={styles.footer}>
             <Text style={[styles.timestamp, isOwn && styles.timestampOwn]}>
