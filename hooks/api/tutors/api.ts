@@ -121,6 +121,8 @@ export const tutorApi = {
   // Tutor-self endpoints
   updateMe: (body: TutorUpdatePayload) =>
     apiClient.put<TutorListItem>("/tutors/me", body),
+  getMe: () => apiClient.get<TutorListItem>("/tutors/me"),
+  getMyResources: () => apiClient.get<TutorListItem[]>("/tutors/me/resources"),
   getMyStudents: () => apiClient.get<TutorStudentRow[]>("/tutors/me/students"),
   getMySessions: () => apiClient.get<TutorSessionRow[]>("/tutors/me/sessions"),
   getMyEarnings: () =>

@@ -1,9 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  tutorApi,
-  TutorUpdatePayload,
-  CreateAvailabilityPayload,
-} from "./api";
+import { tutorApi, TutorUpdatePayload, CreateAvailabilityPayload } from "./api";
 import { tutorKeys } from "./keys";
 
 export function useTutors(params?: {
@@ -53,6 +49,20 @@ export function useMyStudents() {
   return useQuery({
     queryKey: tutorKeys.myStudents(),
     queryFn: tutorApi.getMyStudents,
+  });
+}
+
+export function useMyTutorProfile() {
+  return useQuery({
+    queryKey: tutorKeys.myProfile(),
+    queryFn: tutorApi.getMe,
+  });
+}
+
+export function useMyResources() {
+  return useQuery({
+    queryKey: tutorKeys.myResources(),
+    queryFn: tutorApi.getMyResources,
   });
 }
 

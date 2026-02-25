@@ -12,4 +12,6 @@ export const tutorKeys = {
   mySessions: () => [...tutorKeys.all, "me", "sessions"] as const,
   myEarnings: () => [...tutorKeys.all, "me", "earnings"] as const,
   myAvailability: () => [...tutorKeys.all, "me", "availability"] as const,
+  myProfile: () => [...tutorKeys.all, "me"] as const,
+  myResources: () => [...tutorKeys.all, "me", "resources"] as const,
 };

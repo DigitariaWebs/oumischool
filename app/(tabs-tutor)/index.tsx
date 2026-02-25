@@ -40,7 +40,11 @@ import {
   useTrackResourceDownload,
   useUploadResource,
 } from "@/hooks/api/resources";
-import { useMySessions, useMyStudents } from "@/hooks/api/tutors";
+import {
+  useMySessions,
+  useMyStudents,
+  useMyTutorProfile,
+} from "@/hooks/api/tutors";
 import { useAppSelector } from "@/store/hooks";
 import { resolveSubjectDisplayName } from "@/utils/sessionDisplay";
 
@@ -151,6 +155,7 @@ export default function TutorDashboardScreen() {
   const { data: apiResources = [] } = useResources();
   const { data: myStudentsData = [] } = useMyStudents();
   const { data: mySessionsData = [] } = useMySessions();
+  const { data: tutorProfile } = useMyTutorProfile();
   const uploadResourceMutation = useUploadResource();
   const trackDownloadMutation = useTrackResourceDownload();
 
@@ -158,11 +163,13 @@ export default function TutorDashboardScreen() {
   const [showResourceModal, setShowResourceModal] = useState(false);
   const [showLibraryModal, setShowLibraryModal] = useState(false);
   const [showPlanningModal, setShowPlanningModal] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [newResource, setNewResource] = useState({
     title: "",
     type: "PDF",
     targetStudentId: "",
+    subject: "",
     isPaid: false,
     price: "",
     uploadedFileName: "",
@@ -170,6 +177,10 @@ export default function TutorDashboardScreen() {
     uploadedFileSize: "",
     uploadedFileMimeType: "",
   });
+
+  const tutorSubjects = useMemo(() => {
+    return tutorProfile?.subjects ?? [];
+  }, [tutorProfile]);
 
   const students = useMemo(
     () =>
@@ -288,10 +299,15 @@ export default function TutorDashboardScreen() {
   // Ouvre le modal ressource pré-rempli depuis une session du planning
   const handleAddResourceFromSession = (session: (typeof sessions)[0]) => {
     const student = students.find((s) => s.id === session.studentId);
+    const sessionSubject = session.subject || "";
+    const defaultSubject = tutorSubjects.includes(sessionSubject)
+      ? sessionSubject
+      : tutorSubjects[0] || "";
     setNewResource({
       title: `Ressource - ${session.subject} (${session.student})`,
       type: "PDF",
       targetStudentId: student?.id ?? "",
+      subject: defaultSubject,
       isPaid: false,
       price: "",
       uploadedFileName: "",
@@ -390,6 +406,10 @@ export default function TutorDashboardScreen() {
       Alert.alert("Erreur", "Veuillez uploader un fichier.");
       return;
     }
+    if (!newResource.subject) {
+      Alert.alert("Erreur", "Veuillez sélectionner une matière.");
+      return;
+    }
     if (newResource.isPaid && !newResource.price) {
       Alert.alert("Erreur", "Veuillez indiquer le prix de la ressource.");
       return;
@@ -399,9 +419,7 @@ export default function TutorDashboardScreen() {
       (student) => student.id === newResource.targetStudentId,
     );
     const normalizedSubject =
-      SUBJECT_NORMALIZATION[targetStudent?.subject ?? ""] ??
-      targetStudent?.subject ??
-      "Mathématiques";
+      SUBJECT_NORMALIZATION[newResource.subject] ?? newResource.subject;
     const normalizedType =
       newResource.type === "Vidéo"
         ? "video"
@@ -432,6 +450,7 @@ export default function TutorDashboardScreen() {
     } as any);
 
     try {
+      setIsUploading(true);
       await uploadResourceMutation.mutateAsync(formData);
       Alert.alert(
         "🚀 Ressource Partagée",
@@ -442,6 +461,7 @@ export default function TutorDashboardScreen() {
         title: "",
         type: "PDF",
         targetStudentId: students[0]?.id ?? "",
+        subject: tutorSubjects[0] || "",
         isPaid: false,
         price: "",
         uploadedFileName: "",
@@ -456,6 +476,88 @@ export default function TutorDashboardScreen() {
           ? error.message
           : "Le serveur a rejeté le fichier.",
       );
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!newResource.title) {
+      Alert.alert("Erreur", "Veuillez donner un titre à la ressource.");
+      return;
+    }
+    if (!newResource.uploadedFileUri) {
+      Alert.alert("Erreur", "Veuillez uploader un fichier.");
+      return;
+    }
+    if (!newResource.subject) {
+      Alert.alert("Erreur", "Veuillez sélectionner une matière.");
+      return;
+    }
+
+    const targetStudent = students.find(
+      (student) => student.id === newResource.targetStudentId,
+    );
+    const normalizedSubject =
+      SUBJECT_NORMALIZATION[newResource.subject] ?? newResource.subject;
+    const normalizedType =
+      newResource.type === "Vidéo"
+        ? "video"
+        : newResource.type === "Quiz"
+          ? "other"
+          : "document";
+
+    const formData = new FormData();
+    formData.append("title", newResource.title.trim());
+    formData.append("subject", normalizedSubject);
+    formData.append("type", normalizedType);
+    formData.append("status", "DRAFT");
+    formData.append(
+      "tags",
+      targetStudent?.name ? `student:${targetStudent.name}` : "student",
+    );
+    if (newResource.isPaid) {
+      formData.append("tags", "paid");
+      formData.append("tags", `price:${newResource.price}`);
+    } else {
+      formData.append("tags", "free");
+    }
+
+    formData.append("file", {
+      uri: newResource.uploadedFileUri,
+      name: newResource.uploadedFileName || `resource-${Date.now()}.pdf`,
+      type: newResource.uploadedFileMimeType || "application/pdf",
+    } as any);
+
+    try {
+      setIsUploading(true);
+      await uploadResourceMutation.mutateAsync(formData);
+      Alert.alert(
+        "💾 Brouillon enregistré",
+        `"${newResource.title}" a été enregistré en brouillon.`,
+        [{ text: "OK", onPress: () => setShowResourceModal(false) }],
+      );
+      setNewResource({
+        title: "",
+        type: "PDF",
+        targetStudentId: students[0]?.id ?? "",
+        subject: tutorSubjects[0] || "",
+        isPaid: false,
+        price: "",
+        uploadedFileName: "",
+        uploadedFileUri: "",
+        uploadedFileSize: "",
+        uploadedFileMimeType: "",
+      });
+    } catch (error) {
+      Alert.alert(
+        "Erreur",
+        error instanceof Error
+          ? error.message
+          : "Impossible d'enregistrer le brouillon.",
+      );
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -670,7 +772,23 @@ export default function TutorDashboardScreen() {
             <View style={styles.modalContentTall}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Partager une ressource</Text>
-                <TouchableOpacity onPress={() => setShowResourceModal(false)}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setNewResource({
+                      title: "",
+                      type: "PDF",
+                      targetStudentId: students[0]?.id ?? "",
+                      subject: tutorSubjects[0] || "",
+                      isPaid: false,
+                      price: "",
+                      uploadedFileName: "",
+                      uploadedFileUri: "",
+                      uploadedFileSize: "",
+                      uploadedFileMimeType: "",
+                    });
+                    setShowResourceModal(false);
+                  }}
+                >
                   <X size={24} color="#1E293B" />
                 </TouchableOpacity>
               </View>
@@ -737,6 +855,48 @@ export default function TutorDashboardScreen() {
                     </>
                   )}
                 </TouchableOpacity>
+
+                {/* Matière */}
+                <Text style={styles.inputLabel}>Matière</Text>
+                <View style={styles.studentPicker}>
+                  {tutorSubjects.length === 0 ? (
+                    <Text style={{ color: "#EF4444", fontSize: 12 }}>
+                      {
+                        "Aucune matière assignée. Veuillez contacter l'administration."
+                      }
+                    </Text>
+                  ) : (
+                    tutorSubjects.map((subject) => (
+                      <TouchableOpacity
+                        key={subject}
+                        style={[
+                          styles.studentOption,
+                          newResource.subject === subject &&
+                            styles.studentOptionActive,
+                        ]}
+                        onPress={() =>
+                          setNewResource((prev) => ({
+                            ...prev,
+                            subject,
+                          }))
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.studentOptionText,
+                            newResource.subject === subject &&
+                              styles.studentOptionTextActive,
+                          ]}
+                        >
+                          {SUBJECT_NORMALIZATION[subject] ?? subject}
+                        </Text>
+                        {newResource.subject === subject && (
+                          <Check size={14} color="white" />
+                        )}
+                      </TouchableOpacity>
+                    ))
+                  )}
+                </View>
 
                 {/* Élève cible */}
                 <Text style={styles.inputLabel}>Pour quel élève ?</Text>
@@ -870,14 +1030,28 @@ export default function TutorDashboardScreen() {
                   </View>
                 )}
 
-                <TouchableOpacity
-                  style={styles.submitBtn}
-                  onPress={handleAddResource}
-                >
-                  <Text style={styles.submitBtnText}>
-                    Publier sur l&apos;espace Parent
-                  </Text>
-                </TouchableOpacity>
+                {isUploading && (
+                  <View style={styles.uploadingOverlay}>
+                    <Text style={styles.uploadingText}>Upload en cours...</Text>
+                  </View>
+                )}
+
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity
+                    style={[styles.submitBtn, styles.draftBtn]}
+                    onPress={handleSaveDraft}
+                    disabled={isUploading}
+                  >
+                    <Text style={styles.draftBtnText}>Sauvegarder</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.submitBtn, styles.publishBtn]}
+                    onPress={handleAddResource}
+                    disabled={isUploading}
+                  >
+                    <Text style={styles.submitBtnText}>Publier</Text>
+                  </TouchableOpacity>
+                </View>
               </ScrollView>
             </View>
           </View>
@@ -1509,11 +1683,34 @@ const styles = StyleSheet.create({
   typeChipTextActive: { color: "white" },
   submitBtn: {
     backgroundColor: "#6366F1",
-    padding: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     borderRadius: 15,
     alignItems: "center",
     elevation: 4,
+    flex: 1,
+  },
+  submitBtnText: { color: "white", fontSize: 15, fontWeight: "bold" },
+  buttonRow: {
+    flexDirection: "row",
+    gap: 12,
     marginTop: 8,
   },
-  submitBtnText: { color: "white", fontSize: 16, fontWeight: "bold" },
+  draftBtn: {
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  draftBtnText: { color: "#64748B", fontSize: 15, fontWeight: "600" },
+  publishBtn: {
+    backgroundColor: "#6366F1",
+  },
+  uploadingOverlay: {
+    backgroundColor: "#EEF2FF",
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 12,
+    alignItems: "center",
+  },
+  uploadingText: { color: "#6366F1", fontWeight: "600" },
 });
