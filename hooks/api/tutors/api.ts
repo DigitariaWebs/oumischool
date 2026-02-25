@@ -23,6 +23,7 @@ export interface AvailabilitySlot {
   dayOfWeek: number;
   startTime: string;
   endTime: string;
+  isActive: boolean;
 }
 
 export interface TutorUpdatePayload {
@@ -124,10 +125,14 @@ export const tutorApi = {
   getMySessions: () => apiClient.get<TutorSessionRow[]>("/tutors/me/sessions"),
   getMyEarnings: () =>
     apiClient.get<{ total: number; thisMonth: number }>("/tutors/me/earnings"),
+  getMyAvailability: () =>
+    apiClient.get<AvailabilitySlot[]>("/tutors/me/availability"),
   addAvailability: (body: CreateAvailabilityPayload) =>
     apiClient.post<AvailabilitySlot>("/tutors/me/availability", body),
   updateAvailability: (id: string, body: CreateAvailabilityPayload) =>
     apiClient.put<AvailabilitySlot>(`/tutors/me/availability/${id}`, body),
   deleteAvailability: (id: string) =>
     apiClient.del<void>(`/tutors/me/availability/${id}`),
+  toggleAvailability: (id: string) =>
+    apiClient.patch<AvailabilitySlot>(`/tutors/me/availability/${id}/toggle`),
 };

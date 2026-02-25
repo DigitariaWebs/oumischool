@@ -70,6 +70,13 @@ export function useMyEarnings() {
   });
 }
 
+export function useMyAvailability() {
+  return useQuery({
+    queryKey: tutorKeys.myAvailability(),
+    queryFn: tutorApi.getMyAvailability,
+  });
+}
+
 export function useUpdateTutorProfile() {
   return useMutation({
     mutationFn: (body: TutorUpdatePayload) => tutorApi.updateMe(body),
@@ -107,6 +114,16 @@ export function useDeleteAvailability() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => tutorApi.deleteAvailability(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: tutorKeys.all });
+    },
+  });
+}
+
+export function useToggleAvailability() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => tutorApi.toggleAvailability(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: tutorKeys.all });
     },

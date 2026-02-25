@@ -80,6 +80,12 @@ export default function TutorProfileScreen() {
       onPress: () => router.push("/tutor/profile/public-profile"),
     },
     {
+      icon: <Calendar size={18} color="#64748B" />,
+      title: "Disponibilités",
+      subtitle: "Gérer vos créneaux horaires",
+      onPress: () => router.push("/tutor/profile/availability"),
+    },
+    {
       icon: <MessageSquare size={18} color="#64748B" />,
       title: "Messages",
       subtitle: "Conversations avec les parents",
