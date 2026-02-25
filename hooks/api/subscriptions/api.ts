@@ -27,5 +27,10 @@ export interface CreateSubscriptionPayload {
 export const subscriptionsApi = {
   listPlans: () => apiClient.get<SubscriptionPlan[]>("/subscriptions/plans"),
   getCurrent: () => apiClient.get<Subscription | null>("/subscriptions/me"),
+  create: (body: CreateSubscriptionPayload) =>
+    apiClient.post<{ subscription: Subscription; invoiceId: string }>(
+      "/subscriptions",
+      body,
+    ),
   cancel: () => apiClient.post<Subscription>("/subscriptions/cancel"),
 };

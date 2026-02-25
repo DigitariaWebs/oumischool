@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { subscriptionsApi } from "./api";
+import { subscriptionsApi, CreateSubscriptionPayload } from "./api";
 import { subscriptionKeys } from "./keys";
 
 export function useSubscriptionPlans() {
@@ -13,6 +13,17 @@ export function useCurrentSubscription() {
   return useQuery({
     queryKey: subscriptionKeys.current(),
     queryFn: subscriptionsApi.getCurrent,
+  });
+}
+
+export function useCreateSubscription() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateSubscriptionPayload) =>
+      subscriptionsApi.create(body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: subscriptionKeys.all });
+    },
   });
 }
 
