@@ -11,20 +11,27 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import {
   ArrowLeft,
   Phone,
   Video,
   MoreVertical,
   Shield,
-  Sparkles,
 } from "lucide-react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { MessageBubble } from "@/components/messaging/MessageBubble";
 import { MessageComposer } from "@/components/messaging/MessageComposer";
+import {
+  isValidConversationId,
+  useConversation,
+  useMarkConversationRead,
+  useMessages,
+  useSendMessage,
+} from "@/hooks/api/messaging";
+import { useAppSelector } from "@/store/hooks";
+import { useMessagingSocket } from "@/components/providers/MessagingSocketProvider";
 
 interface Message {
   id: string;
@@ -48,134 +55,135 @@ const avatarImages = [
   "https://cdn-icons-png.flaticon.com/512/4140/4140051.png",
 ];
 
-const mockParticipant = {
-  id: "tutor-1",
-  name: "Marie Dupont",
-  avatar: avatarImages[0],
-  role: "tutor",
-  isOnline: true,
-};
+const markReadCooldownByConversation = new Map<string, number>();
+const MARK_READ_COOLDOWN_MS = 10_000;
 
-const mockMessages: Message[] = [
-  {
-    id: "msg-1",
-    content: "Bonjour ! Comment puis-je vous aider aujourd'hui ?",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-    senderId: "tutor-1",
-    isOwn: false,
-    isRead: true,
-  },
-  {
-    id: "msg-2",
-    content: "Bonjour Marie, je voudrais planifier une séance de maths pour Emma.",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 1.5),
-    senderId: "parent-1",
-    isOwn: true,
-    isRead: true,
-  },
-  {
-    id: "msg-3",
-    content: "Bien sûr ! Emma a des difficultés sur un sujet en particulier ?",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60),
-    senderId: "tutor-1",
-    isOwn: false,
-    isRead: true,
-  },
-  {
-    id: "msg-4",
-    content: "Oui, elle a du mal avec les fractions. Pouvez-vous l'aider ?",
-    timestamp: new Date(Date.now() - 1000 * 60 * 45),
-    senderId: "parent-1",
-    isOwn: true,
-    isRead: true,
-  },
-  {
-    id: "msg-5",
-    content: "Absolument ! Je vous propose demain à 14h ?",
-    timestamp: new Date(Date.now() - 1000 * 60 * 30),
-    senderId: "tutor-1",
-    isOwn: false,
-    isRead: true,
-  },
-  {
-    id: "msg-6",
-    content: "Parfait ! Merci beaucoup.",
-    timestamp: new Date(Date.now() - 1000 * 60 * 15),
-    senderId: "parent-1",
-    isOwn: true,
-    isRead: true,
-  },
-  {
-    id: "msg-7",
-    content: "Avec plaisir ! Je prépare quelques exercices adaptés.",
-    timestamp: new Date(Date.now() - 1000 * 60 * 5),
-    senderId: "tutor-1",
-    isOwn: false,
-    isRead: false,
-  },
-];
+function avatarFor(id: string): string {
+  let sum = 0;
+  for (let i = 0; i < id.length; i += 1) sum += id.charCodeAt(i);
+  return avatarImages[sum % avatarImages.length];
+}
 
 export default function MessageThreadScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
+  const params = useLocalSearchParams<{ id?: string | string[] }>();
+  const rawConversationId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const conversationId = isValidConversationId(rawConversationId)
+    ? rawConversationId
+    : undefined;
+  const isFocused = useIsFocused();
+  const { joinConversation, leaveConversation } = useMessagingSocket();
+  const { data: conversation } = useConversation(conversationId ?? "", {
+    enabled: isFocused,
+  });
+  const { data: messagesData = [] } = useMessages(
+    conversationId ?? "",
+    {
+      limit: "100",
+    },
+    { enabled: isFocused },
+  );
+  const currentUserId = useAppSelector((state) => state.auth.user?.id);
+  const sendMessage = useSendMessage();
+  const { mutate: markConversationRead } = useMarkConversationRead();
   const flatListRef = useRef<FlatList>(null);
-  const [messages, setMessages] = useState<Message[]>(mockMessages);
+  const markedConversationRef = useRef<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const participant = conversation?.participants[0];
+  const participantDisplay = {
+    id: participant?.id ?? "unknown",
+    name: participant?.name || participant?.email || "Conversation",
+    avatar: avatarFor(participant?.id ?? "unknown"),
+    isOnline: false,
+  };
+  const hasUnreadForCurrentUser =
+    !!conversation &&
+    ((conversation.unreadCount ?? 0) > 0 ||
+      (Array.isArray(messagesData) &&
+        messagesData.some(
+          (message) => message.senderId !== currentUserId && !message.readAt,
+        )));
 
   useEffect(() => {
+    if (!conversationId) return;
+    joinConversation(conversationId);
+    return () => {
+      leaveConversation(conversationId);
+    };
+  }, [conversationId, joinConversation, leaveConversation]);
+
+  useEffect(() => {
+    if (!conversationId || !hasUnreadForCurrentUser) return;
+    const now = Date.now();
+    const lastMarkedAt =
+      markReadCooldownByConversation.get(conversationId) ?? 0;
+    if (now - lastMarkedAt < MARK_READ_COOLDOWN_MS) return;
+    markReadCooldownByConversation.set(conversationId, now);
+    if (markedConversationRef.current === conversationId) return;
+    markedConversationRef.current = conversationId;
+    markConversationRead(conversationId);
+  }, [conversationId, hasUnreadForCurrentUser, markConversationRead]);
+
+  useEffect(() => {
+    const rows = Array.isArray(messagesData) ? messagesData : [];
+    const mapped = rows.map((message) => ({
+      id: message.id,
+      content: message.content,
+      timestamp: new Date(message.sentAt),
+      senderId: message.senderId,
+      isOwn: message.senderId === currentUserId,
+      isRead: !!message.readAt,
+    }));
+    setMessages(mapped);
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: false });
     }, 100);
-  }, []);
+  }, [currentUserId, messagesData]);
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = async (content: string) => {
+    if (!conversationId) return;
     const newMessage: Message = {
       id: `msg-${Date.now()}`,
       content,
       timestamp: new Date(),
-      senderId: "parent-1",
+      senderId: currentUserId ?? "me",
       isOwn: true,
       isRead: false,
     };
 
     setMessages((prev) => [...prev, newMessage]);
+    await sendMessage.mutateAsync({ conversationId, content }).catch(() => {});
 
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
-
-    setTimeout(() => {
-      const response: Message = {
-        id: `msg-${Date.now() + 1}`,
-        content: "Message reçu ! Je vous réponds dans un instant.",
-        timestamp: new Date(),
-        senderId: "tutor-1",
-        isOwn: false,
-        isRead: false,
-      };
-      setMessages((prev) => [...prev, response]);
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }, 2000);
   };
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
           <ArrowLeft size={22} color="#1E293B" />
         </TouchableOpacity>
 
         <View style={styles.participantInfo}>
           <View style={styles.avatarWrapper}>
-            <Image source={{ uri: mockParticipant.avatar }} style={styles.avatar} />
-            {mockParticipant.isOnline && <View style={styles.onlineDot} />}
+            <Image
+              source={{ uri: participantDisplay.avatar }}
+              style={styles.avatar}
+            />
+            {participantDisplay.isOnline && <View style={styles.onlineDot} />}
           </View>
           <View>
-            <Text style={styles.participantName}>{mockParticipant.name}</Text>
+            <Text style={styles.participantName}>
+              {participantDisplay.name}
+            </Text>
             <Text style={styles.participantStatus}>
-              {mockParticipant.isOnline ? "En ligne" : "Hors ligne"}
+              {participantDisplay.isOnline ? "En ligne" : "Hors ligne"}
             </Text>
           </View>
         </View>
@@ -215,14 +223,16 @@ export default function MessageThreadScreen() {
               content={item.content}
               timestamp={item.timestamp}
               isOwn={item.isOwn}
-              senderName={item.isOwn ? undefined : mockParticipant.name}
-              senderAvatar={item.isOwn ? undefined : mockParticipant.avatar}
+              senderName={item.isOwn ? undefined : participantDisplay.name}
+              senderAvatar={item.isOwn ? undefined : participantDisplay.avatar}
               isRead={item.isRead}
             />
           )}
           contentContainerStyle={styles.messagesList}
           showsVerticalScrollIndicator={false}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          onContentSizeChange={() =>
+            flatListRef.current?.scrollToEnd({ animated: true })
+          }
         />
 
         <MessageComposer onSend={handleSendMessage} />

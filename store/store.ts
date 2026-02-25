@@ -3,6 +3,7 @@ import authReducer from "./slices/authSlice";
 import childrenReducer from "./slices/childrenSlice";
 import aiContextReducer from "./slices/aiContextSlice";
 import themeReducer from "./slices/themeSlice";
+import paymentReducer from "./slices/paymentSlice";
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     children: childrenReducer,
     aiContext: aiContextReducer,
     theme: themeReducer,
+    payment: paymentReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

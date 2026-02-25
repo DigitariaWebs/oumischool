@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
+import { useParentMe, useUpdateParentProfile } from "@/hooks/api/parent";
 
 interface NotificationSettingProps {
   icon: React.ReactNode;
@@ -65,6 +66,8 @@ const NotificationSetting: React.FC<NotificationSettingProps> = ({
 
 export default function ParentNotificationsScreen() {
   const router = useRouter();
+  const { data: parentProfile } = useParentMe();
+  const updateParentProfile = useUpdateParentProfile();
 
   const [sessionReminders, setSessionReminders] = useState(true);
   const [sessionConfirmations, setSessionConfirmations] = useState(true);
@@ -78,6 +81,32 @@ export default function ParentNotificationsScreen() {
   const [systemUpdates, setSystemUpdates] = useState(false);
   const [promotions, setPromotions] = useState(false);
 
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    if (parentProfile?.notificationPreferences && !initialized.current) {
+      initialized.current = true;
+      const np = parentProfile.notificationPreferences as Record<string, boolean>;
+      if (np.sessionReminders !== undefined) setSessionReminders(np.sessionReminders);
+      if (np.sessionConfirmations !== undefined) setSessionConfirmations(np.sessionConfirmations);
+      if (np.sessionCancellations !== undefined) setSessionCancellations(np.sessionCancellations);
+      if (np.messages !== undefined) setMessages(np.messages);
+      if (np.messageReplies !== undefined) setMessageReplies(np.messageReplies);
+      if (np.reviews !== undefined) setReviews(np.reviews);
+      if (np.newReviews !== undefined) setNewReviews(np.newReviews);
+      if (np.payments !== undefined) setPayments(np.payments);
+      if (np.receipts !== undefined) setReceipts(np.receipts);
+      if (np.systemUpdates !== undefined) setSystemUpdates(np.systemUpdates);
+      if (np.promotions !== undefined) setPromotions(np.promotions);
+    }
+  }, [parentProfile]);
+
+  const handleToggle = (key: string, value: boolean, setter: (v: boolean) => void) => {
+    setter(value);
+    const current = (parentProfile?.notificationPreferences as Record<string, unknown>) ?? {};
+    updateParentProfile.mutate({ notificationPreferences: { ...current, [key]: value } });
+  };
+
   const notificationSettings = [
     {
       section: "Sessions",
@@ -88,21 +117,21 @@ export default function ParentNotificationsScreen() {
           title: "Rappels de session",
           description: "Notification 1h avant chaque session",
           value: sessionReminders,
-          onValueChange: setSessionReminders,
+          onValueChange: (v: boolean) => handleToggle("sessionReminders", v, setSessionReminders),
         },
         {
           icon: <Calendar size={18} color="#6366F1" />,
           title: "Confirmations",
           description: "Confirmation de réservation",
           value: sessionConfirmations,
-          onValueChange: setSessionConfirmations,
+          onValueChange: (v: boolean) => handleToggle("sessionConfirmations", v, setSessionConfirmations),
         },
         {
           icon: <AlertCircle size={18} color="#6366F1" />,
           title: "Annulations",
           description: "Notification d'annulation",
           value: sessionCancellations,
-          onValueChange: setSessionCancellations,
+          onValueChange: (v: boolean) => handleToggle("sessionCancellations", v, setSessionCancellations),
         },
       ],
     },
@@ -115,14 +144,14 @@ export default function ParentNotificationsScreen() {
           title: "Nouveaux messages",
           description: "Messages des tuteurs",
           value: messages,
-          onValueChange: setMessages,
+          onValueChange: (v: boolean) => handleToggle("messages", v, setMessages),
         },
         {
           icon: <MessageSquare size={18} color="#10B981" />,
           title: "Réponses",
           description: "Réponses à vos messages",
           value: messageReplies,
-          onValueChange: setMessageReplies,
+          onValueChange: (v: boolean) => handleToggle("messageReplies", v, setMessageReplies),
         },
       ],
     },
@@ -135,14 +164,14 @@ export default function ParentNotificationsScreen() {
           title: "Demandes d'avis",
           description: "Après chaque session",
           value: reviews,
-          onValueChange: setReviews,
+          onValueChange: (v: boolean) => handleToggle("reviews", v, setReviews),
         },
         {
           icon: <Star size={18} color="#F59E0B" />,
           title: "Nouveaux avis",
           description: "Avis reçus des tuteurs",
           value: newReviews,
-          onValueChange: setNewReviews,
+          onValueChange: (v: boolean) => handleToggle("newReviews", v, setNewReviews),
         },
       ],
     },
@@ -155,14 +184,14 @@ export default function ParentNotificationsScreen() {
           title: "Confirmations de paiement",
           description: "Paiements effectués",
           value: payments,
-          onValueChange: setPayments,
+          onValueChange: (v: boolean) => handleToggle("payments", v, setPayments),
         },
         {
           icon: <CreditCard size={18} color="#8B5CF6" />,
           title: "Reçus",
           description: "Reçus de paiement",
           value: receipts,
-          onValueChange: setReceipts,
+          onValueChange: (v: boolean) => handleToggle("receipts", v, setReceipts),
         },
       ],
     },
@@ -175,14 +204,14 @@ export default function ParentNotificationsScreen() {
           title: "Mises à jour",
           description: "Nouvelles fonctionnalités",
           value: systemUpdates,
-          onValueChange: setSystemUpdates,
+          onValueChange: (v: boolean) => handleToggle("systemUpdates", v, setSystemUpdates),
         },
         {
           icon: <Bell size={18} color="#64748B" />,
           title: "Promotions",
           description: "Offres et réductions",
           value: promotions,
-          onValueChange: setPromotions,
+          onValueChange: (v: boolean) => handleToggle("promotions", v, setPromotions),
         },
       ],
     },

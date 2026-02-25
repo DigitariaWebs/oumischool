@@ -12,57 +12,118 @@ import { Mail, Lock, ArrowRight } from "lucide-react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { AntDesign } from "@expo/vector-icons";
 
-import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { ASSETS } from "@/config/assets";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { useAppDispatch } from "@/store/hooks";
-import { mockLogin } from "@/store/slices/authSlice";
+import { loginSuccess } from "@/store/slices/authSlice";
+import { useLogin } from "@/hooks/api/auth";
 
 // Arrière-plan décoré avec points
 const BackgroundDecorations = () => (
   <View style={StyleSheet.absoluteFill} pointerEvents="none">
-    <View style={[styles.dot, { top: '15%', left: '10%', backgroundColor: "#6366F1", width: 16, height: 16 }]} />
-    <View style={[styles.dot, { top: '25%', right: '15%', backgroundColor: "#F59E0B", width: 20, height: 20 }]} />
-    <View style={[styles.dot, { bottom: '30%', left: '20%', backgroundColor: "#10B981", width: 12, height: 12, opacity: 0.6 }]} />
-    <View style={[styles.dot, { bottom: '20%', right: '25%', backgroundColor: "#EF4444", width: 14, height: 14 }]} />
-    <View style={[styles.ring, { top: '10%', right: '-10%' }]} />
-    <View style={[styles.ring, { bottom: '5%', left: '-15%' }]} />
+    <View
+      style={[
+        styles.dot,
+        {
+          top: "15%",
+          left: "10%",
+          backgroundColor: "#6366F1",
+          width: 16,
+          height: 16,
+        },
+      ]}
+    />
+    <View
+      style={[
+        styles.dot,
+        {
+          top: "25%",
+          right: "15%",
+          backgroundColor: "#F59E0B",
+          width: 20,
+          height: 20,
+        },
+      ]}
+    />
+    <View
+      style={[
+        styles.dot,
+        {
+          bottom: "30%",
+          left: "20%",
+          backgroundColor: "#10B981",
+          width: 12,
+          height: 12,
+          opacity: 0.6,
+        },
+      ]}
+    />
+    <View
+      style={[
+        styles.dot,
+        {
+          bottom: "20%",
+          right: "25%",
+          backgroundColor: "#EF4444",
+          width: 14,
+          height: 14,
+        },
+      ]}
+    />
+    <View style={[styles.ring, { top: "10%", right: "-10%" }]} />
+    <View style={[styles.ring, { bottom: "5%", left: "-15%" }]} />
   </View>
 );
 
 export default function SignInScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const loginMutation = useLogin();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // LOGIQUE INTACTE
-  const handleSignIn = () => {
-    setIsLoading(true);
-
-    setTimeout(() => {
-      let role: "parent" | "child" | "tutor" = "parent";
-
-      if (email.includes("adam") || email.includes("sofia")) {
-        role = "child";
-      } else if (email.includes("tutor") || email.includes("mohamed")) {
-        role = "tutor";
+  const handleSignIn = async () => {
+    if (!email || !password) return;
+    setError(null);
+    try {
+      const data = await loginMutation.mutateAsync({ email, password });
+      const rawRole = data.user.role.toUpperCase();
+      let appRole: "parent" | "tutor" | "child";
+      if (rawRole === "TUTOR") {
+        appRole = "tutor";
+      } else if (rawRole === "CHILD") {
+        appRole = "child";
+      } else if (rawRole === "PARENT") {
+        appRole = "parent";
+      } else {
+        throw new Error(
+          "Ce rôle n'est pas supporté dans l'application mobile.",
+        );
       }
-
-      dispatch(mockLogin(role));
-      setIsLoading(false);
-      
-      if (role === "child") {
-        router.replace("/(tabs-child)");
-      } else if (role === "tutor") {
+      dispatch(
+        loginSuccess({
+          user: {
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.email,
+            role: appRole,
+          },
+          token: data.tokens.accessToken,
+        }),
+      );
+      if (appRole === "tutor") {
         router.replace("/(tabs-tutor)");
+      } else if (appRole === "child") {
+        router.replace("/(tabs-child)");
       } else {
         router.replace("/(tabs)");
       }
-    }, 1500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Identifiants incorrects");
+    }
   };
 
   return (
@@ -87,7 +148,7 @@ export default function SignInScreen() {
           </View>
           <Text style={styles.title}>Bienvenue !</Text>
           <Text style={styles.subtitle}>
-            Connectez-vous à votre espace Oumi'School
+            Connectez-vous à votre espace Oumi&apos;School
           </Text>
         </Animated.View>
 
@@ -124,10 +185,23 @@ export default function SignInScreen() {
             <Text style={styles.forgotPasswordText}>Mot de passe oublié ?</Text>
           </TouchableOpacity>
 
+          {error && (
+            <Text
+              style={{
+                color: "#EF4444",
+                fontSize: 13,
+                marginBottom: 12,
+                textAlign: "center",
+              }}
+            >
+              {error}
+            </Text>
+          )}
+
           <Button
             title="Se connecter"
             onPress={handleSignIn}
-            isLoading={isLoading}
+            isLoading={loginMutation.isPending}
             fullWidth
             style={styles.signInButton}
             icon={<ArrowRight size={18} color="white" />}
@@ -162,15 +236,17 @@ export default function SignInScreen() {
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Mode test */}
-        <Animated.View entering={FadeInUp.delay(700).duration(600)}>
-          <TouchableOpacity
-            onPress={() => router.push("/dev-accounts")}
-            style={styles.devButton}
-          >
-            <Text style={styles.devButtonText}>Comptes de test</Text>
-          </TouchableOpacity>
-        </Animated.View>
+        {/* Mode test (dev only) */}
+        {__DEV__ && (
+          <Animated.View entering={FadeInUp.delay(700).duration(600)}>
+            <TouchableOpacity
+              onPress={() => router.push("/dev-accounts")}
+              style={styles.devButton}
+            >
+              <Text style={styles.devButtonText}>Comptes de test</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        )}
       </ScrollView>
     </View>
   );
@@ -183,12 +259,12 @@ const styles = StyleSheet.create({
   },
   // Décorations
   dot: {
-    position: 'absolute',
+    position: "absolute",
     borderRadius: 999,
     opacity: 0.5,
   },
   ring: {
-    position: 'absolute',
+    position: "absolute",
     width: 200,
     height: 200,
     borderRadius: 100,

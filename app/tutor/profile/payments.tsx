@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -22,53 +22,74 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
-import { useAppSelector } from "@/store/hooks";
+import { useMyEarnings, useMySessions } from "@/hooks/api/tutors";
 
 export default function PaymentsScreen() {
   const router = useRouter();
-  const user = useAppSelector((state) => state.auth.user);
   const [selectedPeriod, setSelectedPeriod] = useState("month");
+  const { data: earningsData } = useMyEarnings();
+  const { data: mySessionsData = [] } = useMySessions();
 
-  const earnings = {
-    month: 1250.5,
-    week: 287.5,
-    total: 8450.0,
-  };
+  const sessions = useMemo(
+    () => (Array.isArray(mySessionsData) ? mySessionsData : []),
+    [mySessionsData],
+  );
+  const completedSessions = sessions.filter(
+    (session) => String(session.status).toUpperCase() === "COMPLETED",
+  );
 
-  const recentTransactions = [
-    {
-      id: "1",
-      student: "Marie Dupont",
-      amount: 45.0,
-      date: "2024-01-15",
-      status: "completed",
-      hours: 1.5,
-    },
-    {
-      id: "2",
-      student: "Jean Martin",
-      amount: 60.0,
-      date: "2024-01-14",
-      status: "completed",
-      hours: 2,
-    },
-    {
-      id: "3",
-      student: "Sophie Bernard",
-      amount: 30.0,
-      date: "2024-01-13",
-      status: "pending",
-      hours: 1,
-    },
-    {
-      id: "4",
-      student: "Lucas Petit",
-      amount: 75.0,
-      date: "2024-01-12",
-      status: "completed",
-      hours: 2.5,
-    },
-  ];
+  const weekStart = useMemo(() => {
+    const now = new Date();
+    const d = new Date(now);
+    d.setDate(now.getDate() - 7);
+    return d;
+  }, []);
+
+  const earnings = useMemo(() => {
+    const weekly = completedSessions.reduce((sum, session) => {
+      const start = new Date(session.startTime);
+      if (Number.isNaN(start.getTime()) || start < weekStart) return sum;
+      return (
+        sum + Number((session as any)?.revenue?.net ?? session?.price ?? 0)
+      );
+    }, 0);
+    return {
+      month: Number(earningsData?.thisMonth ?? 0),
+      week: Number(weekly),
+      total: Number(earningsData?.total ?? 0),
+    };
+  }, [completedSessions, earningsData, weekStart]);
+
+  const recentTransactions = useMemo(
+    () =>
+      sessions.slice(0, 10).map((session) => {
+        const start = new Date(session.startTime);
+        const end = new Date(session.endTime);
+        const hours = Math.max(
+          0.5,
+          Math.round(((end.getTime() - start.getTime()) / 3_600_000) * 10) / 10,
+        );
+        const childName =
+          session?.child?.name ??
+          [session?.child?.user?.firstName, session?.child?.user?.lastName]
+            .filter(Boolean)
+            .join(" ")
+            .trim() ??
+          "Élève";
+        return {
+          id: session.id,
+          student: childName || "Élève",
+          amount: Number((session as any)?.revenue?.net ?? session?.price ?? 0),
+          date: session.startTime,
+          status:
+            String(session.status).toUpperCase() === "COMPLETED"
+              ? "completed"
+              : "pending",
+          hours,
+        };
+      }),
+    [sessions],
+  );
 
   const periods = [
     { id: "week", label: "Semaine" },
@@ -139,12 +160,14 @@ export default function PaymentsScreen() {
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <TrendingUp size={24} color="#10B981" />
-              <Text style={styles.statValue}>+23%</Text>
+              <Text style={styles.statValue}>
+                {Math.round(earnings.month)}€
+              </Text>
               <Text style={styles.statLabel}>Ce mois</Text>
             </View>
             <View style={styles.statCard}>
               <Calendar size={24} color="#8B5CF6" />
-              <Text style={styles.statValue}>42</Text>
+              <Text style={styles.statValue}>{completedSessions.length}</Text>
               <Text style={styles.statLabel}>Sessions</Text>
             </View>
           </View>
@@ -180,45 +203,53 @@ export default function PaymentsScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.transactionsCard}>
-              {recentTransactions.map((transaction, index) => (
-                <View
-                  key={transaction.id}
-                  style={[
-                    styles.transactionItem,
-                    index !== recentTransactions.length - 1 &&
-                      styles.transactionItemBorder,
-                  ]}
-                >
-                  <View style={styles.transactionLeft}>
-                    <View
-                      style={[
-                        styles.transactionStatus,
-                        transaction.status === "completed"
-                          ? styles.statusCompleted
-                          : styles.statusPending,
-                      ]}
-                    />
-                    <View style={styles.transactionInfo}>
-                      <Text style={styles.transactionStudent}>
-                        {transaction.student}
-                      </Text>
-                      <Text style={styles.transactionDate}>
-                        {new Date(transaction.date).toLocaleDateString(
-                          "fr-FR",
-                          {
-                            day: "numeric",
-                            month: "short",
-                          },
-                        )}{" "}
-                        • {transaction.hours}h
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={styles.transactionAmount}>
-                    +{transaction.amount.toFixed(2)} €
+              {recentTransactions.length === 0 ? (
+                <View style={styles.emptyTransactions}>
+                  <Text style={styles.emptyTransactionsText}>
+                    Aucune transaction disponible.
                   </Text>
                 </View>
-              ))}
+              ) : (
+                recentTransactions.map((transaction, index) => (
+                  <View
+                    key={transaction.id}
+                    style={[
+                      styles.transactionItem,
+                      index !== recentTransactions.length - 1 &&
+                        styles.transactionItemBorder,
+                    ]}
+                  >
+                    <View style={styles.transactionLeft}>
+                      <View
+                        style={[
+                          styles.transactionStatus,
+                          transaction.status === "completed"
+                            ? styles.statusCompleted
+                            : styles.statusPending,
+                        ]}
+                      />
+                      <View style={styles.transactionInfo}>
+                        <Text style={styles.transactionStudent}>
+                          {transaction.student}
+                        </Text>
+                        <Text style={styles.transactionDate}>
+                          {new Date(transaction.date).toLocaleDateString(
+                            "fr-FR",
+                            {
+                              day: "numeric",
+                              month: "short",
+                            },
+                          )}{" "}
+                          • {transaction.hours}h
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.transactionAmount}>
+                      +{transaction.amount.toFixed(2)} €
+                    </Text>
+                  </View>
+                ))
+              )}
             </View>
           </View>
         </Animated.View>
@@ -428,6 +459,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 3,
+  },
+  emptyTransactions: {
+    padding: 16,
+    alignItems: "center",
+  },
+  emptyTransactionsText: {
+    fontFamily: FONTS.secondary,
+    fontSize: 14,
+    color: COLORS.secondary[500],
   },
   transactionItem: {
     flexDirection: "row",

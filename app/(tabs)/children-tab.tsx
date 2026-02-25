@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Pressable,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -19,14 +20,12 @@ import {
   Users,
 } from "lucide-react-native";
 
-import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
-import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { addChild } from "@/store/slices/childrenSlice";
 import AddChildModal from "@/components/AddChildModal";
+import { useChildren, useCreateChild } from "@/hooks/api/parent";
 
 interface Child {
-  id: number;
+  id: string;
   name: string;
   grade: string;
   dateOfBirth: string;
@@ -45,12 +44,27 @@ const childImages = [
   "https://cdn-icons-png.flaticon.com/512/4140/4140051.png",
 ];
 
+const CHILD_COLORS = [
+  "#3B82F6",
+  "#EC4899",
+  "#10B981",
+  "#F59E0B",
+  "#8B5CF6",
+  "#EF4444",
+  "#14B8A6",
+  "#F97316",
+];
+
 const calculateAge = (dateOfBirth: string): number => {
   const today = new Date();
   const birthDate = new Date(dateOfBirth);
+  if (Number.isNaN(birthDate.getTime())) return 0;
   let age = today.getFullYear() - birthDate.getFullYear();
   const monthDiff = today.getMonth() - birthDate.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birthDate.getDate())
+  ) {
     age--;
   }
   return age;
@@ -58,40 +72,33 @@ const calculateAge = (dateOfBirth: string): number => {
 
 export default function ChildrenTab() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
-  const childrenFromStore = useAppSelector((state) => state.children.children);
+  const { data: childrenFromApi = [], isLoading, refetch } = useChildren();
+  const createChild = useCreateChild();
   const [addModalVisible, setAddModalVisible] = useState(false);
 
-  const children: Child[] = childrenFromStore.map((child) => ({
-    id: parseInt(child.id.split("-")[1]),
+  const children: Child[] = childrenFromApi.map((child, index) => ({
+    id: child.id,
     name: child.name,
     grade: child.grade,
-    dateOfBirth: child.dateOfBirth,
-    progress: child.progress,
-    lessonsCompleted: child.lessonsCompleted,
-    totalLessons: child.totalLessons,
-    avatar: child.avatar,
-    color: child.color,
+    dateOfBirth: child.dateOfBirth ?? "",
+    progress: 0,
+    lessonsCompleted: 0,
+    totalLessons: 20,
+    avatar: childImages[index % childImages.length],
+    color: CHILD_COLORS[index % CHILD_COLORS.length],
   }));
 
-  const handleAddChild = (childData: any) => {
-    const newChild = {
-      id: `child-${Date.now()}`,
+  const handleAddChild = async (childData: {
+    name: string;
+    dateOfBirth: string;
+    grade: string;
+    color: string;
+  }) => {
+    await createChild.mutateAsync({
       name: childData.name,
       dateOfBirth: childData.dateOfBirth,
       grade: childData.grade,
-      avatar: "",
-      color: childData.color,
-      parentId: "parent-1",
-      progress: 0,
-      lessonsCompleted: 0,
-      totalLessons: 20,
-      weeklyActivity: 0,
-      monthlyGrowth: 0,
-      favoriteSubjects: [],
-      learningGoals: [],
-    };
-    dispatch(addChild(newChild));
+    });
   };
 
   return (
@@ -105,8 +112,16 @@ export default function ChildrenTab() {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {children.length === 0 ? (
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color="#6366F1" />
+            <Text style={styles.loadingText}>Chargement des enfants...</Text>
+          </View>
+        ) : children.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyTitle}>Aucun enfant ajouté</Text>
             <Text style={styles.emptyDescription}>
@@ -119,6 +134,14 @@ export default function ChildrenTab() {
               <Plus size={20} color="white" />
               <Text style={styles.addFirstButtonText}>Ajouter un enfant</Text>
             </TouchableOpacity>
+            {!isLoading ? (
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={() => refetch()}
+              >
+                <Text style={styles.retryButtonText}>Actualiser</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         ) : (
           <>
@@ -126,22 +149,27 @@ export default function ChildrenTab() {
             {children.map((child, index) => (
               <Pressable
                 key={child.id}
-                style={({ pressed }) => [styles.childCard, pressed && { opacity: 0.9 }]}
-                onPress={() => router.push(`/parent/child/details?id=child-${child.id}`)}
+                style={({ pressed }) => [
+                  styles.childCard,
+                  pressed && { opacity: 0.9 },
+                ]}
+                onPress={() =>
+                  router.push(`/parent/child/details?id=${child.id}`)
+                }
               >
                 {/* En-tête avec avatar image et infos */}
                 <View style={styles.cardHeader}>
-                  <Image 
-                    source={{ uri: childImages[index % childImages.length] }} 
-                    style={styles.avatar}
-                  />
+                  <Image source={{ uri: child.avatar }} style={styles.avatar} />
                   <View style={styles.childInfo}>
                     <Text style={styles.childName}>{child.name}</Text>
                     <Text style={styles.childDetails}>
                       {calculateAge(child.dateOfBirth)} ans • {child.grade}
                     </Text>
                   </View>
-                  <TouchableOpacity style={styles.editButton}>
+                  <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={() => router.push(`/parent/child/details?id=${child.id}`)}
+                  >
                     <Edit size={16} color="#94A3B8" />
                   </TouchableOpacity>
                 </View>
@@ -162,7 +190,9 @@ export default function ChildrenTab() {
                   <View style={styles.statDivider} />
                   <View style={styles.statItem}>
                     <TrendingUp size={14} color="#10B981" />
-                    <Text style={[styles.statValue, { color: "#10B981" }]}>+12%</Text>
+                    <Text style={[styles.statValue, { color: "#10B981" }]}>
+                      +12%
+                    </Text>
                   </View>
                 </View>
 
@@ -172,7 +202,10 @@ export default function ChildrenTab() {
                     <View
                       style={[
                         styles.progressFill,
-                        { width: `${child.progress}%`, backgroundColor: child.color }
+                        {
+                          width: `${child.progress}%`,
+                          backgroundColor: child.color,
+                        },
                       ]}
                     />
                   </View>
@@ -238,7 +271,17 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingTop: 8,
   },
-  
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 30,
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: "#64748B",
+  },
+
   // Empty state
   emptyContainer: {
     alignItems: "center",
@@ -269,6 +312,19 @@ const styles = StyleSheet.create({
   addFirstButtonText: {
     color: "white",
     fontSize: 16,
+    fontWeight: "600",
+  },
+  retryButton: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+  },
+  retryButtonText: {
+    fontSize: 14,
+    color: "#475569",
     fontWeight: "600",
   },
 

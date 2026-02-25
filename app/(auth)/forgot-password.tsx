@@ -17,22 +17,24 @@ import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
+import { useForgotPassword } from "@/hooks/api/auth";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const forgotMutation = useForgotPassword();
   const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSendResetLink = () => {
+  const handleSendResetLink = async () => {
     if (!email) return;
-
-    setIsLoading(true);
-
-    setTimeout(() => {
-      setIsLoading(false);
+    setError(null);
+    try {
+      await forgotMutation.mutateAsync(email);
       setIsSuccess(true);
-    }, 1500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur lors de l'envoi");
+    }
   };
 
   if (isSuccess) {
@@ -115,10 +117,16 @@ export default function ForgotPasswordScreen() {
               containerStyle={styles.inputContainer}
             />
 
+            {error && (
+              <Text style={{ color: "#EF4444", fontSize: 13, marginBottom: 12, textAlign: "center" }}>
+                {error}
+              </Text>
+            )}
+
             <Button
               title="Envoyer le lien"
               onPress={handleSendResetLink}
-              isLoading={isLoading}
+              isLoading={forgotMutation.isPending}
               disabled={!email}
               fullWidth
               style={[styles.sendButton, !email && styles.sendButtonDisabled]}

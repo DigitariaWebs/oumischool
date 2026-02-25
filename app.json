@@ -13,6 +13,7 @@
       "bundleIdentifier": "com.achrefdev.oumischool"
     },
     "android": {
+      "googleServicesFile":"./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -27,28 +28,37 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-   "plugins": [
-  "expo-router",
-  [
-    "expo-splash-screen",
-    {
-      "image": "./assets/images/splash-icon.png",
-      "imageWidth": 200,
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff",
-      "dark": {
-        "backgroundColor": "#000000"
-      }
-    }
-  ],
-  "@react-native-community/datetimepicker",
-  [
-    "expo-document-picker",
-    {
-      "iCloudContainerEnvironment": "Production"
-    }
-  ]
-],
+    "plugins": [
+      "expo-dev-client",
+      "expo-router",
+      "expo-notifications",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.achrefdev.oumischool",
+          "enableGooglePay": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "backgroundColor": "#000000"
+          }
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      [
+        "expo-document-picker",
+        {
+          "iCloudContainerEnvironment": "Production"
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
@@ -56,9 +66,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "7d8c47bf-ca3c-406c-a121-41e772bb40e5"
+        "projectId": "bf30e39c-cab0-43d4-8e03-f4798b201c61"
       }
     },
-    "owner": "achrefdev"
+    "owner": "p.egasu.s"
   }
 }

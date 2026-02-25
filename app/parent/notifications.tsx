@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
-  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -22,16 +21,19 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react-native";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
-import { SPACING } from "@/constants/tokens";
 import { useTheme } from "@/hooks/use-theme";
 import { ThemeColors } from "@/constants/theme";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+import {
+  useMarkAllNotificationsRead,
+  useMarkNotificationRead,
+  useNotifications,
+} from "@/hooks/api/notifications";
+import type { Notification as ApiNotification } from "@/hooks/api/notifications/api";
 
 interface Notification {
   id: string;
@@ -39,93 +41,79 @@ interface Notification {
   title: string;
   message: string;
   time: string;
-  date: "TODAY" | "Yesterday" | string;
+  date: string;
   read: boolean;
 }
 
-const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    type: "progress",
-    title: "Leçon Terminée",
-    message: "Sophia a terminé la leçon de mathématiques avec un score de 95%",
-    time: "Il y a 5m",
-    date: "TODAY",
-    read: false,
-  },
-  {
-    id: "2",
-    type: "reminder",
-    title: "Session de Tutorat",
-    message: "Rappel : Session avec Marie Dupont aujourd'hui à 15h00",
-    time: "Il y a 30m",
-    date: "TODAY",
-    read: false,
-  },
-  {
-    id: "3",
-    type: "achievement",
-    title: "Nouveau Badge",
-    message: 'Lucas a débloqué le badge "Expert en Lecture" !',
-    time: "Il y a 2h",
-    date: "TODAY",
-    read: false,
-  },
-  {
-    id: "4",
-    type: "message",
-    title: "Message du Tuteur",
-    message: "Jean Martin a partagé de nouvelles ressources pour les sciences",
-    time: "Il y a 3h",
-    date: "TODAY",
-    read: true,
-  },
-  {
-    id: "5",
-    type: "assignment",
-    title: "Nouveau Plan Hebdomadaire",
-    message:
-      "Le plan de cours de la semaine prochaine est maintenant disponible",
-    time: "Il y a 5h",
-    date: "TODAY",
-    read: true,
-  },
-  {
-    id: "6",
-    type: "reminder",
-    title: "Abonnement",
-    message: "Votre essai gratuit se termine dans 3 jours",
-    time: "Il y a 8h",
-    date: "Yesterday",
-    read: true,
-  },
-  {
-    id: "7",
-    type: "progress",
-    title: "Rapport Hebdomadaire",
-    message: "Le rapport de progrès de vos enfants est disponible",
-    time: "Il y a 1j",
-    date: "Yesterday",
-    read: true,
-  },
-  {
-    id: "8",
-    type: "achievement",
-    title: "Série d'Apprentissage",
-    message: "Sophia maintient une série de 7 jours consécutifs !",
-    time: "Il y a 1j",
-    date: "Yesterday",
-    read: true,
-  },
-];
+function mapNotificationType(type: string): Notification["type"] {
+  const key = type.toLowerCase();
+  if (key.includes("message")) return "message";
+  if (key.includes("assign") || key.includes("session")) return "assignment";
+  if (key.includes("progress")) return "progress";
+  if (key.includes("achievement") || key.includes("badge"))
+    return "achievement";
+  return "reminder";
+}
+
+function formatRelativeTime(dateInput: string): string {
+  const date = new Date(dateInput);
+  if (Number.isNaN(date.getTime())) return "Récemment";
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.max(1, Math.floor(diffMs / 60000));
+  if (diffMin < 60) return `Il y a ${diffMin}m`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `Il y a ${diffHours}h`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `Il y a ${diffDays}j`;
+}
+
+function groupDateLabel(dateInput: string): string {
+  const date = new Date(dateInput);
+  if (Number.isNaN(date.getTime())) return "Autres";
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const notificationDay = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  );
+  const diffDays = Math.floor(
+    (today.getTime() - notificationDay.getTime()) / 86400000,
+  );
+  if (diffDays === 0) return "TODAY";
+  if (diffDays === 1) return "Yesterday";
+  return date.toLocaleDateString("fr-FR");
+}
+
+function adaptNotification(notification: ApiNotification): Notification {
+  const createdAt = notification.createdAt ?? "";
+  return {
+    id: notification.id,
+    type: mapNotificationType(notification.type),
+    title: notification.title || "Notification",
+    message: notification.body || "",
+    time: formatRelativeTime(createdAt),
+    date: groupDateLabel(createdAt),
+    read: !!notification.readAt,
+  };
+}
 
 export default function NotificationsScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
-  const [notifications, setNotifications] =
-    useState<Notification[]>(mockNotifications);
+  const { data: notificationsData = [] } = useNotifications();
+  const markOneRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
+  const [dismissedIds, setDismissedIds] = useState<string[]>([]);
 
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
+  const notifications = useMemo(
+    () =>
+      notificationsData
+        .map(adaptNotification)
+        .filter((notification) => !dismissedIds.includes(notification.id)),
+    [dismissedIds, notificationsData],
+  );
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -165,31 +153,38 @@ export default function NotificationsScreen() {
     }
   };
 
-  const handleMarkAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((notif) => (notif.id === id ? { ...notif, read: true } : notif)),
+  const handleMarkAsRead = async (id: string) => {
+    const current = notifications.find(
+      (notification) => notification.id === id,
     );
+    if (!current || current.read) return;
+    await markOneRead.mutateAsync(id).catch(() => {});
   };
 
-  const handleMarkAllAsRead = () => {
-    setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true })));
+  const handleMarkAllAsRead = async () => {
+    if (!notifications.some((notification) => !notification.read)) return;
+    await markAllRead.mutateAsync().catch(() => {});
   };
 
   const handleDismiss = (id: string) => {
-    setNotifications((prev) => prev.filter((notif) => notif.id !== id));
+    setDismissedIds((prev) => [...prev, id]);
   };
 
   // Group notifications by date
-  const groupedNotifications = notifications.reduce(
-    (groups, notification) => {
-      const date = notification.date;
-      if (!groups[date]) {
-        groups[date] = [];
-      }
-      groups[date].push(notification);
-      return groups;
-    },
-    {} as Record<string, Notification[]>,
+  const groupedNotifications = useMemo(
+    () =>
+      notifications.reduce(
+        (groups, notification) => {
+          const date = notification.date;
+          if (!groups[date]) {
+            groups[date] = [];
+          }
+          groups[date].push(notification);
+          return groups;
+        },
+        {} as Record<string, Notification[]>,
+      ),
+    [notifications],
   );
 
   return (

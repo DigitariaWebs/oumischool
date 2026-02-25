@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   TextInput,
   Alert,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -39,12 +40,20 @@ import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { updateUser } from "@/store/slices/authSlice";
+import { useUpdateProfile, useChangePassword } from "@/hooks/api/auth";
+import { useParentMe, useUploadAvatar, useUpdateParentProfile } from "@/hooks/api/parent";
 
 export default function ParentSettingsScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const children = useAppSelector((state) => state.children.children);
+
+  const { data: parentProfile } = useParentMe();
+  const updateProfile = useUpdateProfile();
+  const changePasswordMutation = useChangePassword();
+  const uploadAvatar = useUploadAvatar();
+  const updateParentProfile = useUpdateParentProfile();
 
   const [editMode, setEditMode] = useState(false);
   const [securityEditMode, setSecurityEditMode] = useState(false);
@@ -64,6 +73,26 @@ export default function ParentSettingsScreen() {
   const [timezone, setTimezone] = useState("Europe/Paris");
   const [units, setUnits] = useState("Métrique");
 
+  const notifPrefsInitialized = useRef(false);
+
+  // Initialize notification/privacy toggles from API data once loaded
+  useEffect(() => {
+    if (parentProfile && !notifPrefsInitialized.current) {
+      notifPrefsInitialized.current = true;
+      const np = parentProfile.notificationPreferences as Record<string, boolean> | null;
+      if (np) {
+        if (np.push !== undefined) setPushNotifications(np.push);
+        if (np.email !== undefined) setEmailNotifications(np.email);
+        if (np.inApp !== undefined) setInAppNotifications(np.inApp);
+      }
+      const ps = parentProfile.privacySettings as Record<string, boolean> | null;
+      if (ps) {
+        if (ps.dataSharing !== undefined) setDataSharing(ps.dataSharing);
+        if (ps.analytics !== undefined) setAnalytics(ps.analytics);
+      }
+    }
+  }, [parentProfile]);
+
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -79,21 +108,29 @@ export default function ParentSettingsScreen() {
     });
 
     if (!result.canceled) {
-      setAvatarUri(result.assets[0].uri);
+      const asset = result.assets[0];
+      setAvatarUri(asset.uri);
+      const fileName = asset.uri.split("/").pop() ?? "avatar.jpg";
+      try {
+        await uploadAvatar.mutateAsync({ uri: asset.uri, fileName });
+      } catch {
+        Alert.alert("Erreur", "Impossible de mettre à jour la photo de profil");
+      }
     }
   };
 
-  const handleSaveProfile = () => {
-    dispatch(
-      updateUser({
-        name,
-        email,
-        phoneNumber: phone,
-        avatar: avatarUri,
-      }),
-    );
-    setEditMode(false);
-    Alert.alert("Succès", "Profil mis à jour");
+  const handleSaveProfile = async () => {
+    const nameParts = name.trim().split(" ");
+    const firstName = nameParts[0] ?? "";
+    const lastName = nameParts.slice(1).join(" ") || firstName;
+    try {
+      await updateProfile.mutateAsync({ firstName, lastName, phone });
+      dispatch(updateUser({ name, email, phoneNumber: phone, avatar: avatarUri }));
+      setEditMode(false);
+      Alert.alert("Succès", "Profil mis à jour");
+    } catch (err) {
+      Alert.alert("Erreur", err instanceof Error ? err.message : "Impossible de mettre à jour le profil");
+    }
   };
 
   const handleEditToggle = () => {
@@ -115,7 +152,7 @@ export default function ParentSettingsScreen() {
     setSecurityEditMode(!securityEditMode);
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       Alert.alert("Erreur", "Veuillez remplir tous les champs");
       return;
@@ -124,11 +161,28 @@ export default function ParentSettingsScreen() {
       Alert.alert("Erreur", "Les mots de passe ne correspondent pas");
       return;
     }
-    Alert.alert("Succès", "Mot de passe modifié");
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setSecurityEditMode(false);
+    try {
+      await changePasswordMutation.mutateAsync({ currentPassword, newPassword });
+      Alert.alert("Succès", "Mot de passe modifié");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setSecurityEditMode(false);
+    } catch (err) {
+      Alert.alert("Erreur", err instanceof Error ? err.message : "Impossible de changer le mot de passe");
+    }
+  };
+
+  const handleNotifToggle = (key: string, value: boolean, setter: (v: boolean) => void) => {
+    setter(value);
+    const currentPrefs = (parentProfile?.notificationPreferences as Record<string, unknown>) ?? {};
+    updateParentProfile.mutate({ notificationPreferences: { ...currentPrefs, [key]: value } });
+  };
+
+  const handlePrivacyToggle = (key: string, value: boolean, setter: (v: boolean) => void) => {
+    setter(value);
+    const currentSettings = (parentProfile?.privacySettings as Record<string, unknown>) ?? {};
+    updateParentProfile.mutate({ privacySettings: { ...currentSettings, [key]: value } });
   };
 
   return (
@@ -162,8 +216,16 @@ export default function ParentSettingsScreen() {
                   }}
                   style={styles.avatar}
                 />
-                <TouchableOpacity style={styles.cameraButton} onPress={pickImage}>
-                  <Camera size={14} color="white" />
+                <TouchableOpacity
+                  style={styles.cameraButton}
+                  onPress={pickImage}
+                  disabled={uploadAvatar.isPending}
+                >
+                  {uploadAvatar.isPending ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Camera size={14} color="white" />
+                  )}
                 </TouchableOpacity>
               </View>
               <View>
@@ -214,6 +276,7 @@ export default function ParentSettingsScreen() {
                   placeholder="Email"
                   keyboardType="email-address"
                   placeholderTextColor="#94A3B8"
+                  editable={false}
                 />
                 <TextInput
                   style={styles.input}
@@ -223,9 +286,19 @@ export default function ParentSettingsScreen() {
                   keyboardType="phone-pad"
                   placeholderTextColor="#94A3B8"
                 />
-                <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile}>
-                  <Save size={16} color="white" />
-                  <Text style={styles.saveButtonText}>Enregistrer</Text>
+                <TouchableOpacity
+                  style={[styles.saveButton, updateProfile.isPending && styles.buttonLoading]}
+                  onPress={handleSaveProfile}
+                  disabled={updateProfile.isPending}
+                >
+                  {updateProfile.isPending ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <>
+                      <Save size={16} color="white" />
+                      <Text style={styles.saveButtonText}>Enregistrer</Text>
+                    </>
+                  )}
                 </TouchableOpacity>
               </View>
             )}
@@ -272,9 +345,19 @@ export default function ParentSettingsScreen() {
                   secureTextEntry
                   placeholderTextColor="#94A3B8"
                 />
-                <TouchableOpacity style={styles.saveButton} onPress={handleChangePassword}>
-                  <Lock size={16} color="white" />
-                  <Text style={styles.saveButtonText}>Changer</Text>
+                <TouchableOpacity
+                  style={[styles.saveButton, changePasswordMutation.isPending && styles.buttonLoading]}
+                  onPress={handleChangePassword}
+                  disabled={changePasswordMutation.isPending}
+                >
+                  {changePasswordMutation.isPending ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <>
+                      <Lock size={16} color="white" />
+                      <Text style={styles.saveButtonText}>Changer</Text>
+                    </>
+                  )}
                 </TouchableOpacity>
               </View>
             )}
@@ -340,7 +423,7 @@ export default function ParentSettingsScreen() {
               <Text style={styles.preferenceLabel}>Push</Text>
               <Switch
                 value={pushNotifications}
-                onValueChange={setPushNotifications}
+                onValueChange={(v) => handleNotifToggle("push", v, setPushNotifications)}
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -350,7 +433,7 @@ export default function ParentSettingsScreen() {
               <Text style={styles.preferenceLabel}>Email</Text>
               <Switch
                 value={emailNotifications}
-                onValueChange={setEmailNotifications}
+                onValueChange={(v) => handleNotifToggle("email", v, setEmailNotifications)}
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -360,7 +443,7 @@ export default function ParentSettingsScreen() {
               <Text style={styles.preferenceLabel}>In-app</Text>
               <Switch
                 value={inAppNotifications}
-                onValueChange={setInAppNotifications}
+                onValueChange={(v) => handleNotifToggle("inApp", v, setInAppNotifications)}
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -380,7 +463,7 @@ export default function ParentSettingsScreen() {
               <Text style={styles.preferenceLabel}>Partage de données</Text>
               <Switch
                 value={dataSharing}
-                onValueChange={setDataSharing}
+                onValueChange={(v) => handlePrivacyToggle("dataSharing", v, setDataSharing)}
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -390,7 +473,7 @@ export default function ParentSettingsScreen() {
               <Text style={styles.preferenceLabel}>Suivi analytique</Text>
               <Switch
                 value={analytics}
-                onValueChange={setAnalytics}
+                onValueChange={(v) => handlePrivacyToggle("analytics", v, setAnalytics)}
                 trackColor={{ false: "#E2E8F0", true: "#6366F1" }}
                 thumbColor="white"
               />
@@ -635,6 +718,9 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     padding: 12,
     marginTop: 4,
+  },
+  buttonLoading: {
+    opacity: 0.7,
   },
   saveButtonText: {
     fontSize: 14,

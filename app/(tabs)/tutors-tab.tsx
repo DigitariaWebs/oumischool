@@ -11,7 +11,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import {
   Star,
-  GraduationCap,
   ChevronRight,
   Sparkles,
   Users,
@@ -19,11 +18,12 @@ import {
   TrendingUp,
   DollarSign,
   X,
-  Zap,
 } from "lucide-react-native";
 
-import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
+import { useTutors } from "@/hooks/api/tutors";
+import type { TutorListItem } from "@/hooks/api/tutors/api";
+import { useChildren } from "@/hooks/api/parent";
 
 interface Subject {
   id: string;
@@ -45,101 +45,106 @@ interface Tutor {
   inPersonRate?: number;
 }
 
-interface TutorRecommendation {
-  tutorId: string;
-  childId: string;
-  reason: string;
-  subjectId: string;
+const SUBJECT_META: Record<string, { name: string; color: string }> = {
+  math: { name: "Maths", color: "#3B82F6" },
+  mathematics: { name: "Maths", color: "#3B82F6" },
+  french: { name: "Français", color: "#EF4444" },
+  fr: { name: "Français", color: "#EF4444" },
+  science: { name: "Sciences", color: "#10B981" },
+  english: { name: "Anglais", color: "#6366F1" },
+  history: { name: "Histoire", color: "#F59E0B" },
+};
+
+const FALLBACK_SUBJECT: Subject = {
+  id: "general",
+  name: "General",
+  color: "#6366F1",
+};
+
+const CHILD_COLORS = [
+  "#3B82F6",
+  "#EC4899",
+  "#10B981",
+  "#F59E0B",
+  "#8B5CF6",
+  "#EF4444",
+  "#14B8A6",
+  "#F97316",
+];
+
+function subjectFromId(id: string): Subject {
+  const key = id.toLowerCase();
+  const mapped = SUBJECT_META[key];
+  return {
+    id,
+    name: mapped?.name ?? id.charAt(0).toUpperCase() + id.slice(1),
+    color: mapped?.color ?? "#6366F1",
+  };
 }
 
-// Mock data
-const subjects: Subject[] = [
-  { id: "math", name: "Maths", color: "#3B82F6" },
-  { id: "french", name: "Français", color: "#EF4444" },
-  { id: "science", name: "Sciences", color: "#10B981" },
-  { id: "english", name: "Anglais", color: "#6366F1" },
-  { id: "history", name: "Histoire", color: "#F59E0B" },
-];
-
-const mockChildren = [
-  { id: "child1", name: "Emma", color: "#6366F1" },
-  { id: "child2", name: "Lucas", color: "#10B981" },
-];
-
-const mockTutors: Tutor[] = [
-  {
-    id: "1",
-    name: "Marie Dupont",
-    subjects: [subjects[0], subjects[1]],
-    rating: 4.8,
-    reviewsCount: 45,
-    bio: "Professeure expérimentée en mathématiques et français.",
-    hourlyRate: 25,
-    experience: 8,
-    inPersonAvailable: true,
-    inPersonRate: 35,
-  },
-  {
-    id: "2",
-    name: "Jean Martin",
-    subjects: [subjects[2], subjects[3]],
-    rating: 4.9,
-    reviewsCount: 62,
-    bio: "Spécialiste en sciences et anglais pour enfants.",
-    hourlyRate: 30,
-    experience: 10,
+function adaptTutor(item: TutorListItem): Tutor {
+  const name =
+    `${item.user.firstName ?? ""} ${item.user.lastName ?? ""}`.trim();
+  return {
+    id: item.id,
+    name: name || item.user.email.split("@")[0],
+    subjects: Array.isArray(item.subjects)
+      ? item.subjects.map(subjectFromId)
+      : [],
+    rating: item.rating ?? 0,
+    reviewsCount: item.reviewsCount ?? 0,
+    bio: item.bio ?? "Aucune biographie disponible.",
+    hourlyRate: item.hourlyRate ?? 0,
+    experience: 0,
     inPersonAvailable: false,
-  },
-  {
-    id: "3",
-    name: "Sophie Leroy",
-    subjects: [subjects[4]],
-    rating: 4.7,
-    reviewsCount: 38,
-    bio: "Passionnée d'histoire et de géographie.",
-    hourlyRate: 22,
-    experience: 6,
-    inPersonAvailable: true,
-    inPersonRate: 28,
-  },
-];
+  };
+}
 
-const mockRecommendations: TutorRecommendation[] = [
-  {
-    tutorId: "1",
-    childId: "child1",
-    reason: "Recommandé pour les leçons de fractions",
-    subjectId: "math",
-  },
-  {
-    tutorId: "2",
-    childId: "child1",
-    reason: "Recommandé pour la compréhension orale",
-    subjectId: "english",
-  },
-  {
-    tutorId: "3",
-    childId: "child2",
-    reason: "Recommandé pour la Révolution française",
-    subjectId: "history",
-  },
-];
+function getPrimarySubject(tutor: Tutor): Subject {
+  return tutor.subjects[0] ?? FALLBACK_SUBJECT;
+}
 
 export default function TutorsTab() {
   const router = useRouter();
-  const [browseMode, setBrowseMode] = useState<"recommended" | "tutor">("recommended");
+  const { data: tutorsData = [] } = useTutors();
+  const { data: childrenFromApi = [] } = useChildren();
+  const [browseMode, setBrowseMode] = useState<"recommended" | "tutor">(
+    "recommended",
+  );
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [sortByRating, setSortByRating] = useState(true);
   const [selectedChild, setSelectedChild] = useState<string>("all");
+  const children = childrenFromApi.map((child, index) => ({
+    id: child.id,
+    name: child.name,
+    color: CHILD_COLORS[index % CHILD_COLORS.length],
+  }));
+  const tutors = tutorsData.map(adaptTutor);
+  const subjects: Subject[] = Array.from(
+    new Map(
+      tutors
+        .flatMap((tutor) => tutor.subjects)
+        .map((subject) => [subject.id, subject]),
+    ).values(),
+  );
 
-  const filteredTutors = mockTutors
+  const filteredTutors = tutors
     .filter((tutor) => {
       const matchesSubject =
         selectedSubject === "all" ||
         tutor.subjects.some((subj) => subj.id === selectedSubject);
       return matchesSubject;
     })
-    .sort((a, b) => (sortByRating ? b.rating - a.rating : a.hourlyRate - b.hourlyRate));
+    .sort((a, b) =>
+      sortByRating ? b.rating - a.rating : a.hourlyRate - b.hourlyRate,
+    );
+  const recommendedTutors = [...filteredTutors]
+    .sort((a, b) => b.rating - a.rating)
+    .slice(0, 5);
+  const averageRating =
+    tutors.length > 0
+      ? tutors.reduce((sum, tutor) => sum + tutor.rating, 0) / tutors.length
+      : 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -150,7 +155,7 @@ export default function TutorsTab() {
           <Text style={styles.headerTitle}>Accompagnement</Text>
         </View>
         <View style={styles.headerBadge}>
-          <Text style={styles.headerBadgeText}>{mockTutors.length}</Text>
+          <Text style={styles.headerBadgeText}>{tutors.length}</Text>
         </View>
       </View>
 
@@ -162,17 +167,17 @@ export default function TutorsTab() {
         <View style={styles.statsCard}>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{mockTutors.length}</Text>
+              <Text style={styles.statValue}>{tutors.length}</Text>
               <Text style={styles.statLabel}>Tuteurs</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>4.8</Text>
+              <Text style={styles.statValue}>{averageRating.toFixed(1)}</Text>
               <Text style={styles.statLabel}>Note moyenne</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>8</Text>
+              <Text style={styles.statValue}>{subjects.length}</Text>
               <Text style={styles.statLabel}>Matières</Text>
             </View>
           </View>
@@ -268,7 +273,9 @@ export default function TutorsTab() {
                     <Text
                       style={[
                         styles.subjectChipText,
-                        selectedSubject === subject.id && { color: subject.color },
+                        selectedSubject === subject.id && {
+                          color: subject.color,
+                        },
                       ]}
                     >
                       {subject.name}
@@ -332,65 +339,96 @@ export default function TutorsTab() {
             {/* Liste des tuteurs */}
             <View style={styles.tutorsList}>
               <Text style={styles.tutorsCount}>
-                {filteredTutors.length} tuteur{filteredTutors.length > 1 ? "s" : ""}
+                {filteredTutors.length} tuteur
+                {filteredTutors.length > 1 ? "s" : ""}
               </Text>
-              {filteredTutors.map((tutor) => (
-                <Pressable
-                  key={tutor.id}
-                  style={({ pressed }) => [styles.tutorCard, pressed && { opacity: 0.9 }]}
-                  onPress={() => router.push(`/tutor/${tutor.id}`)}
-                >
-                  <View style={styles.tutorHeader}>
-                    <View style={[styles.tutorAvatar, { backgroundColor: tutor.subjects[0].color + "20" }]}>
-                      <Text style={[styles.tutorAvatarText, { color: tutor.subjects[0].color }]}>
-                        {tutor.name.charAt(0)}
-                      </Text>
-                    </View>
-                    <View style={styles.tutorInfo}>
-                      <Text style={styles.tutorName}>{tutor.name}</Text>
-                      <View style={styles.tutorRating}>
-                        <Star size={12} color="#F59E0B" fill="#F59E0B" />
-                        <Text style={styles.ratingText}>{tutor.rating}</Text>
-                        <Text style={styles.reviewsText}>({tutor.reviewsCount})</Text>
-                      </View>
-                    </View>
-                    <ChevronRight size={18} color="#CBD5E1" />
-                  </View>
-
-                  <View style={styles.tutorSubjects}>
-                    {tutor.subjects.map((subject) => (
+              {filteredTutors.map((tutor) => {
+                const primarySubject = getPrimarySubject(tutor);
+                return (
+                  <Pressable
+                    key={tutor.id}
+                    style={({ pressed }) => [
+                      styles.tutorCard,
+                      pressed && { opacity: 0.9 },
+                    ]}
+                    onPress={() => router.push(`/tutor/${tutor.id}`)}
+                  >
+                    <View style={styles.tutorHeader}>
                       <View
-                        key={subject.id}
-                        style={[styles.subjectBadge, { backgroundColor: subject.color + "15" }]}
+                        style={[
+                          styles.tutorAvatar,
+                          { backgroundColor: primarySubject.color + "20" },
+                        ]}
                       >
-                        <Text style={[styles.subjectBadgeText, { color: subject.color }]}>
-                          {subject.name}
+                        <Text
+                          style={[
+                            styles.tutorAvatarText,
+                            { color: primarySubject.color },
+                          ]}
+                        >
+                          {tutor.name.charAt(0)}
                         </Text>
                       </View>
-                    ))}
-                  </View>
-
-                  <Text style={styles.tutorBio} numberOfLines={2}>
-                    {tutor.bio}
-                  </Text>
-
-                  <View style={styles.tutorFooter}>
-                    <View style={styles.priceContainer}>
-                      <Text style={styles.priceLabel}>En ligne</Text>
-                      <Text style={styles.priceValue}>{tutor.hourlyRate}€/h</Text>
-                    </View>
-                    {tutor.inPersonAvailable && (
-                      <>
-                        <View style={styles.priceDivider} />
-                        <View style={styles.priceContainer}>
-                          <Text style={styles.priceLabel}>Présentiel</Text>
-                          <Text style={styles.priceValue}>{tutor.inPersonRate}€/h</Text>
+                      <View style={styles.tutorInfo}>
+                        <Text style={styles.tutorName}>{tutor.name}</Text>
+                        <View style={styles.tutorRating}>
+                          <Star size={12} color="#F59E0B" fill="#F59E0B" />
+                          <Text style={styles.ratingText}>{tutor.rating}</Text>
+                          <Text style={styles.reviewsText}>
+                            ({tutor.reviewsCount})
+                          </Text>
                         </View>
-                      </>
-                    )}
-                  </View>
-                </Pressable>
-              ))}
+                      </View>
+                      <ChevronRight size={18} color="#CBD5E1" />
+                    </View>
+
+                    <View style={styles.tutorSubjects}>
+                      {tutor.subjects.map((subject) => (
+                        <View
+                          key={subject.id}
+                          style={[
+                            styles.subjectBadge,
+                            { backgroundColor: subject.color + "15" },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.subjectBadgeText,
+                              { color: subject.color },
+                            ]}
+                          >
+                            {subject.name}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+
+                    <Text style={styles.tutorBio} numberOfLines={2}>
+                      {tutor.bio}
+                    </Text>
+
+                    <View style={styles.tutorFooter}>
+                      <View style={styles.priceContainer}>
+                        <Text style={styles.priceLabel}>En ligne</Text>
+                        <Text style={styles.priceValue}>
+                          {tutor.hourlyRate}€/h
+                        </Text>
+                      </View>
+                      {tutor.inPersonAvailable && (
+                        <>
+                          <View style={styles.priceDivider} />
+                          <View style={styles.priceContainer}>
+                            <Text style={styles.priceLabel}>Présentiel</Text>
+                            <Text style={styles.priceValue}>
+                              {tutor.inPersonRate}€/h
+                            </Text>
+                          </View>
+                        </>
+                      )}
+                    </View>
+                  </Pressable>
+                );
+              })}
             </View>
           </>
         ) : (
@@ -431,7 +469,7 @@ export default function TutorsTab() {
                     Tous
                   </Text>
                 </TouchableOpacity>
-                {mockChildren.map((child) => (
+                {children.map((child) => (
                   <TouchableOpacity
                     key={child.id}
                     style={[
@@ -443,7 +481,12 @@ export default function TutorsTab() {
                     ]}
                     onPress={() => setSelectedChild(child.id)}
                   >
-                    <View style={[styles.childDot, { backgroundColor: child.color }]} />
+                    <View
+                      style={[
+                        styles.childDot,
+                        { backgroundColor: child.color },
+                      ]}
+                    />
                     <Text
                       style={[
                         styles.childChipText,
@@ -459,33 +502,75 @@ export default function TutorsTab() {
 
             {/* Recommandations */}
             <View style={styles.recommendationsList}>
-              {mockRecommendations
-                .filter((rec) => selectedChild === "all" || rec.childId === selectedChild)
-                .map((rec, index) => {
-                  const tutor = mockTutors.find((t) => t.id === rec.tutorId);
-                  const child = mockChildren.find((c) => c.id === rec.childId);
-                  const subject = subjects.find((s) => s.id === rec.subjectId);
-
-                  if (!tutor || !child || !subject) return null;
+              {children.length === 0 ? (
+                <View style={styles.emptyRecommendations}>
+                  <Text style={styles.emptyRecommendationsText}>
+                    Ajoutez un enfant pour recevoir des recommandations
+                    personnalisées.
+                  </Text>
+                </View>
+              ) : (
+                recommendedTutors.map((tutor, index) => {
+                  const child =
+                    selectedChild === "all"
+                      ? children[index % children.length]
+                      : children.find((c) => c.id === selectedChild);
+                  if (!child) return null;
+                  const subject = getPrimarySubject(tutor);
+                  const reason =
+                    selectedChild !== "all"
+                      ? "Recommandé selon son profil et ses besoins"
+                      : "Recommandé parmi les meilleurs tuteurs";
+                  const avatarSubject = getPrimarySubject(tutor);
 
                   return (
                     <View key={index} style={styles.recommendationCard}>
-                      <View style={[styles.recommendationHeader, { borderLeftColor: child.color }]}>
-                        <Text style={styles.recommendationFor}>Pour {child.name}</Text>
-                        <View style={[styles.recommendationSubject, { backgroundColor: subject.color + "15" }]}>
-                          <Text style={[styles.recommendationSubjectText, { color: subject.color }]}>
+                      <View
+                        style={[
+                          styles.recommendationHeader,
+                          { borderLeftColor: child.color },
+                        ]}
+                      >
+                        <Text style={styles.recommendationFor}>
+                          Pour {child.name}
+                        </Text>
+                        <View
+                          style={[
+                            styles.recommendationSubject,
+                            { backgroundColor: subject.color + "15" },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.recommendationSubjectText,
+                              { color: subject.color },
+                            ]}
+                          >
                             {subject.name}
                           </Text>
                         </View>
                       </View>
 
                       <Pressable
-                        style={({ pressed }) => [styles.tutorCard, pressed && { opacity: 0.9 }]}
+                        style={({ pressed }) => [
+                          styles.tutorCard,
+                          pressed && { opacity: 0.9 },
+                        ]}
                         onPress={() => router.push(`/tutor/${tutor.id}`)}
                       >
                         <View style={styles.tutorHeader}>
-                          <View style={[styles.tutorAvatar, { backgroundColor: tutor.subjects[0].color + "20" }]}>
-                            <Text style={[styles.tutorAvatarText, { color: tutor.subjects[0].color }]}>
+                          <View
+                            style={[
+                              styles.tutorAvatar,
+                              { backgroundColor: avatarSubject.color + "20" },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.tutorAvatarText,
+                                { color: avatarSubject.color },
+                              ]}
+                            >
                               {tutor.name.charAt(0)}
                             </Text>
                           </View>
@@ -493,21 +578,30 @@ export default function TutorsTab() {
                             <Text style={styles.tutorName}>{tutor.name}</Text>
                             <View style={styles.tutorRating}>
                               <Star size={12} color="#F59E0B" fill="#F59E0B" />
-                              <Text style={styles.ratingText}>{tutor.rating}</Text>
+                              <Text style={styles.ratingText}>
+                                {tutor.rating}
+                              </Text>
                             </View>
                           </View>
                         </View>
 
-                        <Text style={styles.recommendationReason}>{rec.reason}</Text>
+                        <Text style={styles.recommendationReason}>
+                          {reason}
+                        </Text>
 
                         <View style={styles.tutorFooter}>
-                          <Text style={styles.priceValue}>{tutor.hourlyRate}€/h</Text>
-                          <Text style={styles.experienceText}>{tutor.experience} ans d'exp.</Text>
+                          <Text style={styles.priceValue}>
+                            {tutor.hourlyRate}€/h
+                          </Text>
+                          <Text style={styles.experienceText}>
+                            {tutor.experience} ans d&apos;exp.
+                          </Text>
                         </View>
                       </Pressable>
                     </View>
                   );
-                })}
+                })
+              )}
             </View>
           </>
         )}
@@ -516,7 +610,6 @@ export default function TutorsTab() {
         <TouchableOpacity style={styles.sourceButton}>
           <Text style={styles.sourceButtonText}>+ Demander un tuteur</Text>
         </TouchableOpacity>
-
       </ScrollView>
     </SafeAreaView>
   );
@@ -876,6 +969,18 @@ const styles = StyleSheet.create({
   // Recommendations
   recommendationsList: {
     paddingHorizontal: 24,
+  },
+  emptyRecommendations: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  emptyRecommendationsText: {
+    fontSize: 13,
+    color: "#64748B",
+    lineHeight: 18,
   },
   recommendationCard: {
     marginBottom: 16,

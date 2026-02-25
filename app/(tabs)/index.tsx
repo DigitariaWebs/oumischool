@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Pressable,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,22 +16,20 @@ import {
   Plus,
   Calendar,
   Sparkles,
-  ChevronRight,
   Bell,
   Baby,
   TrendingUp,
   Play,
-  Users,
 } from "lucide-react-native";
 
-import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector } from "@/store/hooks";
+import { useChildren } from "@/hooks/api/parent";
 
 export default function HomeScreen() {
   const router = useRouter();
   const user = useAppSelector((state) => state.auth.user);
-  const children = useAppSelector((state) => state.children.children);
+  const { data: childrenFromApi = [], isLoading } = useChildren();
   const userName = user?.name || "Parent";
 
   // Images pour les enfants (comme dans tuteur)
@@ -40,6 +39,15 @@ export default function HomeScreen() {
     "https://cdn-icons-png.flaticon.com/512/4140/4140050.png",
     "https://cdn-icons-png.flaticon.com/512/4140/4140051.png",
   ];
+
+  const children = childrenFromApi.map((child) => ({
+    id: child.id,
+    name: child.name,
+    grade: child.grade,
+    progress: 0,
+    lessonsCompleted: 0,
+    totalLessons: 20,
+  }));
 
   const quickActions = [
     {
@@ -66,12 +74,14 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Header simple */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerLabel}>OUMI'SCHOOL</Text>
+            <Text style={styles.headerLabel}>OUMI&apos;SCHOOL</Text>
             <Text style={styles.headerTitle}>Bonjour, {userName}</Text>
           </View>
           <TouchableOpacity style={styles.notificationButton}>
@@ -109,17 +119,27 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          {children.length > 0 ? (
+          {isLoading ? (
+            <View style={styles.childrenLoadingContainer}>
+              <ActivityIndicator size="small" color="#6366F1" />
+              <Text style={styles.childrenLoadingText}>Chargement...</Text>
+            </View>
+          ) : children.length > 0 ? (
             <View style={styles.childrenList}>
               {children.slice(0, 2).map((child, index) => (
                 <Pressable
                   key={child.id}
-                  style={({ pressed }) => [styles.childCard, pressed && { opacity: 0.9 }]}
-                  onPress={() => router.push(`/parent/child/details?id=${child.id}`)}
+                  style={({ pressed }) => [
+                    styles.childCard,
+                    pressed && { opacity: 0.9 },
+                  ]}
+                  onPress={() =>
+                    router.push(`/parent/child/details?id=${child.id}`)
+                  }
                 >
                   <View style={styles.childCardHeader}>
-                    <Image 
-                      source={{ uri: childImages[index % childImages.length] }} 
+                    <Image
+                      source={{ uri: childImages[index % childImages.length] }}
                       style={styles.childAvatar}
                     />
                     <View style={styles.childInfo}>
@@ -127,10 +147,12 @@ export default function HomeScreen() {
                       <Text style={styles.childGrade}>{child.grade}</Text>
                     </View>
                     <View style={styles.childProgress}>
-                      <Text style={styles.childProgressText}>{child.progress}%</Text>
+                      <Text style={styles.childProgressText}>
+                        {child.progress}%
+                      </Text>
                     </View>
                   </View>
-                  
+
                   <View style={styles.childStats}>
                     <View style={styles.childStat}>
                       <BookOpen size={12} color="#64748B" />
@@ -171,9 +193,7 @@ export default function HomeScreen() {
                 style={styles.quickActionCard}
                 onPress={action.onPress}
               >
-                <View style={styles.quickActionIcon}>
-                  {action.icon}
-                </View>
+                <View style={styles.quickActionIcon}>{action.icon}</View>
                 <Text style={styles.quickActionText}>{action.title}</Text>
               </TouchableOpacity>
             ))}
@@ -183,7 +203,7 @@ export default function HomeScreen() {
         {/* Section Fonctionnalités */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Fonctionnalités</Text>
-          
+
           <View style={styles.featureCard}>
             <View style={[styles.featureIcon, { backgroundColor: "#EEF2FF" }]}>
               <BookOpen size={24} color="#6366F1" />
@@ -214,7 +234,6 @@ export default function HomeScreen() {
           <Plus size={18} color="#64748B" />
           <Text style={styles.sourceButtonText}>Ajouter une ressource</Text>
         </TouchableOpacity>
-
       </ScrollView>
     </SafeAreaView>
   );
@@ -228,7 +247,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 100,
   },
-  
+
   // Header
   header: {
     flexDirection: "row",
@@ -319,6 +338,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F5F9",
     borderRadius: 4,
     overflow: "hidden",
+  },
+  childrenLoadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 24,
+    gap: 8,
+  },
+  childrenLoadingText: {
+    fontSize: 13,
+    color: "#64748B",
   },
   progressFill: {
     height: "100%",

@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Pressable,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -22,33 +15,54 @@ import {
   TrendingUp,
   Users,
   MessageSquare,
-  Sparkles,
 } from "lucide-react-native";
 
-import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
+import { useLogout } from "@/hooks/api/auth";
+import {
+  useMyEarnings,
+  useMySessions,
+  useMyStudents,
+} from "@/hooks/api/tutors";
 
 export default function TutorProfileScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
+  const logoutMutation = useLogout();
+  const { data: myStudentsData = [] } = useMyStudents();
+  const { data: mySessionsData = [] } = useMySessions();
+  const { data: myEarningsData } = useMyEarnings();
+
+  const sessions = Array.isArray(mySessionsData) ? mySessionsData : [];
+  const students = Array.isArray(myStudentsData) ? myStudentsData : [];
+  const completedSessions = sessions.filter(
+    (session) => String(session.status).toUpperCase() === "COMPLETED",
+  ).length;
+  const subjects = Array.from(
+    new Set(
+      sessions
+        .map((session) => session.subject?.name)
+        .filter((value): value is string => Boolean(value?.trim())),
+    ),
+  );
 
   const stats = [
     {
       icon: <Users size={16} color="#8B5CF6" />,
-      value: user?.totalStudents?.toString() || "0",
+      value: String(students.length),
       label: "Élèves",
     },
     {
       icon: <Calendar size={16} color="#10B981" />,
-      value: user?.completedSessions?.toString() || "0",
+      value: String(completedSessions),
       label: "Sessions",
     },
     {
       icon: <TrendingUp size={16} color="#F59E0B" />,
-      value: `${user?.monthlyEarnings || 0}€`,
+      value: `${Math.round(myEarningsData?.thisMonth ?? 0)}€`,
       label: "Ce mois",
     },
     {
@@ -106,9 +120,7 @@ export default function TutorProfileScreen() {
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>{user?.name || "Tuteur"}</Text>
               <Text style={styles.profileSubjects}>
-                {user?.subjects?.length
-                  ? user.subjects.join(" • ")
-                  : "Tuteur certifié"}
+                {subjects.length ? subjects.join(" • ") : "Tuteur certifié"}
               </Text>
               <View style={styles.ratingBadge}>
                 <Star size={12} color="#F59E0B" fill="#F59E0B" />
@@ -142,7 +154,9 @@ export default function TutorProfileScreen() {
           </View>
           <View style={styles.emailInfo}>
             <Text style={styles.emailLabel}>Email</Text>
-            <Text style={styles.emailValue}>{user?.email || "email@example.com"}</Text>
+            <Text style={styles.emailValue}>
+              {user?.email || "email@example.com"}
+            </Text>
           </View>
         </View>
 
@@ -165,7 +179,9 @@ export default function TutorProfileScreen() {
                   <View style={styles.menuItemText}>
                     <Text style={styles.menuItemTitle}>{item.title}</Text>
                     {item.subtitle && (
-                      <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
+                      <Text style={styles.menuItemSubtitle}>
+                        {item.subtitle}
+                      </Text>
                     )}
                   </View>
                 </View>
@@ -177,8 +193,12 @@ export default function TutorProfileScreen() {
 
         {/* Déconnexion */}
         <Pressable
-          style={({ pressed }) => [styles.logoutButton, pressed && { opacity: 0.7 }]}
-          onPress={() => {
+          style={({ pressed }) => [
+            styles.logoutButton,
+            pressed && { opacity: 0.7 },
+          ]}
+          onPress={async () => {
+            await logoutMutation.mutateAsync().catch(() => {});
             dispatch(logout());
             router.replace("/sign-in");
           }}
@@ -189,11 +209,8 @@ export default function TutorProfileScreen() {
 
         {/* Version */}
         <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>Oumi'School v1.0.0</Text>
+          <Text style={styles.versionText}>Oumi&apos;School v1.0.0</Text>
         </View>
-
-     
-
       </ScrollView>
     </SafeAreaView>
   );
