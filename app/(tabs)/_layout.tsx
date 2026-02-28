@@ -1,12 +1,6 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import {
-  Home,
-  Users,
-  BookOpen,
-  User,
-  GraduationCap,
-} from "lucide-react-native";
+import { Home, Users, User, GraduationCap, Library } from "lucide-react-native";
 import { View, StyleSheet, Pressable, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -136,11 +130,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="resources-tab"
+        name="library"
         options={{
-          title: "Ressources",
+          title: "Bibliothèque",
           tabBarIcon: ({ color, focused }) => (
-            <BookOpen size={22} color={color} />
+            <Library size={22} color={color} />
           ),
         }}
       />
