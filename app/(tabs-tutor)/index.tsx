@@ -439,8 +439,14 @@ export default function TutorDashboardScreen() {
     if (newResource.isPaid) {
       formData.append("tags", "paid");
       formData.append("tags", `price:${newResource.price}`);
+      formData.append("isPaid", "true");
+      formData.append(
+        "price",
+        String(Math.round(parseFloat(newResource.price) * 100)),
+      );
     } else {
       formData.append("tags", "free");
+      formData.append("isPaid", "false");
     }
 
     formData.append("file", {
@@ -519,8 +525,14 @@ export default function TutorDashboardScreen() {
     if (newResource.isPaid) {
       formData.append("tags", "paid");
       formData.append("tags", `price:${newResource.price}`);
+      formData.append("isPaid", "true");
+      formData.append(
+        "price",
+        String(Math.round(parseFloat(newResource.price) * 100)),
+      );
     } else {
       formData.append("tags", "free");
+      formData.append("isPaid", "false");
     }
 
     formData.append("file", {
@@ -646,53 +658,6 @@ export default function TutorDashboardScreen() {
             </View>
             <Share2 size={20} color="#6366F1" style={{ marginLeft: "auto" }} />
           </TouchableOpacity>
-        </View>
-
-        {/* ÉLÈVES — preview cliquable */}
-        <View style={styles.section}>
-          <TouchableOpacity
-            style={styles.sectionHeader}
-            onPress={() => router.push("/(tabs-tutor)/availability")}
-          >
-            <Text style={styles.sectionTitle}>Mes élèves</Text>
-            <View style={styles.seeAllBtn}>
-              <Text style={styles.seeAllText}>Voir tous</Text>
-              <ChevronRight size={14} color="#6366F1" />
-            </View>
-          </TouchableOpacity>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {students.map((student) => (
-              <TouchableOpacity
-                key={student.id}
-                style={styles.studentSmallCard}
-                onPress={() => router.push("/(tabs-tutor)/availability")}
-              >
-                <Image
-                  source={{ uri: student.image }}
-                  style={styles.studentSmallAvatar}
-                />
-                <Text style={styles.studentSmallName}>{student.name}</Text>
-                <View
-                  style={[
-                    styles.miniBadge,
-                    { backgroundColor: student.subjectColor },
-                  ]}
-                >
-                  <Text style={styles.miniBadgeText}>{student.subject}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-            {/* Bouton + ajouter élève */}
-            <TouchableOpacity
-              style={styles.addStudentCard}
-              onPress={() => router.push("/(tabs-tutor)/availability")}
-            >
-              <View style={styles.addStudentIcon}>
-                <Plus size={20} color="#6366F1" />
-              </View>
-              <Text style={styles.addStudentText}>Ajouter</Text>
-            </TouchableOpacity>
-          </ScrollView>
         </View>
 
         {/* ESPACE DE TRAVAIL — 3 boutons */}
