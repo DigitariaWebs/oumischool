@@ -57,7 +57,7 @@ export const Colors = {
     secondary: COLORS.secondary[900],
     success: COLORS.success,
     warning: COLORS.warning,
-    error: COLORS.error,
+    error: COLORS.error.DEFAULT,
     info: COLORS.info,
 
     // UI element colors
@@ -106,7 +106,7 @@ export const Colors = {
     secondary: COLORS.neutral.white,
     success: COLORS.success,
     warning: COLORS.warning,
-    error: COLORS.error,
+    error: COLORS.error.DEFAULT,
     info: COLORS.info,
 
     // UI element colors

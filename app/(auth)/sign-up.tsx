@@ -284,7 +284,7 @@ export default function SignUpScreen() {
         grade: childGrade,
         dateOfBirth: new Date(childDateOfBirth).toISOString(),
       });
-      router.replace("/(tabs)");
+      router.replace("/pricing");
     } catch (err) {
       setError(
         err instanceof Error
@@ -757,9 +757,10 @@ function PlanStep({
       </View>
 
       <Button
-        title={selectedPlanId ? "Continuer" : "Passer cette étape"}
+        title={selectedPlanId ? "Confirmer ce plan" : "Sélectionnez un plan"}
         onPress={onContinue}
         isLoading={isCreating}
+        disabled={!selectedPlanId}
         fullWidth
         style={[
           styles.primaryButton,
@@ -1691,7 +1692,7 @@ const styles = StyleSheet.create({
 
   // Error
   errorText: {
-    color: COLORS.error,
+    color: COLORS.error.DEFAULT,
     fontSize: 13,
     marginBottom: 12,
     textAlign: "center",

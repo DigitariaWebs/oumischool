@@ -1,5 +1,12 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -14,6 +21,9 @@ import {
   Shield,
   MessageSquare,
   Sparkles,
+  CheckCircle,
+  AlertCircle,
+  Clock,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
@@ -22,6 +32,7 @@ import { FONTS } from "@/config/fonts";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
 import { useLogout } from "@/hooks/api/auth";
+import { useCurrentSubscription } from "@/hooks/api/subscriptions";
 import { HapticPressable } from "@/components/ui/haptic-pressable";
 
 export default function ProfileScreen() {
@@ -29,6 +40,67 @@ export default function ProfileScreen() {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const logoutMutation = useLogout();
+
+  const { data: subscription, isLoading: subscriptionLoading } =
+    useCurrentSubscription();
+
+  const currentPlan = subscription?.plan;
+  const isActive =
+    subscription?.status === "ACTIVE" &&
+    new Date(subscription.expiresAt) > new Date();
+
+  const getStatusConfig = () => {
+    if (!subscription || !currentPlan) {
+      return {
+        label: "Aucun abonnement",
+        color: THEME.colors.error,
+        Icon: AlertCircle,
+        bgColor: THEME.colors.error + "15",
+      };
+    }
+
+    switch (subscription.status) {
+      case "ACTIVE":
+        return {
+          label: "Actif",
+          color: "#10B981",
+          Icon: CheckCircle,
+          bgColor: "#10B981" + "15",
+        };
+      case "INACTIVE":
+      case "UNPAID":
+        return {
+          label: "En attente de paiement",
+          color: "#F59E0B",
+          Icon: Clock,
+          bgColor: "#F59E0B" + "15",
+        };
+      case "CANCELLED":
+        return {
+          label: "Annulé",
+          color: THEME.colors.error,
+          Icon: AlertCircle,
+          bgColor: THEME.colors.error + "15",
+        };
+      case "EXPIRED":
+        return {
+          label: "Expiré",
+          color: THEME.colors.error,
+          Icon: AlertCircle,
+          bgColor: THEME.colors.error + "15",
+        };
+      default:
+        return {
+          label: subscription.status,
+          color: THEME.colors.secondaryText,
+          Icon: Clock,
+          bgColor: THEME.colors.secondaryLight,
+        };
+    }
+  };
+
+  const statusConfig = getStatusConfig();
+  const StatusIcon = statusConfig.Icon;
 
   const menuItems = [
     {
@@ -48,12 +120,6 @@ export default function ProfileScreen() {
       title: "Notifications",
       subtitle: "Gérer les alertes",
       onPress: () => router.push("/parent/profile/notifications"),
-    },
-    {
-      icon: <CreditCard size={18} color="#64748B" />,
-      title: "Abonnement",
-      subtitle: "Family • 69€/mois",
-      onPress: () => router.push("/pricing"),
     },
     {
       icon: <HelpCircle size={18} color="#64748B" />,
@@ -122,11 +188,128 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Subscription Card */}
+        <View style={styles.subscriptionCard}>
+          {subscriptionLoading ? (
+            <View style={styles.subscriptionHeader}>
+              <View style={styles.subscriptionIcon}>
+                <CreditCard size={24} color={THEME.colors.primary} />
+              </View>
+              <View style={styles.subscriptionInfo}>
+                <Text style={styles.subscriptionTitle}>Votre abonnement</Text>
+                <ActivityIndicator
+                  size="small"
+                  color={THEME.colors.primary}
+                  style={{ marginTop: 8 }}
+                />
+              </View>
+            </View>
+          ) : (
+            <>
+              <View style={styles.subscriptionHeader}>
+                <View style={styles.subscriptionIcon}>
+                  <CreditCard size={24} color={THEME.colors.primary} />
+                </View>
+                <View style={styles.subscriptionInfo}>
+                  <Text style={styles.subscriptionTitle}>Votre abonnement</Text>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: statusConfig.bgColor },
+                    ]}
+                  >
+                    <StatusIcon size={12} color={statusConfig.color} />
+                    <Text
+                      style={[
+                        styles.statusBadgeText,
+                        { color: statusConfig.color },
+                      ]}
+                    >
+                      {statusConfig.label}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {currentPlan ? (
+                <>
+                  <View style={styles.subscriptionDetails}>
+                    <View style={styles.subscriptionDetailRow}>
+                      <Text style={styles.subscriptionDetailLabel}>Plan</Text>
+                      <Text style={styles.subscriptionDetailValue}>
+                        {currentPlan.name}
+                      </Text>
+                    </View>
+                    <View style={styles.subscriptionDetailRow}>
+                      <Text style={styles.subscriptionDetailLabel}>Prix</Text>
+                      <Text style={styles.subscriptionDetailValue}>
+                        {currentPlan.price}€/mois
+                      </Text>
+                    </View>
+                    {subscription?.expiresAt && (
+                      <View style={styles.subscriptionDetailRow}>
+                        <Text style={styles.subscriptionDetailLabel}>
+                          Expire le
+                        </Text>
+                        <Text style={styles.subscriptionDetailValue}>
+                          {new Date(subscription.expiresAt).toLocaleDateString(
+                            "fr-FR",
+                          )}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {!isActive && (
+                    <TouchableOpacity
+                      style={styles.upgradeButton}
+                      onPress={() => router.push("/pricing")}
+                    >
+                      <Sparkles size={16} color="white" />
+                      <Text style={styles.upgradeButtonText}>
+                        {subscription?.status === "UNPAID"
+                          ? "Payer maintenant"
+                          : "Choisir une offre"}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {isActive && (
+                    <TouchableOpacity
+                      style={styles.changePlanButton}
+                      onPress={() => router.push("/pricing")}
+                    >
+                      <Text style={styles.changePlanButtonText}>
+                        Changer de plan
+                      </Text>
+                      <ChevronRight size={16} color={THEME.colors.primary} />
+                    </TouchableOpacity>
+                  )}
+                </>
+              ) : (
+                <View style={styles.noSubscription}>
+                  <Text style={styles.noSubscriptionText}>
+                    Vous n&apos;avez pas d&apos;abonnement actif.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.subscribeButton}
+                    onPress={() => router.push("/pricing")}
+                  >
+                    <Text style={styles.subscribeButtonText}>
+                      Voir les offres
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
+          )}
+        </View>
+
         {/* Menu items */}
         <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>Paramètres</Text>
           <View style={styles.menuCard}>
-            {menuItems.map((item, index) => (
+            {menuItems.map((item: any, index) => (
               <HapticPressable
                 key={index}
                 style={[
@@ -140,7 +323,30 @@ export default function ProfileScreen() {
                 <View style={styles.menuItemLeft}>
                   <View style={styles.menuIcon}>{item.icon}</View>
                   <View style={styles.menuItemText}>
-                    <Text style={styles.menuItemTitle}>{item.title}</Text>
+                    <View style={styles.menuItemTitleRow}>
+                      <Text style={styles.menuItemTitle}>{item.title}</Text>
+                      {item.showStatusBadge && (
+                        <View
+                          style={[
+                            styles.menuStatusBadge,
+                            { backgroundColor: item.statusConfig.bgColor },
+                          ]}
+                        >
+                          <item.statusConfig.Icon
+                            size={10}
+                            color={item.statusConfig.color}
+                          />
+                          <Text
+                            style={[
+                              styles.menuStatusBadgeText,
+                              { color: item.statusConfig.color },
+                            ]}
+                          >
+                            {item.statusConfig.label}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                     {item.subtitle && (
                       <Text style={styles.menuItemSubtitle}>
                         {item.subtitle}
@@ -275,6 +481,142 @@ const styles = StyleSheet.create({
   contactText: {
     fontSize: 14,
     color: THEME.colors.subtext,
+  },
+
+  // Subscription Card
+  subscriptionCard: {
+    backgroundColor: THEME.colors.secondaryLight,
+    marginHorizontal: THEME.spacing.xxl,
+    marginBottom: THEME.spacing.xxl,
+    padding: 20,
+    borderRadius: THEME.radius.xxl,
+    borderWidth: 1,
+    borderColor: THEME.colors.border,
+  },
+  subscriptionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: THEME.spacing.lg,
+  },
+  subscriptionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: THEME.radius.lg,
+    backgroundColor: THEME.colors.primary + "15",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: THEME.spacing.md,
+  },
+  subscriptionInfo: {
+    flex: 1,
+  },
+  subscriptionTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 16,
+    color: THEME.colors.text,
+    marginBottom: 6,
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  subscriptionDetails: {
+    backgroundColor: THEME.colors.white,
+    borderRadius: THEME.radius.lg,
+    padding: THEME.spacing.md,
+    marginBottom: THEME.spacing.md,
+  },
+  subscriptionDetailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.colors.border,
+  },
+  subscriptionDetailLabel: {
+    fontSize: 14,
+    color: THEME.colors.subtext,
+  },
+  subscriptionDetailValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: THEME.colors.text,
+  },
+  upgradeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: THEME.colors.primary,
+    paddingVertical: 14,
+    borderRadius: THEME.radius.lg,
+  },
+  upgradeButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: THEME.colors.white,
+  },
+  changePlanButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    paddingVertical: 12,
+    borderRadius: THEME.radius.lg,
+    borderWidth: 1,
+    borderColor: THEME.colors.primary,
+  },
+  changePlanButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: THEME.colors.primary,
+  },
+  noSubscription: {
+    alignItems: "center",
+    paddingVertical: THEME.spacing.md,
+  },
+  noSubscriptionText: {
+    fontSize: 14,
+    color: THEME.colors.subtext,
+    marginBottom: THEME.spacing.md,
+  },
+  subscribeButton: {
+    backgroundColor: THEME.colors.primary,
+    paddingHorizontal: THEME.spacing.xl,
+    paddingVertical: 12,
+    borderRadius: THEME.radius.lg,
+  },
+  subscribeButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: THEME.colors.white,
+  },
+  menuStatusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  menuStatusBadgeText: {
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  menuItemTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
 
   // Menu Section

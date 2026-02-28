@@ -29,8 +29,19 @@ import {
   Lock,
   Unlock,
   User,
+  CheckCircle2,
+  Package,
+  FolderOpen,
 } from "lucide-react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, {
+  FadeInDown,
+  FadeIn,
+  useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withTiming,
+  withSpring,
+} from "react-native-reanimated";
 
 import { FONTS } from "@/config/fonts";
 import {
@@ -38,6 +49,8 @@ import {
   useResources,
   useTrackResourceDownload,
 } from "@/hooks/api/resources";
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
+import SubscriptionRequiredModal from "@/components/SubscriptionRequiredModal";
 
 interface Subject {
   id: string;
@@ -57,6 +70,7 @@ interface Resource {
   rating: number;
   color: string;
   url: string;
+  isPaid?: boolean;
 }
 
 const subjects: Subject[] = [
@@ -125,62 +139,113 @@ const ResourceCard: React.FC<{
   delay: number;
   onOpen: (resource: Resource) => void;
   onDownload: (resource: Resource) => void;
-}> = ({ resource, delay, onOpen, onDownload }) => (
-  <Animated.View entering={FadeInDown.delay(delay).duration(400)}>
-    <Pressable style={styles.resourceCard} activeOpacity={0.7}>
-      <View style={styles.resourceHeader}>
-        <View style={styles.resourceBadges}>
-          <View
-            style={[
-              styles.typeBadge,
-              { backgroundColor: resource.color + "15" },
-            ]}
-          >
-            <Text style={[styles.typeBadgeText, { color: resource.color }]}>
-              {resource.type}
-            </Text>
-          </View>
-          <View style={styles.levelBadge}>
-            <Text style={styles.levelBadgeText}>{resource.level}</Text>
+  hasSubscription: boolean;
+  onDownloadPress: () => void;
+}> = ({
+  resource,
+  delay,
+  onOpen,
+  onDownload,
+  hasSubscription,
+  onDownloadPress,
+}) => {
+  const shakeX = useSharedValue(0);
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shakeX.value }, { scale: scale.value }],
+  }));
+
+  const handleDownloadPress = () => {
+    if (!hasSubscription) {
+      scale.value = withSequence(
+        withTiming(1.05, { duration: 100 }),
+        withSequence(
+          withTiming(-10, { duration: 50 }),
+          withTiming(10, { duration: 50 }),
+          withTiming(-10, { duration: 50 }),
+          withTiming(0, { duration: 50 }),
+        ),
+        withSpring(1),
+      );
+      onDownloadPress();
+    } else {
+      onDownload(resource);
+    }
+  };
+
+  return (
+    <Animated.View entering={FadeInDown.delay(delay).duration(400)}>
+      <Pressable style={styles.resourceCard}>
+        <View style={styles.resourceHeader}>
+          <View style={styles.resourceBadges}>
+            <View
+              style={[
+                styles.typeBadge,
+                { backgroundColor: resource.color + "15" },
+              ]}
+            >
+              <Text style={[styles.typeBadgeText, { color: resource.color }]}>
+                {resource.type}
+              </Text>
+            </View>
+            <View style={styles.levelBadge}>
+              <Text style={styles.levelBadgeText}>{resource.level}</Text>
+            </View>
+            {(resource as Resource & { isPaid?: boolean }).isPaid && (
+              <View style={styles.premiumBadge}>
+                <Sparkles size={10} color="#F59E0B" />
+                <Text style={styles.premiumBadgeText}>Premium</Text>
+              </View>
+            )}
           </View>
         </View>
-      </View>
-      <Text style={styles.resourceTitle} numberOfLines={2}>
-        {resource.title}
-      </Text>
-      <Text style={styles.resourceSubject}>{resource.subject}</Text>
-      <View style={styles.resourceFooter}>
-        <View style={styles.resourceStats}>
-          <View style={styles.statItem}>
-            <Star size={12} color="#F59E0B" fill="#F59E0B" />
-            <Text style={styles.statText}>{resource.rating}</Text>
+        <Text style={styles.resourceTitle} numberOfLines={2}>
+          {resource.title}
+        </Text>
+        <Text style={styles.resourceSubject}>{resource.subject}</Text>
+        <View style={styles.resourceFooter}>
+          <View style={styles.resourceStats}>
+            <View style={styles.statItem}>
+              <Star size={12} color="#F59E0B" fill="#F59E0B" />
+              <Text style={styles.statText}>{resource.rating}</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Download size={12} color="#64748B" />
+              <Text style={styles.statText}>{resource.downloads}</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <Text style={styles.pagesText}>{resource.pages}p</Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Download size={12} color="#64748B" />
-            <Text style={styles.statText}>{resource.downloads}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <Text style={styles.pagesText}>{resource.pages}p</Text>
+          <Animated.View style={[styles.resourceActions, animatedStyle]}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => onOpen(resource)}
+            >
+              <Eye size={16} color="#6366F1" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.actionButton,
+                styles.downloadButton,
+                !hasSubscription && styles.downloadButtonLocked,
+              ]}
+              onPress={handleDownloadPress}
+            >
+              <Download size={16} color="white" />
+              {!hasSubscription && (
+                <View style={styles.lockOverlay}>
+                  <Lock size={10} color="white" />
+                </View>
+              )}
+            </TouchableOpacity>
+          </Animated.View>
         </View>
-        <View style={styles.resourceActions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => onOpen(resource)}
-          >
-            <Eye size={16} color="#6366F1" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.downloadButton]}
-            onPress={() => onDownload(resource)}
-          >
-            <Download size={16} color="white" />
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Pressable>
-  </Animated.View>
-);
+      </Pressable>
+    </Animated.View>
+  );
+};
 
 export default function ResourcesScreen() {
   const router = useRouter();
@@ -189,6 +254,8 @@ export default function ResourcesScreen() {
   const [selectedSubject, setSelectedSubject] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"tuteurs" | "general">("tuteurs");
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const { hasActiveSubscription, isLoading } = useSubscriptionStatus();
 
   const tutorResources = useMemo(() => {
     return resourcesData
@@ -252,7 +319,7 @@ export default function ResourcesScreen() {
                 : resource.type === "image"
                   ? ("Image" as const)
                   : ("PDF" as const);
-          return {
+          const mapped: Resource = {
             id: resource.id,
             title: resource.title,
             subject: resource.subject,
@@ -270,9 +337,11 @@ export default function ResourcesScreen() {
                     ? "#10B981"
                     : "#6366F1",
             url,
+            isPaid: resource.tags.includes("paid"),
           };
+          return mapped;
         })
-        .filter((resource): resource is Resource => Boolean(resource)),
+        .filter((resource): resource is Resource => resource !== null),
     [resourcesData],
   );
 
@@ -291,6 +360,14 @@ export default function ResourcesScreen() {
   };
 
   const handleDownload = async (id: string, url: string) => {
+    if (isLoading) return;
+
+    if (!hasActiveSubscription) {
+      setShowSubscriptionModal(true);
+      return;
+    }
+
+    // Backend handles download limit check
     try {
       await trackDownloadMutation.mutateAsync(id);
     } catch {
@@ -328,6 +405,33 @@ export default function ResourcesScreen() {
           />
         </View>
       </View>
+
+      {/* Subscription Status Banner */}
+      <Animated.View
+        entering={FadeIn.duration(300)}
+        style={[
+          styles.subscriptionBanner,
+          hasActiveSubscription
+            ? styles.subscriptionBannerActive
+            : styles.subscriptionBannerInactive,
+        ]}
+      >
+        {hasActiveSubscription ? (
+          <>
+            <CheckCircle2 size={18} color="#10B981" />
+            <Text style={styles.subscriptionBannerTextActive}>
+              Abonnement actif
+            </Text>
+          </>
+        ) : (
+          <>
+            <Lock size={18} color="#D97706" />
+            <Text style={styles.subscriptionBannerTextInactive}>
+              Téléchargez vos ressources
+            </Text>
+          </>
+        )}
+      </Animated.View>
 
       {/* ── TABS ── */}
       <View style={styles.tabs}>
@@ -407,13 +511,26 @@ export default function ResourcesScreen() {
             </Text>
 
             {filteredTutorResources.length === 0 && (
-              <View style={styles.emptyState}>
-                <BookOpen size={48} color="#CBD5E1" />
+              <Animated.View
+                entering={FadeIn.duration(400)}
+                style={styles.emptyState}
+              >
+                <View style={styles.emptyStateIconContainer}>
+                  <FolderOpen size={40} color="#6366F1" />
+                </View>
                 <Text style={styles.emptyStateTitle}>Aucune ressource</Text>
                 <Text style={styles.emptyStateText}>
                   Vos tuteurs n&apos;ont pas encore partagé de ressources
                 </Text>
-              </View>
+                <TouchableOpacity
+                  style={styles.emptyStateButton}
+                  onPress={() => router.push("/")}
+                >
+                  <Text style={styles.emptyStateButtonText}>
+                    Retour à l&apos;accueil
+                  </Text>
+                </TouchableOpacity>
+              </Animated.View>
             )}
 
             {filteredTutorResources.map((resource, index) => (
@@ -526,16 +643,34 @@ export default function ResourcesScreen() {
                 delay={200 + index * 50}
                 onOpen={(item) => handleOpen(item.url)}
                 onDownload={(item) => handleDownload(item.id, item.url)}
+                hasSubscription={hasActiveSubscription}
+                onDownloadPress={() => setShowSubscriptionModal(true)}
               />
             ))}
             {filteredResources.length === 0 && (
-              <View style={styles.emptyState}>
-                <BookOpen size={48} color="#CBD5E1" />
+              <Animated.View
+                entering={FadeIn.duration(400)}
+                style={styles.emptyState}
+              >
+                <View style={styles.emptyStateIconContainer}>
+                  <Package size={40} color="#6366F1" />
+                </View>
                 <Text style={styles.emptyStateTitle}>Aucune ressource</Text>
                 <Text style={styles.emptyStateText}>
                   Modifiez vos filtres ou votre recherche
                 </Text>
-              </View>
+                <TouchableOpacity
+                  style={styles.emptyStateButton}
+                  onPress={() => {
+                    setSearchQuery("");
+                    setSelectedSubject("all");
+                  }}
+                >
+                  <Text style={styles.emptyStateButtonText}>
+                    Réinitialiser les filtres
+                  </Text>
+                </TouchableOpacity>
+              </Animated.View>
             )}
           </View>
         )}
@@ -547,6 +682,15 @@ export default function ResourcesScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <SubscriptionRequiredModal
+        visible={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
+        onUpgrade={() => {
+          setShowSubscriptionModal(false);
+          router.push("/pricing");
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -597,6 +741,39 @@ const styles = StyleSheet.create({
     borderColor: "#F1F5F9",
   },
   searchInput: { flex: 1, fontSize: 15, color: "#1E293B" },
+
+  // Subscription Banner
+  subscriptionBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+  },
+  subscriptionBannerActive: {
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1,
+    borderColor: "#10B981",
+  },
+  subscriptionBannerInactive: {
+    backgroundColor: "#FFFBEB",
+    borderWidth: 1,
+    borderColor: "#D97706",
+  },
+  subscriptionBannerTextActive: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#10B981",
+  },
+  subscriptionBannerTextInactive: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#D97706",
+  },
 
   // Tabs
   tabs: {
@@ -741,9 +918,21 @@ const styles = StyleSheet.create({
     borderColor: "#F1F5F9",
   },
   resourceHeader: { marginBottom: 10 },
-  resourceBadges: { flexDirection: "row", gap: 8 },
+  resourceBadges: { flexDirection: "row", gap: 8, alignItems: "center" },
   typeBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   typeBadgeText: { fontSize: 11, fontWeight: "600" },
+  premiumBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: "#FEF3C7",
+    borderWidth: 1,
+    borderColor: "#F59E0B",
+  },
+  premiumBadgeText: { fontSize: 10, fontWeight: "700", color: "#D97706" },
   levelBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -782,20 +971,56 @@ const styles = StyleSheet.create({
     borderColor: "#F1F5F9",
   },
   downloadButton: { backgroundColor: "#6366F1", borderWidth: 0 },
+  downloadButtonLocked: { backgroundColor: "#94A3B8" },
+  lockOverlay: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#D97706",
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
   emptyState: {
     alignItems: "center",
     paddingVertical: 40,
     paddingHorizontal: 20,
   },
+  emptyStateIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#EEF2FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
   emptyStateTitle: {
     fontFamily: FONTS.fredoka,
     fontSize: 18,
     color: "#1E293B",
-    marginTop: 16,
     marginBottom: 8,
   },
-  emptyStateText: { fontSize: 14, color: "#64748B", textAlign: "center" },
+  emptyStateText: {
+    fontSize: 14,
+    color: "#64748B",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  emptyStateButton: {
+    backgroundColor: "#6366F1",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  emptyStateButtonText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
+  },
 
   sourceButton: {
     flexDirection: "row",

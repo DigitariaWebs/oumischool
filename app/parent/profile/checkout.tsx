@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,11 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  Dimensions,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { usePayment } from "@/hooks/usePayment";
 import { usePaymentMethods } from "@/hooks/api/payment-methods";
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
+import SubscriptionRequiredModal from "@/components/SubscriptionRequiredModal";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ArrowLeft,
@@ -35,8 +36,6 @@ import { FONTS } from "@/config/fonts";
 import { useTheme } from "@/hooks/use-theme";
 import { ThemeColors } from "@/constants/theme";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
 export default function CheckoutScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -60,6 +59,15 @@ export default function CheckoutScreen() {
   const { data: paymentMethods = [], isLoading: methodsLoading } =
     usePaymentMethods();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+
+  const { hasActiveSubscription, isLoading } = useSubscriptionStatus();
+
+  useEffect(() => {
+    if (!isLoading && !hasActiveSubscription) {
+      setShowSubscriptionModal(true);
+    }
+  }, [isLoading, hasActiveSubscription]);
 
   const handlePayment = async () => {
     if (!bookingDetails.startTime || !bookingDetails.endTime) {
@@ -359,9 +367,13 @@ export default function CheckoutScreen() {
           </View>
 
           <TouchableOpacity
-            style={[styles.payButton, isProcessing && styles.payButtonDisabled]}
+            style={[
+              styles.payButton,
+              (isProcessing || isLoading || !hasActiveSubscription) &&
+                styles.payButtonDisabled,
+            ]}
             onPress={handlePayment}
-            disabled={isProcessing}
+            disabled={isProcessing || isLoading || !hasActiveSubscription}
             activeOpacity={0.8}
           >
             <LinearGradient
@@ -390,6 +402,18 @@ export default function CheckoutScreen() {
           En confirmant, vous acceptez nos conditions d&apos;utilisation
         </Text>
       </Animated.View>
+
+      <SubscriptionRequiredModal
+        visible={showSubscriptionModal}
+        onClose={() => {
+          setShowSubscriptionModal(false);
+          router.back();
+        }}
+        onUpgrade={() => {
+          setShowSubscriptionModal(false);
+          router.replace("/pricing");
+        }}
+      />
     </SafeAreaView>
   );
 }

@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   ViewStyle,
 } from "react-native";
-import { Check, Sparkles } from "lucide-react-native";
+import { Check, Sparkles, Users, Baby, Heart } from "lucide-react-native";
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { SPACING, RADIUS } from "@/constants/tokens";
@@ -23,6 +23,7 @@ interface PlanCardProps {
   features: string[];
   isPopular?: boolean;
   isCurrent?: boolean;
+  targetAudience?: string;
   onSelect: (planId: string) => void;
   delay?: number;
 }
@@ -37,11 +38,29 @@ export const PlanCard: React.FC<PlanCardProps> = ({
   features,
   isPopular = false,
   isCurrent = false,
+  targetAudience,
   onSelect,
   delay = 0,
 }) => {
   const isYearly = billingPeriod === "year";
   const monthlyPrice = isYearly ? Math.round(price / 12) : price;
+
+  const getAudienceIcon = () => {
+    if (!targetAudience) return null;
+    if (
+      targetAudience.includes("famille") ||
+      targetAudience.includes("2 enfants")
+    ) {
+      return <Users size={14} color={COLORS.primary.DEFAULT} />;
+    }
+    if (
+      targetAudience.includes("enfant") ||
+      targetAudience.includes("1 enfant")
+    ) {
+      return <Baby size={14} color={COLORS.primary.DEFAULT} />;
+    }
+    return <Heart size={14} color={COLORS.primary.DEFAULT} />;
+  };
 
   const cardStyle: ViewStyle = {
     ...styles.container,
@@ -85,6 +104,13 @@ export const PlanCard: React.FC<PlanCardProps> = ({
                 /{billingPeriod === "month" ? "mois" : "mois"}
               </Text>
             </View>
+            <Text style={styles.perMonthText}>par mois</Text>
+            {targetAudience && (
+              <View style={styles.targetAudienceContainer}>
+                {getAudienceIcon()}
+                <Text style={styles.targetAudienceText}>{targetAudience}</Text>
+              </View>
+            )}
             {isYearly && (
               <Text style={styles.billingNote}>
                 Facturé {price}
@@ -234,6 +260,32 @@ const styles = StyleSheet.create({
     color: COLORS.secondary[600],
     alignSelf: "flex-end",
     marginBottom: 8,
+  },
+  perMonthText: {
+    fontFamily: FONTS.secondary,
+    fontSize: 14,
+    color: COLORS.secondary[500],
+    textAlign: "center",
+    marginTop: -SPACING.xs,
+    marginBottom: SPACING.sm,
+  },
+  targetAudienceContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.primary[50],
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.full,
+    alignSelf: "center",
+    marginBottom: SPACING.sm,
+    gap: SPACING.xs,
+  },
+  targetAudienceText: {
+    fontFamily: FONTS.secondary,
+    fontSize: 12,
+    color: COLORS.primary.DEFAULT,
+    fontWeight: "600",
   },
   billingNote: {
     fontFamily: FONTS.secondary,

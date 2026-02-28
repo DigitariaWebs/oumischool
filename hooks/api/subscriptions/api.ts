@@ -7,6 +7,11 @@ export interface SubscriptionPlan {
   description: string | null;
   features: string[];
   maxChildren: number | null;
+  includesFreeResources: boolean;
+  includesPaidResources: boolean;
+  maxResourceDownloads: number;
+  hasPrioritySupport: boolean;
+  hasAdvancedAnalytics: boolean;
   isActive: boolean;
 }
 

@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Pressable,
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -28,6 +27,8 @@ import { useTutors } from "@/hooks/api/tutors";
 import type { TutorListItem } from "@/hooks/api/tutors/api";
 import { useChildren } from "@/hooks/api/parent";
 import { HapticPressable } from "@/components/ui/haptic-pressable";
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
+import SubscriptionRequiredModal from "@/components/SubscriptionRequiredModal";
 
 interface Subject {
   id: string;
@@ -112,6 +113,8 @@ export default function TutorsTab() {
   const router = useRouter();
   const { data: tutorsData = [] } = useTutors();
   const { data: childrenFromApi = [] } = useChildren();
+  const { hasActiveSubscription, isLoading } = useSubscriptionStatus();
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [browseMode, setBrowseMode] = useState<"recommended" | "tutor">(
     "recommended",
   );
@@ -375,7 +378,14 @@ export default function TutorsTab() {
                   <HapticPressable
                     key={tutor.id}
                     style={styles.tutorCard}
-                    onPress={() => router.push(`/tutor/${tutor.id}`)}
+                    onPress={() => {
+                      if (isLoading) return;
+                      if (!hasActiveSubscription) {
+                        setShowSubscriptionModal(true);
+                        return;
+                      }
+                      router.push(`/tutor/${tutor.id}`);
+                    }}
                     hapticType="light"
                     scale={0.98}
                   >
@@ -579,7 +589,14 @@ export default function TutorsTab() {
 
                       <HapticPressable
                         style={styles.tutorCard}
-                        onPress={() => router.push(`/tutor/${tutor.id}`)}
+                        onPress={() => {
+                          if (isLoading) return;
+                          if (!hasActiveSubscription) {
+                            setShowSubscriptionModal(true);
+                            return;
+                          }
+                          router.push(`/tutor/${tutor.id}`);
+                        }}
                         hapticType="light"
                         scale={0.98}
                       >
@@ -645,6 +662,15 @@ export default function TutorsTab() {
           <Text style={styles.sourceButtonText}>+ Demander un tuteur</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <SubscriptionRequiredModal
+        visible={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
+        onUpgrade={() => {
+          setShowSubscriptionModal(false);
+          router.push("/pricing");
+        }}
+      />
     </SafeAreaView>
   );
 }
