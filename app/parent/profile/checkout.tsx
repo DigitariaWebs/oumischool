@@ -411,7 +411,7 @@ export default function CheckoutScreen() {
         }}
         onUpgrade={() => {
           setShowSubscriptionModal(false);
-          router.replace("/pricing");
+          router.replace("/parent/pricing");
         }}
       />
     </SafeAreaView>

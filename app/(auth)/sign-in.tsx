@@ -227,18 +227,6 @@ export default function SignInScreen() {
             <Text style={styles.signUpText}>Créer un compte</Text>
           </TouchableOpacity>
         </Animated.View>
-
-        {/* Mode test (dev only) */}
-        {__DEV__ && (
-          <Animated.View entering={FadeInUp.delay(700).duration(600)}>
-            <TouchableOpacity
-              onPress={() => router.push("/dev-accounts")}
-              style={styles.devButton}
-            >
-              <Text style={styles.devButtonText}>Comptes de test</Text>
-            </TouchableOpacity>
-          </Animated.View>
-        )}
       </ScrollView>
     </View>
   );

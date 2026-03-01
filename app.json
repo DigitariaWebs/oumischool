@@ -31,7 +31,15 @@
     "plugins": [
       "expo-dev-client",
       "expo-router",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#FF6B35",
+          "defaultChannel": "default",
+          "sounds": []
+        }
+      ],
       [
         "@stripe/stripe-react-native",
         {
@@ -66,8 +74,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "bf30e39c-cab0-43d4-8e03-f4798b201c61"
-      }
+        "projectId": "your-eas-project-id-here"
+      },
+      "_instructions": "Find your EAS projectId at https://expo.dev/accounts/[account]/projects/[slug] or run `eas init` to auto-populate it"
     },
     "owner": "p.egasu.s"
   }

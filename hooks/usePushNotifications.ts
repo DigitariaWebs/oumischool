@@ -2,13 +2,14 @@ import { useEffect, useRef } from "react";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { useAppSelector } from "@/store/hooks";
 import { apiClient } from "@/hooks/api/client";
 
 // ---------------------------------------------------------------------------
-// Foreground notification handler — show banner + play sound while app is open
+// Foreground handler — show alert + play sound while app is open
+// SDK 54 uses shouldShowAlert (not shouldShowBanner/shouldShowList)
 // ---------------------------------------------------------------------------
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -20,7 +21,7 @@ Notifications.setNotificationHandler({
 });
 
 // ---------------------------------------------------------------------------
-// Navigate to the right screen when the user taps a notification
+// Route resolution
 // ---------------------------------------------------------------------------
 function resolveNotificationRoute(
   type: string,
@@ -41,18 +42,14 @@ function resolveNotificationRoute(
     case "PAYMENT_RECEIVED":
     case "PAYMENT_FAILED":
     case "ORDER_REFUNDED":
-      return "/pricing";
-
     case "SUBSCRIPTION_EXPIRING":
     case "SUBSCRIPTION_EXPIRED":
       return "/pricing";
 
     case "REVIEW_RECEIVED":
-      return "/tutor/reviews";
-
     case "TUTOR_APPROVED":
     case "TUTOR_REJECTED":
-      return "/profile";
+      return "/(tabs-tutor)/profile";
 
     default:
       return null;
@@ -60,34 +57,56 @@ function resolveNotificationRoute(
 }
 
 // ---------------------------------------------------------------------------
-// Main hook — call once, inside an authenticated context
+// Main hook
 // ---------------------------------------------------------------------------
 export function usePushNotifications() {
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const router = useRouter();
+  const tokenRef = useRef<string | null>(null);
+  const foregroundListenerRef = useRef<Notifications.Subscription | null>(null);
   const responseListenerRef = useRef<Notifications.Subscription | null>(null);
-  const tokenRegisteredRef = useRef(false);
 
-  // Register push token with the server whenever the user logs in
+  // Register token on login, deregister on logout
   useEffect(() => {
-    if (!isAuthenticated || tokenRegisteredRef.current) return;
-
-    registerAndSyncToken();
-    tokenRegisteredRef.current = true;
-
-    return () => {
-      tokenRegisteredRef.current = false;
-    };
-  }, [isAuthenticated]);
-
-  // Deregister when user logs out
-  useEffect(() => {
-    if (!isAuthenticated) {
-      tokenRegisteredRef.current = false;
+    if (isAuthenticated) {
+      registerAndSyncToken().then((token) => {
+        tokenRef.current = token;
+      });
+    } else {
+      // User logged out — clear badge and deregister token from server
+      if (tokenRef.current) {
+        void apiClient
+          .put("/users/me/push-token", { token: null })
+          .catch(() => {});
+        tokenRef.current = null;
+      }
+      Notifications.setBadgeCountAsync(0).catch(() => {});
     }
   }, [isAuthenticated]);
 
-  // Listen for notification taps (app in background/killed)
+  // Clear badge when app comes to foreground
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        Notifications.setBadgeCountAsync(0).catch(() => {});
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
+  // Foreground notification listener — fired while app is open
+  useEffect(() => {
+    foregroundListenerRef.current =
+      Notifications.addNotificationReceivedListener(() => {
+        // Badge is incremented by the OS via shouldSetBadge — nothing extra needed
+      });
+
+    return () => {
+      foregroundListenerRef.current?.remove();
+    };
+  }, []);
+
+  // Tap listener — app in background or killed
   useEffect(() => {
     responseListenerRef.current =
       Notifications.addNotificationResponseReceivedListener((response) => {
@@ -100,32 +119,49 @@ export function usePushNotifications() {
             router.push(route as any);
           }
         }
+        Notifications.setBadgeCountAsync(0).catch(() => {});
       });
 
     return () => {
       responseListenerRef.current?.remove();
     };
   }, [router]);
+
+  // Handle notification that launched the app from killed state
+  useEffect(() => {
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (!response) return;
+      const data = (response.notification.request.content.data ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const type = data.type as string | undefined;
+      if (type) {
+        const route = resolveNotificationRoute(type, data);
+        if (route) {
+          router.push(route as any);
+        }
+      }
+    });
+  }, [router]);
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Token registration
 // ---------------------------------------------------------------------------
-
-async function registerAndSyncToken(): Promise<void> {
+async function registerAndSyncToken(): Promise<string | null> {
   try {
-    if (!Device.isDevice) {
-      // Push tokens are not available on simulators — skip silently
-      return;
-    }
+    if (!Device.isDevice) return null;
 
-    // Android: create notification channel first
     if (Platform.OS === "android") {
       await Notifications.setNotificationChannelAsync("default", {
-        name: "Default",
+        name: "OumiSchool",
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: "#FF6B35",
+        sound: "default",
+        enableVibrate: true,
+        showBadge: true,
       });
     }
 
@@ -134,13 +170,19 @@ async function registerAndSyncToken(): Promise<void> {
     let finalStatus = existingStatus;
 
     if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
+      const { status } = await Notifications.requestPermissionsAsync({
+        ios: {
+          allowAlert: true,
+          allowBadge: true,
+          allowSound: true,
+        },
+      });
       finalStatus = status;
     }
 
     if (finalStatus !== "granted") {
-      console.log("[push] Notification permission not granted");
-      return;
+      console.log("[push] Permission not granted");
+      return null;
     }
 
     const projectId =
@@ -148,21 +190,18 @@ async function registerAndSyncToken(): Promise<void> {
       Constants.easConfig?.projectId;
 
     if (!projectId) {
-      console.warn(
-        "[push] No EAS projectId found in app config — skipping push token registration",
-      );
-      return;
+      console.warn("[push] No EAS projectId — skipping token registration");
+      return null;
     }
 
-    const tokenResponse = await Notifications.getExpoPushTokenAsync({
+    const { data: token } = await Notifications.getExpoPushTokenAsync({
       projectId,
     });
-    const token = tokenResponse.data;
 
-    // Persist to server (fire-and-forget from UI perspective)
     await apiClient.put("/users/me/push-token", { token });
+    return token;
   } catch (err) {
-    // Never crash the app over push registration
     console.error("[push] Failed to register push token:", err);
+    return null;
   }
 }

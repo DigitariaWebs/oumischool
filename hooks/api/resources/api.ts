@@ -58,4 +58,6 @@ export const resourcesApi = {
     apiClient.post<void>(`/resources/${id}/download`),
   getSecureDownloadUrl: (id: string) =>
     resolveResourceUrl(`/resources/${id}/download-secure`),
+  addToLibrary: (id: string) =>
+    apiClient.post<{ message: string }>(`/resources/${id}/add-to-library`),
 };

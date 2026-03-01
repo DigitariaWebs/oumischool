@@ -285,7 +285,7 @@ export default function SignUpScreen() {
         grade: childGrade,
         dateOfBirth: new Date(childDateOfBirth).toISOString(),
       });
-      router.replace("/pricing");
+      router.replace("/parent/pricing");
     } catch (err) {
       setError(
         err instanceof Error

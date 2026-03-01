@@ -134,19 +134,19 @@ export default function HomeScreen() {
     {
       icon: <Calendar size={20} color={THEME.colors.subtext} />,
       title: "Plan",
-      onPress: () => router.push("/weekly-plan"),
+      onPress: () => router.push("/parent/weekly-plan"),
       hapticType: "selection" as const,
     },
     {
       icon: <Sparkles size={20} color={THEME.colors.subtext} />,
       title: "Coach IA",
-      onPress: () => router.push("/ai-coach"),
+      onPress: () => router.push("/features/ai-coach"),
       hapticType: "selection" as const,
     },
     {
       icon: <BookOpen size={20} color={THEME.colors.subtext} />,
       title: "Ressources",
-      onPress: () => router.push("/resources"),
+      onPress: () => router.push("/library?tab=owned"),
       hapticType: "selection" as const,
     },
   ];

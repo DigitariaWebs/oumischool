@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,7 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
-  Alert,
+  Pressable,
   Share,
   Linking,
   FlatList,
@@ -27,16 +27,30 @@ import {
   Shield,
   CreditCard,
   Lock,
+  Info,
+  BookmarkPlus,
+  BookmarkCheck,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { THEME } from "@/config/theme";
 import {
-  resolveResourceUrl,
+  resourcesApi,
   useResources,
   useTrackResourceDownload,
+  useAddToLibrary,
+  resourceKeys,
 } from "@/hooks/api/resources";
+import { useQueryClient } from "@tanstack/react-query";
 import { usePayment } from "@/hooks/usePayment";
+import {
+  useCurrentSubscription,
+  useSubscriptionPlans,
+} from "@/hooks/api/subscriptions";
+import { COLORS as THEME_COLORS } from "@/config/colors";
+import { FONTS } from "@/config/fonts";
+import { RADIUS } from "@/constants/tokens";
 import { HapticPressable } from "@/components/ui/haptic-pressable";
 import { Avatar } from "@/components/ui/Avatar";
 
@@ -77,11 +91,63 @@ interface Resource {
 }
 
 export default function LibraryScreen() {
+  const router = useRouter();
+  const qc = useQueryClient();
   const { data: apiResources = [] } = useResources();
   const trackDownloadMutation = useTrackResourceDownload();
+  const addToLibraryMutation = useAddToLibrary();
   const { payForResource } = usePayment();
+  const { data: currentSubscription } = useCurrentSubscription();
+  const { data: plans = [] } = useSubscriptionPlans();
 
+  console.log(apiResources);
+
+  const [upgradeModalVisible, setUpgradeModalVisible] = useState(false);
+  const [upgradeModalPlanName, setUpgradeModalPlanName] = useState<
+    string | null
+  >(null);
+
+  const [feedbackModal, setFeedbackModal] = useState<{
+    visible: boolean;
+    type: "error" | "success" | "info" | "purchase";
+    title: string;
+    message: string;
+    priceLabel?: string;
+    onConfirm?: () => void;
+  }>({
+    visible: false,
+    type: "info",
+    title: "",
+    message: "",
+  });
+
+  const showFeedback = useCallback(
+    (
+      type: "error" | "success" | "info" | "purchase",
+      title: string,
+      message: string,
+      opts?: { priceLabel?: string; onConfirm?: () => void },
+    ) => {
+      setFeedbackModal({
+        visible: true,
+        type,
+        title,
+        message,
+        priceLabel: opts?.priceLabel,
+        onConfirm: opts?.onConfirm,
+      });
+    },
+    [],
+  );
+
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
   const [activeTab, setActiveTab] = useState<"browse" | "owned">("browse");
+
+  useEffect(() => {
+    if (tab === "owned") {
+      setActiveTab("owned");
+    }
+  }, [tab]);
   const [selectedSubject, setSelectedSubject] = useState("all");
   const [selectedResource, setSelectedResource] = useState<Resource | null>(
     null,
@@ -123,7 +189,7 @@ export default function LibraryScreen() {
           content:
             resource.description ??
             "Ouvrez ou téléchargez ce document pour consulter son contenu.",
-          url: resolveResourceUrl(resource.fileUrl),
+          url: resourcesApi.getSecureDownloadUrl(resource.id),
           isPaid: resource.isPaid ?? false,
           price: resource.price ?? null,
           hasEntitlement: resource.hasEntitlement ?? !resource.isPaid,
@@ -139,36 +205,84 @@ export default function LibraryScreen() {
     [serverResources],
   );
 
+  const promptUpgrade = useCallback(() => {
+    const nextPlan = plans.find(
+      (p) =>
+        p.isActive &&
+        p.includesPaidResources &&
+        p.id !== currentSubscription?.planId,
+    );
+    setUpgradeModalPlanName(nextPlan?.name ?? null);
+    setUpgradeModalVisible(true);
+  }, [plans, currentSubscription]);
+
+  const checkPlanAccess = useCallback(
+    (resource: Resource): boolean => {
+      const plan = currentSubscription?.plan;
+      if (!plan || currentSubscription.status !== "ACTIVE") {
+        promptUpgrade();
+        return false;
+      }
+      if (!resource.isPaid && !plan.includesFreeResources) {
+        promptUpgrade();
+        return false;
+      }
+      if (
+        resource.isPaid &&
+        !plan.includesPaidResources &&
+        !resource.hasEntitlement
+      ) {
+        promptUpgrade();
+        return false;
+      }
+      return true;
+    },
+    [currentSubscription, promptUpgrade],
+  );
+
   const handleDownload = useCallback(
     async (resource: Resource) => {
       if (!resource.url) {
-        Alert.alert("Indisponible", "Aucun fichier associé à cette ressource.");
+        showFeedback(
+          "error",
+          "Indisponible",
+          "Aucun fichier associé à cette ressource.",
+        );
         return;
       }
+
+      if (!checkPlanAccess(resource)) return;
 
       if (resource.isPaid && !resource.hasEntitlement) {
         const priceLabel = resource.price
           ? `${(resource.price / 100).toFixed(2)} €`
           : "Payant";
-        Alert.alert(
+        showFeedback(
+          "purchase",
           "Ressource payante",
           `Cette ressource coûte ${priceLabel}. Souhaitez-vous l'acheter?`,
-          [
-            { text: "Annuler", style: "cancel" },
-            {
-              text: "Acheter",
-              onPress: async () => {
-                const { success } = await payForResource(resource.id);
-                if (success) {
-                  Alert.alert(
-                    "Achat réussi!",
-                    "La ressource est maintenant accessible.",
-                  );
-                  setIsViewerVisible(false);
-                }
-              },
+          {
+            priceLabel,
+            onConfirm: async () => {
+              setFeedbackModal((prev) => ({ ...prev, visible: false }));
+              const { success } = await payForResource(resource.id);
+              if (success) {
+                await qc.invalidateQueries({ queryKey: resourceKeys.lists() });
+                showFeedback(
+                  "success",
+                  "Achat réussi !",
+                  "La ressource est maintenant accessible.",
+                  { onConfirm: () => setIsViewerVisible(false) },
+                );
+              } else {
+                showFeedback(
+                  "error",
+                  "Échec du paiement",
+                  "Le paiement n'a pas pu être traité. Veuillez réessayer.",
+                );
+              }
             },
-          ],
+          },
         );
         return;
       }
@@ -179,14 +293,21 @@ export default function LibraryScreen() {
         // non-blocking analytics
       }
       Linking.openURL(resource.url).catch(() => {
-        Alert.alert("Erreur", "Impossible d'ouvrir le lien de téléchargement.");
+        showFeedback(
+          "error",
+          "Erreur",
+          "Impossible d'ouvrir le lien de téléchargement.",
+        );
       });
     },
-    [payForResource, trackDownloadMutation],
+    [payForResource, trackDownloadMutation, checkPlanAccess, showFeedback, qc],
   );
 
   const filteredResources = useMemo(() => {
-    const source = activeTab === "owned" ? ownedResources : serverResources;
+    const source =
+      activeTab === "owned"
+        ? ownedResources
+        : serverResources.filter((res) => !res.hasEntitlement);
     return source.filter((res) => {
       const matchesSubject =
         selectedSubject === "all" || res.subject === selectedSubject;
@@ -397,10 +518,23 @@ export default function LibraryScreen() {
   const renderResourceCard = ({ item }: { item: Resource }) => {
     const tutorName = item.uploader?.name || item.uploader?.email || null;
     const isSystem = item.isSystemResource;
+    const plan = currentSubscription?.plan;
+    const planActive = currentSubscription?.status === "ACTIVE";
+    const blockedByPlan =
+      !planActive ||
+      (!item.isPaid && plan && !plan.includesFreeResources) ||
+      (item.isPaid &&
+        !item.hasEntitlement &&
+        plan &&
+        !plan.includesPaidResources);
 
     return (
       <HapticPressable
         onPress={() => {
+          if (blockedByPlan) {
+            promptUpgrade();
+            return;
+          }
           setSelectedResource(item);
           setIsViewerVisible(true);
         }}
@@ -492,10 +626,12 @@ export default function LibraryScreen() {
           </View>
         </View>
 
-        {!item.hasEntitlement && item.isPaid && (
+        {((!item.hasEntitlement && item.isPaid) || blockedByPlan) && (
           <View style={styles.lockedOverlay}>
             <Lock size={20} color={COLORS.white} />
-            <Text style={styles.lockedText}>Réservé aux abonnés</Text>
+            <Text style={styles.lockedText}>
+              {blockedByPlan ? "Abonnement requis" : "Réservé aux abonnés"}
+            </Text>
           </View>
         )}
       </HapticPressable>
@@ -669,6 +805,41 @@ export default function LibraryScreen() {
                   : "voir le prix"}
               </Text>
             </TouchableOpacity>
+          ) : !selectedResource?.isPaid &&
+            !selectedResource?.hasEntitlement &&
+            activeTab === "browse" ? (
+            <TouchableOpacity
+              style={styles.addToLibraryBtn}
+              onPress={async () => {
+                if (!selectedResource) return;
+                if (!checkPlanAccess(selectedResource)) return;
+                try {
+                  await addToLibraryMutation.mutateAsync(selectedResource.id);
+                  Haptics.notificationAsync(
+                    Haptics.NotificationFeedbackType.Success,
+                  );
+                  setIsViewerVisible(false);
+                } catch {
+                  showFeedback(
+                    "error",
+                    "Erreur",
+                    "Impossible d'ajouter cette ressource à votre bibliothèque.",
+                  );
+                }
+              }}
+              disabled={addToLibraryMutation.isPending}
+            >
+              {selectedResource?.hasEntitlement ? (
+                <BookmarkCheck size={20} color={COLORS.white} />
+              ) : (
+                <BookmarkPlus size={20} color={COLORS.white} />
+              )}
+              <Text style={styles.addToLibraryText}>
+                {addToLibraryMutation.isPending
+                  ? "Ajout en cours..."
+                  : "Ajouter à ma bibliothèque"}
+              </Text>
+            </TouchableOpacity>
           ) : (
             <TouchableOpacity
               style={styles.mainDownloadBtn}
@@ -678,9 +849,7 @@ export default function LibraryScreen() {
             >
               <Download size={20} color={COLORS.white} />
               <Text style={styles.mainDownloadText}>
-                {selectedResource?.hasEntitlement
-                  ? "Ouvrir le fichier"
-                  : "Télécharger le PDF"}
+                Ouvrir le fichier
                 {selectedResource?.pages
                   ? ` (${selectedResource.pages} pages)`
                   : ""}
@@ -861,6 +1030,153 @@ export default function LibraryScreen() {
 
       {renderFilterPanel()}
       {renderViewerModal()}
+
+      <Modal
+        visible={feedbackModal.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() =>
+          setFeedbackModal((prev) => ({ ...prev, visible: false }))
+        }
+      >
+        <Pressable
+          style={styles.upgradeModalOverlay}
+          onPress={() =>
+            setFeedbackModal((prev) => ({ ...prev, visible: false }))
+          }
+        >
+          <Pressable
+            style={styles.upgradeModalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View
+              style={[
+                styles.upgradeModalIcon,
+                feedbackModal.type === "success" && styles.feedbackModalSuccess,
+                feedbackModal.type === "error" && styles.feedbackModalError,
+                (feedbackModal.type === "info" ||
+                  feedbackModal.type === "purchase") &&
+                  styles.upgradeModalIconInfo,
+              ]}
+            >
+              {feedbackModal.type === "success" && (
+                <CheckCircle2 size={32} color={COLORS.success} />
+              )}
+              {feedbackModal.type === "error" && (
+                <X size={32} color={COLORS.error} />
+              )}
+              {feedbackModal.type === "info" && (
+                <Info size={32} color={THEME_COLORS.primary.DEFAULT} />
+              )}
+              {feedbackModal.type === "purchase" && (
+                <CreditCard size={32} color={THEME_COLORS.primary.DEFAULT} />
+              )}
+            </View>
+
+            <Text style={styles.upgradeModalTitle}>{feedbackModal.title}</Text>
+            <Text style={styles.upgradeModalMessage}>
+              {feedbackModal.message}
+            </Text>
+
+            <View style={styles.upgradeModalButtons}>
+              {feedbackModal.onConfirm && (
+                <TouchableOpacity
+                  style={[
+                    styles.upgradeModalBtn,
+                    styles.upgradeModalBtnPrimary,
+                  ]}
+                  onPress={feedbackModal.onConfirm}
+                >
+                  <Text
+                    style={[
+                      styles.upgradeModalBtnText,
+                      styles.upgradeModalBtnTextPrimary,
+                    ]}
+                  >
+                    {feedbackModal.type === "purchase"
+                      ? `Acheter${feedbackModal.priceLabel ? ` — ${feedbackModal.priceLabel}` : ""}`
+                      : "OK"}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={styles.upgradeModalBtn}
+                onPress={() =>
+                  setFeedbackModal((prev) => ({ ...prev, visible: false }))
+                }
+              >
+                <Text style={styles.upgradeModalBtnText}>
+                  {feedbackModal.onConfirm ? "Annuler" : "Fermer"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.upgradeModalClose}
+              onPress={() =>
+                setFeedbackModal((prev) => ({ ...prev, visible: false }))
+              }
+            >
+              <X size={20} color={COLORS.subtext} />
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={upgradeModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setUpgradeModalVisible(false)}
+      >
+        <Pressable
+          style={styles.upgradeModalOverlay}
+          onPress={() => setUpgradeModalVisible(false)}
+        >
+          <Pressable
+            style={styles.upgradeModalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View
+              style={[styles.upgradeModalIcon, styles.upgradeModalIconInfo]}
+            >
+              <Info size={32} color={THEME_COLORS.primary.DEFAULT} />
+            </View>
+
+            <Text style={styles.upgradeModalTitle}>Abonnement requis</Text>
+            <Text style={styles.upgradeModalMessage}>
+              {upgradeModalPlanName
+                ? `Cette ressource nécessite un abonnement supérieur. Passez à l'offre "${upgradeModalPlanName}" pour y accéder.`
+                : "Cette ressource nécessite un abonnement supérieur pour y accéder."}
+            </Text>
+
+            <View style={styles.upgradeModalButtons}>
+              <TouchableOpacity
+                style={[styles.upgradeModalBtn, styles.upgradeModalBtnPrimary]}
+                onPress={() => {
+                  setUpgradeModalVisible(false);
+                  router.push("/parent/pricing");
+                }}
+              >
+                <Text
+                  style={[
+                    styles.upgradeModalBtnText,
+                    styles.upgradeModalBtnTextPrimary,
+                  ]}
+                >
+                  Voir les offres
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.upgradeModalBtn}
+                onPress={() => setUpgradeModalVisible(false)}
+              >
+                <Text style={styles.upgradeModalBtnText}>Plus tard</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1543,8 +1859,103 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   buyButtonText: {
-    color: THEME.colors.white,
+    color: COLORS.white,
     fontWeight: "700",
     fontSize: 16,
+  },
+  addToLibraryBtn: {
+    backgroundColor: COLORS.success,
+    padding: 16,
+    borderRadius: 14,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
+  },
+  addToLibraryText: {
+    color: COLORS.white,
+    fontWeight: "700",
+    fontSize: 16,
+  },
+
+  // Upgrade modal
+  upgradeModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  upgradeModalContent: {
+    backgroundColor: THEME_COLORS.neutral.white,
+    borderRadius: 24,
+    padding: 24,
+    width: "100%",
+    alignItems: "center",
+    shadowColor: THEME_COLORS.neutral.black,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  upgradeModalIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+    backgroundColor: THEME_COLORS.neutral[100],
+  },
+  upgradeModalIconInfo: {
+    backgroundColor: THEME_COLORS.primary[100],
+  },
+  feedbackModalSuccess: {
+    backgroundColor: THEME_COLORS.success + "20",
+  },
+  feedbackModalError: {
+    backgroundColor: THEME_COLORS.error + "20",
+  },
+  upgradeModalTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 20,
+    fontWeight: "700",
+    color: THEME_COLORS.secondary[900],
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  upgradeModalMessage: {
+    fontFamily: FONTS.secondary,
+    fontSize: 14,
+    color: THEME_COLORS.secondary[500],
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  upgradeModalButtons: {
+    width: "100%",
+    gap: 10,
+  },
+  upgradeModalBtn: {
+    paddingVertical: 12,
+    borderRadius: RADIUS.full,
+    backgroundColor: THEME_COLORS.neutral[100],
+    alignItems: "center",
+  },
+  upgradeModalBtnPrimary: {
+    backgroundColor: THEME_COLORS.primary.DEFAULT,
+  },
+  upgradeModalBtnText: {
+    fontFamily: FONTS.secondary,
+    fontSize: 15,
+    fontWeight: "600",
+    color: THEME_COLORS.secondary[700],
+  },
+  upgradeModalBtnTextPrimary: {
+    color: THEME_COLORS.neutral.white,
+  },
+  upgradeModalClose: {
+    marginTop: 16,
+    padding: 8,
   },
 });

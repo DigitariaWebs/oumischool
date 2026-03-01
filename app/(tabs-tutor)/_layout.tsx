@@ -1,10 +1,11 @@
-import { Tabs } from "expo-router";
-import React from "react";
+import { Tabs, useRouter } from "expo-router";
+import React, { useEffect } from "react";
 import { Inbox, User, Home, BookOpen } from "lucide-react-native";
 import { View, StyleSheet, Pressable, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { FONTS } from "@/config/fonts";
+import { useAppSelector } from "@/store/hooks";
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -64,6 +65,21 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 }
 
 export default function TutorTabLayout() {
+  const router = useRouter();
+  const user = useAppSelector((state) => state.auth.user);
+
+  useEffect(() => {
+    if (!user) {
+      router.replace("/sign-in");
+    } else if (user.role === "parent") {
+      router.replace("/(tabs)");
+    } else if (user.role === "child") {
+      router.replace("/(tabs-child)");
+    }
+  }, [user]);
+
+  if (!user || user.role !== "tutor") return null;
+
   return (
     <Tabs
       tabBar={(props) => <CustomTabBar {...props} />}

@@ -92,7 +92,7 @@ export default function ParentSubscriptionScreen() {
     paymentMethods.find((m) => m.isDefault) ?? paymentMethods[0];
 
   const handleChangePlan = () => {
-    router.push("/pricing");
+    router.push("/parent/pricing");
   };
 
   const handleCancelSubscription = () => {
@@ -245,7 +245,7 @@ export default function ParentSubscriptionScreen() {
             </Text>
             <TouchableOpacity
               style={styles.subscribeCta}
-              onPress={() => router.push("/pricing")}
+              onPress={() => router.push("/parent/pricing")}
             >
               <Zap size={16} color="white" />
               <Text style={styles.subscribeCtaText}>Voir les offres</Text>
@@ -424,12 +424,12 @@ export default function ParentSubscriptionScreen() {
                 <ActivityIndicator size="small" color="#EF4444" />
               ) : (
                 <Text style={styles.cancelButtonText}>
-                  Annuler l'abonnement
+                  Annuler l&apos;abonnement
                 </Text>
               )}
             </TouchableOpacity>
             <Text style={styles.cancelNote}>
-              Vous gardez l'accès jusqu'à la fin de la période
+              Vous gardez l&apos;accès jusqu&apos;à la fin de la période
             </Text>
           </View>
         )}

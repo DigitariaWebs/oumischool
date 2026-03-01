@@ -752,7 +752,7 @@ export default function AddChildModal({
                       style={styles.upgradeButton}
                       onPress={() => {
                         handleClose();
-                        router.push("/pricing");
+                        router.push("/parent/pricing");
                       }}
                       activeOpacity={0.8}
                     >

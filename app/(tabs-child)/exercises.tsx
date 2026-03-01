@@ -39,7 +39,7 @@ const GAMES = [
     progress: 80,
     Icon: Calculator,
     color: "#0EA5E9",
-    route: "/games/math-addition",
+    route: "/child/games/math-addition",
   },
   {
     id: 2,
@@ -49,7 +49,7 @@ const GAMES = [
     progress: 60,
     Icon: FileText,
     color: "#EC4899",
-    route: "/games/french-conjugation",
+    route: "/child/games/french-conjugation",
   },
   {
     id: 3,
@@ -59,7 +59,7 @@ const GAMES = [
     progress: 45,
     Icon: Globe,
     color: "#22C55E",
-    route: "/games/planets-memory",
+    route: "/child/games/planets-memory",
   },
 ];
 
@@ -71,7 +71,7 @@ const LESSONS = [
     description: "Apprends les fractions",
     Icon: Calculator,
     color: "#0EA5E9",
-    route: "/lessons/math-fractions",
+    route: "/child/lessons/math-fractions",
   },
   {
     id: 2,
@@ -80,7 +80,7 @@ const LESSONS = [
     description: "Présent, passé, futur",
     Icon: FileText,
     color: "#EC4899",
-    route: "/lessons/french-tenses",
+    route: "/child/lessons/french-tenses",
   },
   {
     id: 3,
@@ -89,7 +89,7 @@ const LESSONS = [
     description: "Découvre les planètes",
     Icon: Globe,
     color: "#22C55E",
-    route: "/lessons/science-solar-system",
+    route: "/child/lessons/science-solar-system",
   },
 ];
 

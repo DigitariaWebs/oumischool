@@ -668,7 +668,7 @@ export default function TutorsTab() {
         onClose={() => setShowSubscriptionModal(false)}
         onUpgrade={() => {
           setShowSubscriptionModal(false);
-          router.push("/pricing");
+          router.push("/parent/pricing");
         }}
       />
     </SafeAreaView>

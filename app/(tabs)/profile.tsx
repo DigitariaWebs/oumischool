@@ -107,7 +107,7 @@ export default function ProfileScreen() {
       icon: <MessageSquare size={18} color="#64748B" />,
       title: "Messages",
       subtitle: "Conversations avec les tuteurs",
-      onPress: () => router.push("/messaging"),
+      onPress: () => router.push("/features/messaging"),
     },
     {
       icon: <Settings size={18} color="#64748B" />,
@@ -263,7 +263,7 @@ export default function ProfileScreen() {
                   {!isActive && (
                     <TouchableOpacity
                       style={styles.upgradeButton}
-                      onPress={() => router.push("/pricing")}
+                      onPress={() => router.push("/parent/pricing")}
                     >
                       <Sparkles size={16} color="white" />
                       <Text style={styles.upgradeButtonText}>
@@ -277,7 +277,7 @@ export default function ProfileScreen() {
                   {isActive && (
                     <TouchableOpacity
                       style={styles.changePlanButton}
-                      onPress={() => router.push("/pricing")}
+                      onPress={() => router.push("/parent/pricing")}
                     >
                       <Text style={styles.changePlanButtonText}>
                         Changer de plan
@@ -293,7 +293,7 @@ export default function ProfileScreen() {
                   </Text>
                   <TouchableOpacity
                     style={styles.subscribeButton}
-                    onPress={() => router.push("/pricing")}
+                    onPress={() => router.push("/parent/pricing")}
                   >
                     <Text style={styles.subscribeButtonText}>
                       Voir les offres

@@ -75,3 +75,13 @@ export function useTrackResourceDownload() {
     mutationFn: (id: string) => resourcesApi.trackDownload(id),
   });
 }
+
+export function useAddToLibrary() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => resourcesApi.addToLibrary(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: resourceKeys.lists() });
+    },
+  });
+}
