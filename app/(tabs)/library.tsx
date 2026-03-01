@@ -100,8 +100,6 @@ export default function LibraryScreen() {
   const { data: currentSubscription } = useCurrentSubscription();
   const { data: plans = [] } = useSubscriptionPlans();
 
-  console.log(apiResources);
-
   const [upgradeModalVisible, setUpgradeModalVisible] = useState(false);
   const [upgradeModalPlanName, setUpgradeModalPlanName] = useState<
     string | null
@@ -1110,15 +1108,6 @@ export default function LibraryScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-
-            <TouchableOpacity
-              style={styles.upgradeModalClose}
-              onPress={() =>
-                setFeedbackModal((prev) => ({ ...prev, visible: false }))
-              }
-            >
-              <X size={20} color={COLORS.subtext} />
-            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>

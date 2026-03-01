@@ -6,37 +6,25 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
-import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  ArrowLeft,
   DollarSign,
   TrendingUp,
   Calendar,
   Download,
-  Ban,
-  CheckCircle,
 } from "lucide-react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
-import { useMyEarnings, useMySessions } from "@/hooks/api/tutors";
+import { useMyEarnings, useMyRevenue, useMyPayouts } from "@/hooks/api/tutors";
 
 export default function PaymentsScreen() {
-  const router = useRouter();
   const [selectedPeriod, setSelectedPeriod] = useState("month");
-  const { data: earningsData } = useMyEarnings();
-  const { data: mySessionsData = [] } = useMySessions();
-
-  const sessions = useMemo(
-    () => (Array.isArray(mySessionsData) ? mySessionsData : []),
-    [mySessionsData],
-  );
-  const completedSessions = sessions.filter(
-    (session) => String(session.status).toUpperCase() === "COMPLETED",
-  );
+  const { data: earningsData, isLoading: earningsLoading } = useMyEarnings();
+  const { data: revenueData = [], isLoading: revenueLoading } = useMyRevenue();
+  const { data: payoutsData = [], isLoading: payoutsLoading } = useMyPayouts();
 
   const weekStart = useMemo(() => {
     const now = new Date();
@@ -46,50 +34,23 @@ export default function PaymentsScreen() {
   }, []);
 
   const earnings = useMemo(() => {
-    const weekly = completedSessions.reduce((sum, session) => {
-      const start = new Date(session.startTime);
-      if (Number.isNaN(start.getTime()) || start < weekStart) return sum;
-      return (
-        sum + Number((session as any)?.revenue?.net ?? session?.price ?? 0)
-      );
-    }, 0);
+    const weeklyRevenue = (Array.isArray(revenueData) ? revenueData : [])
+      .filter((r) => {
+        const sessionDate = r.session?.startTime
+          ? new Date(r.session.startTime)
+          : r.createdAt
+            ? new Date(r.createdAt)
+            : null;
+        return sessionDate && sessionDate >= weekStart;
+      })
+      .reduce((sum, r) => sum + Number(r.net ?? 0), 0);
+
     return {
       month: Number(earningsData?.thisMonth ?? 0),
-      week: Number(weekly),
+      week: Number(weeklyRevenue),
       total: Number(earningsData?.total ?? 0),
     };
-  }, [completedSessions, earningsData, weekStart]);
-
-  const recentTransactions = useMemo(
-    () =>
-      sessions.slice(0, 10).map((session) => {
-        const start = new Date(session.startTime);
-        const end = new Date(session.endTime);
-        const hours = Math.max(
-          0.5,
-          Math.round(((end.getTime() - start.getTime()) / 3_600_000) * 10) / 10,
-        );
-        const childName =
-          session?.child?.name ??
-          [session?.child?.user?.firstName, session?.child?.user?.lastName]
-            .filter(Boolean)
-            .join(" ")
-            .trim() ??
-          "Élève";
-        return {
-          id: session.id,
-          student: childName || "Élève",
-          amount: Number((session as any)?.revenue?.net ?? session?.price ?? 0),
-          date: session.startTime,
-          status:
-            String(session.status).toUpperCase() === "COMPLETED"
-              ? "completed"
-              : "pending",
-          hours,
-        };
-      }),
-    [sessions],
-  );
+  }, [earningsData, revenueData, weekStart]);
 
   const periods = [
     { id: "week", label: "Semaine" },
@@ -99,17 +60,6 @@ export default function PaymentsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <ArrowLeft size={24} color={COLORS.secondary[700]} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Paiements</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -129,7 +79,9 @@ export default function PaymentsScreen() {
               <Text style={styles.earningsLabel}>Revenus</Text>
             </View>
             <Text style={styles.earningsAmount}>
-              {earnings[selectedPeriod as keyof typeof earnings].toFixed(2)} €
+              {earningsLoading
+                ? "-"
+                : `${earnings[selectedPeriod as keyof typeof earnings].toFixed(2)} €`}
             </Text>
             <View style={styles.periodSelector}>
               {periods.map((period) => (
@@ -161,35 +113,119 @@ export default function PaymentsScreen() {
             <View style={styles.statCard}>
               <TrendingUp size={24} color="#10B981" />
               <Text style={styles.statValue}>
-                {Math.round(earnings.month)}€
+                {earningsLoading ? "-" : `${Math.round(earnings.month)}€`}
               </Text>
               <Text style={styles.statLabel}>Ce mois</Text>
             </View>
             <View style={styles.statCard}>
               <Calendar size={24} color="#8B5CF6" />
-              <Text style={styles.statValue}>{completedSessions.length}</Text>
-              <Text style={styles.statLabel}>Sessions</Text>
+              <Text style={styles.statValue}>
+                {revenueLoading ? "-" : revenueData.length}
+              </Text>
+              <Text style={styles.statLabel}>Revenus</Text>
             </View>
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(300).duration(500)}>
+        <Animated.View entering={FadeInDown.delay(350).duration(500)}>
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Méthode de paiement</Text>
+              <Text style={styles.sectionTitle}>Revenus récents</Text>
               <TouchableOpacity>
-                <Text style={styles.editText}>Modifier</Text>
+                <Text style={styles.viewAllText}>Tout voir</Text>
               </TouchableOpacity>
             </View>
-            <View style={styles.paymentMethodCard}>
-              <View style={styles.paymentIcon}>
-                <Ban size={24} color={COLORS.secondary[700]} />
-              </View>
-              <View style={styles.paymentInfo}>
-                <Text style={styles.paymentTitle}>Compte bancaire</Text>
-                <Text style={styles.paymentSubtitle}>•••• •••• •••• 4242</Text>
-              </View>
-              <CheckCircle size={20} color="#10B981" />
+            <View style={styles.transactionsCard}>
+              {revenueLoading ? (
+                <View style={styles.emptyTransactions}>
+                  <Text style={styles.emptyTransactionsText}>
+                    Chargement...
+                  </Text>
+                </View>
+              ) : (Array.isArray(revenueData) ? revenueData : []).length ===
+                0 ? (
+                <View style={styles.emptyTransactions}>
+                  <Text style={styles.emptyTransactionsText}>
+                    Aucun revenu disponible.
+                  </Text>
+                </View>
+              ) : (
+                (Array.isArray(revenueData) ? revenueData : [])
+                  .slice(0, 10)
+                  .map((revenue, index) => {
+                    const isResourceSale =
+                      !revenue.session && !!revenue.resource;
+                    const session = revenue.session;
+                    const start = session?.startTime
+                      ? new Date(session.startTime)
+                      : null;
+                    const end = session?.endTime
+                      ? new Date(session.endTime)
+                      : null;
+                    const hours =
+                      start && end
+                        ? Math.max(
+                            0.5,
+                            Math.round(
+                              ((end.getTime() - start.getTime()) / 3_600_000) *
+                                10,
+                            ) / 10,
+                          )
+                        : 0;
+                    const childName =
+                      (session?.child?.name ??
+                        [
+                          session?.child?.user?.firstName,
+                          session?.child?.user?.lastName,
+                        ]
+                          .filter(Boolean)
+                          .join(" ")) ||
+                      "Élève";
+
+                    const label = isResourceSale
+                      ? (revenue.resource?.title ?? "Vente de ressource")
+                      : childName;
+                    const sublabel = isResourceSale
+                      ? `Ressource • ${new Date(revenue.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`
+                      : `${start ? start.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "-"} • ${hours}h`;
+
+                    return (
+                      <View
+                        key={revenue.id}
+                        style={[
+                          styles.transactionItem,
+                          index !==
+                            Math.min(
+                              (Array.isArray(revenueData) ? revenueData : [])
+                                .length,
+                              10,
+                            ) -
+                              1 && styles.transactionItemBorder,
+                        ]}
+                      >
+                        <View style={styles.transactionLeft}>
+                          <View
+                            style={[
+                              styles.transactionStatus,
+                              styles.statusCompleted,
+                            ]}
+                          />
+                          <View style={styles.transactionInfo}>
+                            <Text style={styles.transactionStudent}>
+                              {label}
+                            </Text>
+                            <Text style={styles.transactionDate}>
+                              {sublabel}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={styles.transactionAmount}>
+                          +{Number(revenue.net ?? 0).toFixed(2)} €
+                        </Text>
+                      </View>
+                    );
+                  })
+              )}
             </View>
           </View>
         </Animated.View>
@@ -197,25 +233,31 @@ export default function PaymentsScreen() {
         <Animated.View entering={FadeInDown.delay(400).duration(500)}>
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Transactions récentes</Text>
+              <Text style={styles.sectionTitle}>Historique des versements</Text>
               <TouchableOpacity>
                 <Text style={styles.viewAllText}>Tout voir</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.transactionsCard}>
-              {recentTransactions.length === 0 ? (
+              {payoutsLoading ? (
                 <View style={styles.emptyTransactions}>
                   <Text style={styles.emptyTransactionsText}>
-                    Aucune transaction disponible.
+                    Chargement...
+                  </Text>
+                </View>
+              ) : payoutsData.length === 0 ? (
+                <View style={styles.emptyTransactions}>
+                  <Text style={styles.emptyTransactionsText}>
+                    Aucun versement disponible.
                   </Text>
                 </View>
               ) : (
-                recentTransactions.map((transaction, index) => (
+                payoutsData.slice(0, 10).map((payout, index) => (
                   <View
-                    key={transaction.id}
+                    key={payout.id}
                     style={[
                       styles.transactionItem,
-                      index !== recentTransactions.length - 1 &&
+                      index !== Math.min(payoutsData.length, 10) - 1 &&
                         styles.transactionItemBorder,
                     ]}
                   >
@@ -223,30 +265,72 @@ export default function PaymentsScreen() {
                       <View
                         style={[
                           styles.transactionStatus,
-                          transaction.status === "completed"
+                          payout.status === "PAID"
                             ? styles.statusCompleted
-                            : styles.statusPending,
+                            : payout.status === "FAILED"
+                              ? styles.statusFailed
+                              : styles.statusPending,
                         ]}
                       />
                       <View style={styles.transactionInfo}>
                         <Text style={styles.transactionStudent}>
-                          {transaction.student}
+                          {payout.method || "Virement bancaire"}
                         </Text>
                         <Text style={styles.transactionDate}>
-                          {new Date(transaction.date).toLocaleDateString(
-                            "fr-FR",
-                            {
-                              day: "numeric",
-                              month: "short",
-                            },
-                          )}{" "}
-                          • {transaction.hours}h
+                          {payout.paidAt
+                            ? new Date(payout.paidAt).toLocaleDateString(
+                                "fr-FR",
+                                {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                },
+                              )
+                            : payout.periodStart && payout.periodEnd
+                              ? `${new Date(payout.periodStart).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} - ${new Date(payout.periodEnd).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`
+                              : "-"}
                         </Text>
                       </View>
                     </View>
-                    <Text style={styles.transactionAmount}>
-                      +{transaction.amount.toFixed(2)} €
-                    </Text>
+                    <View style={styles.payoutRight}>
+                      <Text
+                        style={[
+                          styles.transactionAmount,
+                          payout.status === "FAILED" && styles.amountFailed,
+                        ]}
+                      >
+                        {payout.status === "FAILED"
+                          ? "-"
+                          : `+${Number(payout.amount).toFixed(2)} €`}
+                      </Text>
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          payout.status === "PAID"
+                            ? styles.badgePaid
+                            : payout.status === "FAILED"
+                              ? styles.badgeFailed
+                              : styles.badgeRecorded,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.statusBadgeText,
+                            payout.status === "PAID"
+                              ? styles.badgeTextPaid
+                              : payout.status === "FAILED"
+                                ? styles.badgeTextFailed
+                                : styles.badgeTextRecorded,
+                          ]}
+                        >
+                          {payout.status === "PAID"
+                            ? "Payé"
+                            : payout.status === "FAILED"
+                              ? "Échoué"
+                              : "Enregistré"}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
                 ))
               )}
@@ -270,31 +354,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.neutral[50],
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral[100],
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral[50],
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontFamily: FONTS.fredoka,
-    fontSize: 20,
-    color: COLORS.secondary[900],
-  },
   scrollContent: {
     paddingBottom: 24,
+    paddingTop: 16,
   },
   earningsCard: {
     marginHorizontal: 24,
@@ -302,11 +364,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: 24,
     overflow: "hidden",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowColor: "#8B5CF6",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 8,
   },
   earningsGradient: {
     padding: 24,
@@ -364,19 +426,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.neutral.white,
     borderRadius: 16,
-    padding: 16,
+    padding: 20,
     alignItems: "center",
     shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: COLORS.neutral[100],
   },
   statValue: {
     fontFamily: FONTS.fredoka,
-    fontSize: 24,
+    fontSize: 28,
     color: COLORS.secondary[900],
     marginTop: 8,
+    fontWeight: "700",
   },
   statLabel: {
     fontFamily: FONTS.secondary,
@@ -400,54 +465,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.secondary[900],
   },
-  editText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.secondary[600],
-    fontWeight: "500",
-  },
   viewAllText: {
     fontFamily: FONTS.secondary,
     fontSize: 14,
     color: COLORS.secondary[600],
     fontWeight: "500",
-  },
-  paymentMethodCard: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 24,
-    flexDirection: "row",
-    alignItems: "center",
-    shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  paymentIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.neutral[50],
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  paymentInfo: {
-    flex: 1,
-  },
-  paymentTitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.secondary[900],
-    marginBottom: 2,
-  },
-  paymentSubtitle: {
-    fontFamily: FONTS.secondary,
-    fontSize: 13,
-    color: COLORS.secondary[500],
   },
   transactionsCard: {
     backgroundColor: COLORS.neutral.white,
@@ -455,10 +477,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 24,
     overflow: "hidden",
     shadowColor: COLORS.secondary.DEFAULT,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: COLORS.neutral[100],
   },
   emptyTransactions: {
     padding: 16,
@@ -474,6 +498,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 16,
+    backgroundColor: COLORS.neutral.white,
   },
   transactionItemBorder: {
     borderBottomWidth: 1,
@@ -496,6 +521,9 @@ const styles = StyleSheet.create({
   statusPending: {
     backgroundColor: "#F59E0B",
   },
+  statusFailed: {
+    backgroundColor: "#EF4444",
+  },
   transactionInfo: {
     flex: 1,
   },
@@ -516,6 +544,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#10B981",
+  },
+  amountFailed: {
+    color: "#EF4444",
+  },
+  payoutRight: {
+    alignItems: "flex-end",
+    gap: 4,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  badgePaid: {
+    backgroundColor: "#D1FAE5",
+  },
+  badgeFailed: {
+    backgroundColor: "#FEE2E2",
+  },
+  badgeRecorded: {
+    backgroundColor: "#FEF3C7",
+  },
+  statusBadgeText: {
+    fontFamily: FONTS.secondary,
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  badgeTextPaid: {
+    color: "#059669",
+  },
+  badgeTextFailed: {
+    color: "#DC2626",
+  },
+  badgeTextRecorded: {
+    color: "#D97706",
   },
   downloadButton: {
     flexDirection: "row",

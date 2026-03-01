@@ -80,7 +80,7 @@ export default function TabLayout() {
     } else if (user.role === "child") {
       router.replace("/(tabs-child)");
     }
-  }, [user]);
+  }, [user, router]);
 
   if (!user || user.role !== "parent") return null;
 

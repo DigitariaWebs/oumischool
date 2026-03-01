@@ -155,8 +155,9 @@ export default function FrenchTensesLesson() {
             <View style={styles.tipCard}>
               <Text style={styles.tipTitle}>💡 Astuce</Text>
               <Text style={styles.tipText}>
-                Pour savoir si c'est le présent, demande-toi : "Est-ce que ça se
-                passe maintenant ?"
+                {
+                  'Pour savoir si c\'est le présent, demande-toi : "Est-ce que ça se passe maintenant ?"'
+                }
               </Text>
             </View>
           )}
@@ -175,8 +176,9 @@ export default function FrenchTensesLesson() {
             <View style={styles.tipCard}>
               <Text style={styles.tipTitle}>💡 Astuce</Text>
               <Text style={styles.tipText}>
-                L'imparfait se termine souvent par -ais, -ais, -ait, -ions,
-                -iez, -aient
+                {
+                  "L'imparfait se termine souvent par -ais, -ais, -ait, -ions, -iez, -aient"
+                }
               </Text>
             </View>
           )}
@@ -186,7 +188,7 @@ export default function FrenchTensesLesson() {
               <Text style={styles.comparisonTitle}>📊 Récapitulatif</Text>
               <View style={styles.comparisonRow}>
                 <Text style={styles.comparisonLabel}>Passé ⏮️</Text>
-                <Text style={styles.comparisonExample}>J'ai mangé</Text>
+                <Text style={styles.comparisonExample}>{"J'ai mangé"}</Text>
               </View>
               <View style={styles.comparisonRow}>
                 <Text style={styles.comparisonLabel}>Présent ⏰</Text>

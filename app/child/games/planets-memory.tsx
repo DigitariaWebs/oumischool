@@ -2,13 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Pressable, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { ArrowLeft, Star, Trophy } from "lucide-react-native";
-import Animated, {
-  FadeInDown,
-  FadeInUp,
-  ZoomIn,
-  ZoomOut,
-  FlipInEasyY,
-} from "react-native-reanimated";
+import Animated, { ZoomIn, FlipInEasyY } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";

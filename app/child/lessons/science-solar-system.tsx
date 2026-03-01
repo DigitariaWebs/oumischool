@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
-import { ArrowLeft, CheckCircle, ArrowRight, Sun } from "lucide-react-native";
+import { ArrowLeft, CheckCircle, ArrowRight } from "lucide-react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -242,7 +242,7 @@ export default function ScienceSolarSystemLesson() {
             <View style={styles.earthCard}>
               <View style={styles.earthFact}>
                 <Text style={styles.earthFactEmoji}>💧</Text>
-                <Text style={styles.earthFactText}>70% d'eau</Text>
+                <Text style={styles.earthFactText}>{"70% d'eau"}</Text>
               </View>
               <View style={styles.earthFact}>
                 <Text style={styles.earthFactEmoji}>🌡️</Text>
@@ -263,8 +263,9 @@ export default function ScienceSolarSystemLesson() {
             <View style={styles.funFactCard}>
               <Text style={styles.funFactTitle}>🤓 Le savais-tu ?</Text>
               <Text style={styles.funFactText}>
-                Si le Soleil était de la taille d'un ballon de foot, la Terre
-                serait comme une petite bille à 25 mètres de distance !
+                {
+                  "Si le Soleil était de la taille d'un ballon de foot, la Terre serait comme une petite bille à 25 mètres de distance !"
+                }
               </Text>
             </View>
           )}

@@ -2,12 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Pressable, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { ArrowLeft, Star, Trophy, CheckCircle } from "lucide-react-native";
-import Animated, {
-  FadeInDown,
-  FadeInUp,
-  ZoomIn,
-  ZoomOut,
-} from "react-native-reanimated";
+import Animated, { FadeInDown, ZoomIn, ZoomOut } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
@@ -79,7 +74,7 @@ export default function FrenchConjugationGame() {
     // Shuffle and select questions
     const shuffled = [...VERBS].sort(() => Math.random() - 0.5);
     setQuestions(shuffled.slice(0, totalQuestions));
-  }, []);
+  }, [totalQuestions]);
 
   const currentVerb = questions[currentQuestion];
 

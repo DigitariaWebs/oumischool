@@ -1,14 +1,14 @@
 import { apiClient } from "../client";
 
 export interface TutorUser {
-  firstName?: string;
-  lastName?: string;
   email: string;
 }
 
 export interface TutorListItem {
   id: string;
   userId: string;
+  firstName: string | null;
+  lastName: string | null;
   bio: string | null;
   hourlyRate: number;
   subjects: string[];
@@ -27,6 +27,8 @@ export interface AvailabilitySlot {
 }
 
 export interface TutorUpdatePayload {
+  firstName?: string;
+  lastName?: string;
   bio?: string;
   hourlyRate?: number;
   subjects?: string[];
@@ -62,6 +64,49 @@ export interface TutorStudentRow {
     name: string;
     color: string;
   } | null;
+}
+
+export interface RevenueEntry {
+  id: string;
+  sessionId?: string | null;
+  resourceId?: string | null;
+  tutorId: string;
+  gross: number;
+  commission: number;
+  net: number;
+  createdAt: string;
+  session?: {
+    id: string;
+    startTime: string;
+    endTime: string;
+    status: string;
+    child?: {
+      id: string;
+      name?: string;
+      user?: { firstName?: string; lastName?: string };
+    };
+  } | null;
+  resource?: {
+    id: string;
+    title: string;
+    price: number | null;
+  } | null;
+}
+
+export interface PayoutRecord {
+  id: string;
+  amount: number;
+  method?: string;
+  reference?: string;
+  periodStart?: string;
+  periodEnd?: string;
+  paidAt?: string;
+  status: "RECORDED" | "PAID" | "FAILED";
+  tutor?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+  };
 }
 
 export interface TutorSessionRow {
@@ -137,4 +182,10 @@ export const tutorApi = {
     apiClient.del<void>(`/tutors/me/availability/${id}`),
   toggleAvailability: (id: string) =>
     apiClient.patch<AvailabilitySlot>(`/tutors/me/availability/${id}/toggle`),
+  getMyRevenue: () =>
+    apiClient
+      .get<{ entries: RevenueEntry[]; totals: unknown }>("/revenue/tutor/me")
+      .then((res) => (res as any)?.entries ?? res),
+  getMyPayouts: () =>
+    apiClient.get<PayoutRecord[]>("/revenue/tutor/me/payouts"),
 };

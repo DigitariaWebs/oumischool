@@ -6,8 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   Modal,
+  Pressable,
+  ActivityIndicator,
   RefreshControl,
   Linking,
   Image,
@@ -30,6 +31,8 @@ import {
   X,
   Search,
   Check,
+  CheckCircle,
+  AlertCircle,
   Lock,
   Unlock,
   ArrowUpDown,
@@ -45,6 +48,7 @@ import {
 } from "@/hooks/api/resources";
 import { useMyTutorProfile, useMyStudents } from "@/hooks/api/tutors";
 import * as DocumentPicker from "expo-document-picker";
+import { asNonEmptyString } from "@/utils/sessionDisplay";
 
 const SUBJECT_NORMALIZATION: Record<string, string> = {
   Maths: "Mathématiques",
@@ -96,13 +100,57 @@ interface Resource {
   createdAt: string;
 }
 
+const resolveStudentDisplayName = (item: any): string => {
+  const userFirstName = asNonEmptyString(item?.child?.user?.firstName);
+  const userLastName = asNonEmptyString(item?.child?.user?.lastName);
+  const composedUserName = [userFirstName ?? "", userLastName ?? ""]
+    .join(" ")
+    .trim();
+  const emailPrefix = asNonEmptyString(item?.child?.user?.email)?.split("@")[0];
+  const candidates = [
+    composedUserName,
+    item?.child?.fullName,
+    item?.child?.name,
+    item?.childName,
+    item?.studentName,
+    emailPrefix,
+    item?.name,
+  ].filter((value): value is string => Boolean(value));
+
+  return candidates[0] ?? "Élève";
+};
+
 export default function TutorResourcesScreen() {
-  const { data: apiResources = [], isLoading, refetch } = useResources();
   const { data: tutorProfile } = useMyTutorProfile();
+  const {
+    data: apiResources = [],
+    isLoading,
+    refetch,
+  } = useResources(
+    tutorProfile?.userId ? { uploaderId: tutorProfile.userId } : undefined,
+  );
   const { data: myStudentsData = [] } = useMyStudents();
   const updateMutation = useUpdateResource();
   const deleteMutation = useDeleteResource();
   const uploadResourceMutation = useUploadResource();
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalConfig, setModalConfig] = useState<{
+    type: "success" | "error";
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({ type: "success", title: "", message: "" });
+
+  const showFeedbackModal = (
+    type: "success" | "error",
+    title: string,
+    message: string,
+    onConfirm?: () => void,
+  ) => {
+    setModalConfig({ type, title, message, onConfirm });
+    setModalVisible(true);
+  };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -138,7 +186,7 @@ export default function TutorResourcesScreen() {
             `student-${index}`;
           return {
             id: childId,
-            name: resolveStudentDisplayName(item, childId),
+            name: resolveStudentDisplayName(item),
             image:
               item?.child?.avatar ??
               "https://cdn-icons-png.flaticon.com/512/4140/4140048.png",
@@ -153,34 +201,6 @@ export default function TutorResourcesScreen() {
       setNewResource((prev) => ({ ...prev, targetStudentId: students[0].id }));
     }
   }, [newResource.targetStudentId, students]);
-
-  const asNonEmptyString = (value: unknown): string | null => {
-    if (typeof value !== "string") return null;
-    const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  };
-
-  const resolveStudentDisplayName = (item: any, studentId: string): string => {
-    const userFirstName = asNonEmptyString(item?.child?.user?.firstName);
-    const userLastName = asNonEmptyString(item?.child?.user?.lastName);
-    const composedUserName = [userFirstName ?? "", userLastName ?? ""]
-      .join(" ")
-      .trim();
-    const emailPrefix = asNonEmptyString(item?.child?.user?.email)?.split(
-      "@",
-    )[0];
-    const candidates = [
-      composedUserName,
-      item?.child?.fullName,
-      item?.child?.name,
-      item?.childName,
-      item?.studentName,
-      emailPrefix,
-      item?.name,
-    ].filter((value): value is string => Boolean(value));
-
-    return candidates[0] ?? "Élève";
-  };
 
   const handlePickFile = async () => {
     try {
@@ -207,25 +227,41 @@ export default function TutorResourcesScreen() {
         }));
       }
     } catch {
-      Alert.alert("Erreur", "Impossible d'ouvrir le sélecteur de fichiers.");
+      showFeedbackModal(
+        "error",
+        "Erreur",
+        "Impossible d'ouvrir le sélecteur de fichiers.",
+      );
     }
   };
 
   const handleAddResource = async () => {
     if (!newResource.title) {
-      Alert.alert("Erreur", "Veuillez donner un titre à la ressource.");
+      showFeedbackModal(
+        "error",
+        "Erreur",
+        "Veuillez donner un titre à la ressource.",
+      );
       return;
     }
     if (!newResource.uploadedFileUri) {
-      Alert.alert("Erreur", "Veuillez uploader un fichier.");
+      showFeedbackModal("error", "Erreur", "Veuillez uploader un fichier.");
       return;
     }
     if (!newResource.subject) {
-      Alert.alert("Erreur", "Veuillez sélectionner une matière.");
+      showFeedbackModal(
+        "error",
+        "Erreur",
+        "Veuillez sélectionner une matière.",
+      );
       return;
     }
     if (newResource.isPaid && !newResource.price) {
-      Alert.alert("Erreur", "Veuillez indiquer le prix de la ressource.");
+      showFeedbackModal(
+        "error",
+        "Erreur",
+        "Veuillez indiquer le prix de la ressource.",
+      );
       return;
     }
 
@@ -272,33 +308,30 @@ export default function TutorResourcesScreen() {
     try {
       setIsUploading(true);
       await uploadResourceMutation.mutateAsync(formData);
-      Alert.alert(
-        "Ressource Partagée",
+      showFeedbackModal(
+        "success",
+        "Ressource partagée",
         `"${newResource.title}" a été uploadée et publiée.`,
-        [
-          {
-            text: "Super !",
-            onPress: () => {
-              setShowShareModal(false);
-              setNewResource({
-                title: "",
-                type: "PDF",
-                targetStudentId: students[0]?.id ?? "",
-                subject: tutorSubjects[0] || "",
-                isPaid: false,
-                price: "",
-                uploadedFileName: "",
-                uploadedFileUri: "",
-                uploadedFileSize: "",
-                uploadedFileMimeType: "",
-              });
-              refetch();
-            },
-          },
-        ],
+        () => {
+          setShowShareModal(false);
+          setNewResource({
+            title: "",
+            type: "PDF",
+            targetStudentId: students[0]?.id ?? "",
+            subject: tutorSubjects[0] || "",
+            isPaid: false,
+            price: "",
+            uploadedFileName: "",
+            uploadedFileUri: "",
+            uploadedFileSize: "",
+            uploadedFileMimeType: "",
+          });
+          refetch();
+        },
       );
     } catch (error) {
-      Alert.alert(
+      showFeedbackModal(
+        "error",
         "Upload impossible",
         error instanceof Error
           ? error.message
@@ -311,15 +344,23 @@ export default function TutorResourcesScreen() {
 
   const handleSaveDraft = async () => {
     if (!newResource.title) {
-      Alert.alert("Erreur", "Veuillez donner un titre à la ressource.");
+      showFeedbackModal(
+        "error",
+        "Erreur",
+        "Veuillez donner un titre à la ressource.",
+      );
       return;
     }
     if (!newResource.uploadedFileUri) {
-      Alert.alert("Erreur", "Veuillez uploader un fichier.");
+      showFeedbackModal("error", "Erreur", "Veuillez uploader un fichier.");
       return;
     }
     if (!newResource.subject) {
-      Alert.alert("Erreur", "Veuillez sélectionner une matière.");
+      showFeedbackModal(
+        "error",
+        "Erreur",
+        "Veuillez sélectionner une matière.",
+      );
       return;
     }
 
@@ -366,21 +407,18 @@ export default function TutorResourcesScreen() {
     try {
       setIsUploading(true);
       await uploadResourceMutation.mutateAsync(formData);
-      Alert.alert(
+      showFeedbackModal(
+        "success",
         "Brouillon enregistré",
         `"${newResource.title}" a été enregistré en brouillon.`,
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              setShowShareModal(false);
-              refetch();
-            },
-          },
-        ],
+        () => {
+          setShowShareModal(false);
+          refetch();
+        },
       );
     } catch (error) {
-      Alert.alert(
+      showFeedbackModal(
+        "error",
         "Erreur",
         error instanceof Error
           ? error.message
@@ -458,24 +496,26 @@ export default function TutorResourcesScreen() {
   }, [myResources]);
 
   const handleDelete = (resource: Resource) => {
-    Alert.alert(
+    showFeedbackModal(
+      "error",
       "Supprimer la ressource",
       `Êtes-vous sûr de vouloir supprimer "${resource.title}" ?`,
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Supprimer",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteMutation.mutateAsync(resource.id);
-              Alert.alert("Succès", "Ressource supprimée avec succès");
-            } catch {
-              Alert.alert("Erreur", "Impossible de supprimer la ressource");
-            }
-          },
-        },
-      ],
+      async () => {
+        try {
+          await deleteMutation.mutateAsync(resource.id);
+          showFeedbackModal(
+            "success",
+            "Succès",
+            "Ressource supprimée avec succès",
+          );
+        } catch {
+          showFeedbackModal(
+            "error",
+            "Erreur",
+            "Impossible de supprimer la ressource",
+          );
+        }
+      },
     );
   };
 
@@ -489,9 +529,9 @@ export default function TutorResourcesScreen() {
       });
       setShowStatusModal(false);
       refetch();
-      Alert.alert("Succès", "Statut mis à jour");
+      showFeedbackModal("success", "Succès", "Statut mis à jour");
     } catch {
-      Alert.alert("Erreur", "Impossible de modifier le statut");
+      showFeedbackModal("error", "Erreur", "Impossible de modifier le statut");
     } finally {
       setIsUpdating(false);
     }
@@ -502,7 +542,7 @@ export default function TutorResourcesScreen() {
     try {
       await Linking.openURL(url);
     } catch {
-      Alert.alert("Erreur", "Impossible d'ouvrir le fichier");
+      showFeedbackModal("error", "Erreur", "Impossible d'ouvrir le fichier");
     }
   };
 
@@ -852,11 +892,14 @@ export default function TutorResourcesScreen() {
       </ScrollView>
 
       <Modal visible={showStatusModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
+        <View style={styles.centeredModalOverlay}>
           <View style={styles.statusModal}>
             <View style={styles.modalHeaderRow}>
               <Text style={styles.modalTitleText}>Changer le statut</Text>
-              <TouchableOpacity onPress={() => setShowStatusModal(false)}>
+              <TouchableOpacity
+                onPress={() => setShowStatusModal(false)}
+                disabled={isUpdating}
+              >
                 <X size={24} color="#1E293B" />
               </TouchableOpacity>
             </View>
@@ -865,104 +908,113 @@ export default function TutorResourcesScreen() {
               {selectedResource?.title}
             </Text>
 
-            <View style={styles.statusOptions}>
-              <TouchableOpacity
-                style={[
-                  styles.statusOption,
-                  selectedResource?.status === "PUBLISHED" &&
-                    styles.statusOptionActive,
-                ]}
-                onPress={() => handleStatusChange("PUBLISHED")}
-                disabled={isUpdating}
-              >
-                <Check
-                  size={18}
-                  color={
-                    selectedResource?.status === "PUBLISHED"
-                      ? "white"
-                      : "#166534"
-                  }
-                />
-                <Text
-                  style={[
-                    styles.statusOptionText,
-                    selectedResource?.status === "PUBLISHED" && {
-                      color: "white",
-                    },
-                  ]}
-                >
-                  Publié
+            {isUpdating ? (
+              <View style={styles.statusLoadingContainer}>
+                <ActivityIndicator size="large" color="#6366F1" />
+                <Text style={styles.statusLoadingText}>
+                  Mise à jour en cours…
                 </Text>
-              </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.statusOptions}>
+                <TouchableOpacity
+                  style={[
+                    styles.statusOption,
+                    selectedResource?.status === "PUBLISHED" &&
+                      styles.statusOptionActive,
+                  ]}
+                  onPress={() => handleStatusChange("PUBLISHED")}
+                  disabled={isUpdating}
+                >
+                  <Check
+                    size={18}
+                    color={
+                      selectedResource?.status === "PUBLISHED"
+                        ? "white"
+                        : "#166534"
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.statusOptionText,
+                      selectedResource?.status === "PUBLISHED" && {
+                        color: "white",
+                      },
+                    ]}
+                  >
+                    Publié
+                  </Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[
-                  styles.statusOption,
-                  selectedResource?.status === "DRAFT" &&
-                    styles.statusOptionActive,
-                ]}
-                onPress={() => handleStatusChange("DRAFT")}
-                disabled={isUpdating}
-              >
-                <FileText
-                  size={18}
-                  color={
-                    selectedResource?.status === "DRAFT" ? "white" : "#92400E"
-                  }
-                />
-                <Text
+                <TouchableOpacity
                   style={[
-                    styles.statusOptionText,
-                    selectedResource?.status === "DRAFT" && {
-                      color: "white",
-                    },
+                    styles.statusOption,
+                    selectedResource?.status === "DRAFT" &&
+                      styles.statusOptionActive,
                   ]}
+                  onPress={() => handleStatusChange("DRAFT")}
+                  disabled={isUpdating}
                 >
-                  Brouillon
-                </Text>
-              </TouchableOpacity>
+                  <FileText
+                    size={18}
+                    color={
+                      selectedResource?.status === "DRAFT" ? "white" : "#92400E"
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.statusOptionText,
+                      selectedResource?.status === "DRAFT" && {
+                        color: "white",
+                      },
+                    ]}
+                  >
+                    Brouillon
+                  </Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[
-                  styles.statusOption,
-                  styles.statusOptionDanger,
-                  selectedResource?.status === "ARCHIVED" &&
-                    styles.statusOptionActive,
-                ]}
-                onPress={() => handleStatusChange("ARCHIVED")}
-                disabled={isUpdating}
-              >
-                <Trash2
-                  size={18}
-                  color={
-                    selectedResource?.status === "ARCHIVED"
-                      ? "white"
-                      : "#991B1B"
-                  }
-                />
-                <Text
+                <TouchableOpacity
                   style={[
-                    styles.statusOptionText,
-                    styles.statusOptionTextDanger,
-                    selectedResource?.status === "ARCHIVED" && {
-                      color: "white",
-                    },
+                    styles.statusOption,
+                    styles.statusOptionDanger,
+                    selectedResource?.status === "ARCHIVED" &&
+                      styles.statusOptionActive,
                   ]}
+                  onPress={() => handleStatusChange("ARCHIVED")}
+                  disabled={isUpdating}
                 >
-                  Archivé
-                </Text>
-              </TouchableOpacity>
-            </View>
+                  <Trash2
+                    size={18}
+                    color={
+                      selectedResource?.status === "ARCHIVED"
+                        ? "white"
+                        : "#991B1B"
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.statusOptionText,
+                      styles.statusOptionTextDanger,
+                      selectedResource?.status === "ARCHIVED" && {
+                        color: "white",
+                      },
+                    ]}
+                  >
+                    Archivé
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
 
       <Modal visible={showShareModal} animationType="slide" transparent={true}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
-          <View style={styles.modalOverlay}>
+        <View style={styles.bottomSheetOverlay}>
+          <KeyboardAvoidingView
+            style={{ width: "100%" }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+          >
             <View style={styles.shareModalContent}>
               <View style={styles.modalHeaderRow}>
                 <Text style={styles.modalTitleText}>
@@ -1240,8 +1292,63 @@ export default function TutorResourcesScreen() {
                 </View>
               </ScrollView>
             </View>
-          </View>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      {/* Feedback Modal */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <Pressable
+          style={styles.feedbackModalOverlay}
+          onPress={() => setModalVisible(false)}
+        >
+          <Pressable
+            style={styles.feedbackModalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View
+              style={[
+                styles.feedbackModalIcon,
+                modalConfig.type === "success"
+                  ? styles.feedbackModalIconSuccess
+                  : styles.feedbackModalIconError,
+              ]}
+            >
+              {modalConfig.type === "success" ? (
+                <CheckCircle size={32} color="#10B981" />
+              ) : (
+                <AlertCircle size={32} color="#EF4444" />
+              )}
+            </View>
+
+            <Text style={styles.feedbackModalTitle}>{modalConfig.title}</Text>
+            <Text style={styles.feedbackModalMessage}>
+              {modalConfig.message}
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.feedbackModalBtn,
+                modalConfig.type === "success"
+                  ? styles.feedbackModalBtnSuccess
+                  : styles.feedbackModalBtnError,
+              ]}
+              onPress={() => {
+                setModalVisible(false);
+                modalConfig.onConfirm?.();
+              }}
+            >
+              <Text style={styles.feedbackModalBtnText}>
+                {modalConfig.type === "success" ? "Super !" : "OK"}
+              </Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
       </Modal>
     </SafeAreaView>
   );
@@ -1531,11 +1638,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: "center",
   },
-  modalOverlay: {
+  centeredModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  bottomSheetOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
   },
   statusModal: {
     backgroundColor: "white",
@@ -1543,6 +1656,16 @@ const styles = StyleSheet.create({
     padding: 24,
     width: "85%",
     maxWidth: 340,
+  },
+  statusLoadingContainer: {
+    alignItems: "center",
+    paddingVertical: 24,
+    gap: 12,
+  },
+  statusLoadingText: {
+    fontSize: 14,
+    color: "#64748B",
+    fontWeight: "500",
   },
   modalHeader: {
     flexDirection: "row",
@@ -1600,8 +1723,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     padding: 24,
-    flex: 1,
-    marginTop: 60,
+    height: "92%",
   },
   modalHeaderRow: {
     flexDirection: "row",
@@ -1743,4 +1865,68 @@ const styles = StyleSheet.create({
   draftBtnTextField: { color: "#64748B", fontSize: 15, fontWeight: "600" },
   publishBtnField: { backgroundColor: "#6366F1" },
   submitBtnTextField: { color: "white", fontSize: 15, fontWeight: "bold" },
+  feedbackModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  feedbackModalContent: {
+    backgroundColor: "white",
+    borderRadius: 24,
+    padding: 28,
+    width: "100%",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  feedbackModalIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    marginBottom: 16,
+  },
+  feedbackModalIconSuccess: {
+    backgroundColor: "#10B98120",
+  },
+  feedbackModalIconError: {
+    backgroundColor: "#EF444420",
+  },
+  feedbackModalTitle: {
+    fontSize: 20,
+    fontWeight: "700" as const,
+    color: "#1E293B",
+    textAlign: "center" as const,
+    marginBottom: 8,
+  },
+  feedbackModalMessage: {
+    fontSize: 14,
+    color: "#64748B",
+    textAlign: "center" as const,
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  feedbackModalBtn: {
+    width: "100%",
+    paddingVertical: 14,
+    borderRadius: 50,
+    alignItems: "center" as const,
+  },
+  feedbackModalBtnSuccess: {
+    backgroundColor: "#6366F1",
+  },
+  feedbackModalBtnError: {
+    backgroundColor: "#EF4444",
+  },
+  feedbackModalBtnText: {
+    fontSize: 15,
+    fontWeight: "600" as const,
+    color: "white",
+  },
 });

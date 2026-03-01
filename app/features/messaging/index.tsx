@@ -218,7 +218,7 @@ export default function MessagingScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
-          totalUnread > 0 && (
+          totalUnread > 0 ? (
             <View style={styles.sectionHeader}>
               <Sparkles size={16} color="#6366F1" />
               <Text style={styles.sectionTitle}>
@@ -226,7 +226,7 @@ export default function MessagingScreen() {
                 {totalUnread > 1 ? "s" : ""}
               </Text>
             </View>
-          )
+          ) : null
         }
         renderItem={({ item, index }) => (
           <ConversationCard

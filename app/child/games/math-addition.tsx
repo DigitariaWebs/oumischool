@@ -8,12 +8,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ArrowLeft, Star, Trophy } from "lucide-react-native";
-import Animated, {
-  FadeInDown,
-  FadeInUp,
-  ZoomIn,
-  ZoomOut,
-} from "react-native-reanimated";
+import Animated, { FadeInDown, ZoomIn, ZoomOut } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { COLORS } from "@/config/colors";
@@ -48,7 +43,7 @@ export default function MathAdditionGame() {
     setCorrectAnswer(answer);
 
     // Generate 4 options including the correct answer
-    const wrongOptions = [];
+    const wrongOptions: number[] = [];
     while (wrongOptions.length < 3) {
       const wrong = answer + Math.floor(Math.random() * 20) - 10;
       if (wrong !== answer && wrong > 0 && !wrongOptions.includes(wrong)) {

@@ -7,7 +7,6 @@ import {
   KeyboardAvoidingView,
   Modal,
   FlatList,
-  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -305,7 +304,6 @@ const ChildSelectorModal: React.FC<ChildSelectorModalProps> = ({
 
 export default function AICoachScreen() {
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
   const router = useRouter();
   const dispatch = useAppDispatch();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -339,7 +337,13 @@ export default function AICoachScreen() {
         }),
       );
     }
-  }, [user?.role]);
+  }, [
+    user?.role,
+    currentRole,
+    dispatch,
+    messagesFromStore.length,
+    roleConfig.welcomeMessage,
+  ]);
 
   const messages = messagesFromStore;
   const isTyping = isTypingFromStore;

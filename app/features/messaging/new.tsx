@@ -45,7 +45,7 @@ export default function NewConversationScreen() {
       const conversation = await startConversation.mutateAsync({
         participantIds: [contact.id],
       });
-      router.replace(`/messaging/${conversation.id}`);
+      router.replace(`/features/messaging/${conversation.id}`);
     } finally {
       setPendingUserId(null);
     }

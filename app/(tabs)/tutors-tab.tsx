@@ -88,8 +88,7 @@ function subjectFromId(id: string): Subject {
 }
 
 function adaptTutor(item: TutorListItem): Tutor {
-  const name =
-    `${item.user.firstName ?? ""} ${item.user.lastName ?? ""}`.trim();
+  const name = `${item.firstName ?? ""} ${item.lastName ?? ""}`.trim();
   return {
     id: item.id,
     name: name || item.user.email.split("@")[0],

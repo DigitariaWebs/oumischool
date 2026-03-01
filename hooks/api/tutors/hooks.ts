@@ -87,6 +87,20 @@ export function useMyAvailability() {
   });
 }
 
+export function useMyRevenue() {
+  return useQuery({
+    queryKey: tutorKeys.myRevenue(),
+    queryFn: tutorApi.getMyRevenue,
+  });
+}
+
+export function useMyPayouts() {
+  return useQuery({
+    queryKey: tutorKeys.myPayouts(),
+    queryFn: tutorApi.getMyPayouts,
+  });
+}
+
 export function useUpdateTutorProfile() {
   return useMutation({
     mutationFn: (body: TutorUpdatePayload) => tutorApi.updateMe(body),

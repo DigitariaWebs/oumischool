@@ -77,7 +77,7 @@ export default function ChildTabLayout() {
     } else if (user.role === "tutor") {
       router.replace("/(tabs-tutor)");
     }
-  }, [user]);
+  }, [user, router]);
 
   if (!user || user.role !== "child") return null;
 

@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { resourceKeys } from "@/hooks/api/resources/keys";
 import {
   View,
   Text,
@@ -338,6 +340,7 @@ const PlanCard: React.FC<PlanCardProps> = ({
 
 export default function PricingScreen() {
   const router = useRouter();
+  const qc = useQueryClient();
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
   const [previewPlanId, setPreviewPlanId] = useState<string | null>(null);
   const [confirmVisible, setConfirmVisible] = useState(false);
@@ -389,6 +392,7 @@ export default function PricingScreen() {
               primary: true,
               onPress: () => {
                 setModalVisible(false);
+                qc.invalidateQueries({ queryKey: resourceKeys.lists() });
                 router.back();
               },
             },
