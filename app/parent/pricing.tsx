@@ -28,6 +28,12 @@ import {
   Headphones,
   BarChart3,
   Info,
+  TrendingUp,
+  TrendingDown,
+  ArrowRight,
+  Calendar,
+  Minus,
+  Plus,
 } from "lucide-react-native";
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
@@ -37,6 +43,7 @@ import { usePayment } from "@/hooks/usePayment";
 import {
   useSubscriptionPlans,
   useCurrentSubscription,
+  useSubscriptionChangePreview,
 } from "@/hooks/api/subscriptions";
 import type { SubscriptionPlan } from "@/hooks/api/subscriptions";
 
@@ -131,6 +138,9 @@ interface PlanCardProps {
   hasAdvancedAnalytics?: boolean;
   onSelect: (planId: string) => void;
   delay?: number;
+  changeType?: "upgrade" | "downgrade" | null;
+  amountDueCents?: number;
+  creditDays?: number;
 }
 
 const PlanCard: React.FC<PlanCardProps> = ({
@@ -148,6 +158,9 @@ const PlanCard: React.FC<PlanCardProps> = ({
   hasAdvancedAnalytics = false,
   onSelect,
   delay = 0,
+  changeType,
+  amountDueCents,
+  creditDays,
 }) => {
   const getAudienceIcon = () => {
     if (!targetAudience) return null;
@@ -244,6 +257,32 @@ const PlanCard: React.FC<PlanCardProps> = ({
           </View>
         )}
 
+        {changeType === "upgrade" && amountDueCents !== undefined && (
+          <View style={styles.changePreviewBanner}>
+            <TrendingUp size={14} color={COLORS.primary.DEFAULT} />
+            <Text style={styles.changePreviewText}>
+              {amountDueCents === 0
+                ? "Passage gratuit (crédit appliqué)"
+                : `Aujourd'hui : ${(amountDueCents / 100).toFixed(2)} € (crédit déduit)`}
+            </Text>
+          </View>
+        )}
+        {changeType === "downgrade" && creditDays !== undefined && (
+          <View
+            style={[styles.changePreviewBanner, styles.changePreviewDowngrade]}
+          >
+            <TrendingDown size={14} color={COLORS.warning} />
+            <Text
+              style={[
+                styles.changePreviewText,
+                styles.changePreviewDowngradeText,
+              ]}
+            >
+              {`+${creditDays} jours offerts grâce à votre crédit`}
+            </Text>
+          </View>
+        )}
+
         <TouchableOpacity
           style={[
             styles.selectButton,
@@ -261,14 +300,33 @@ const PlanCard: React.FC<PlanCardProps> = ({
             <Text style={styles.selectButtonTextCurrent}>Plan actuel</Text>
           ) : (
             <>
-              {isPopular && <Sparkles size={18} color={COLORS.neutral.white} />}
+              {changeType === "upgrade" && (
+                <TrendingUp
+                  size={16}
+                  color={
+                    isPopular ? COLORS.neutral.white : COLORS.primary.DEFAULT
+                  }
+                />
+              )}
+              {changeType === "downgrade" && (
+                <TrendingDown size={16} color={COLORS.secondary[500]} />
+              )}
+              {!changeType && isPopular && (
+                <Sparkles size={18} color={COLORS.neutral.white} />
+              )}
               <Text
                 style={[
                   styles.selectButtonText,
                   isPopular && styles.selectButtonTextPopular,
                 ]}
               >
-                {isPopular ? "Commencer maintenant" : "Choisir cette offre"}
+                {changeType === "upgrade"
+                  ? "Passer à cette offre"
+                  : changeType === "downgrade"
+                    ? "Rétrograder"
+                    : isPopular
+                      ? "Commencer maintenant"
+                      : "Choisir cette offre"}
               </Text>
             </>
           )}
@@ -281,6 +339,9 @@ const PlanCard: React.FC<PlanCardProps> = ({
 export default function PricingScreen() {
   const router = useRouter();
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
+  const [previewPlanId, setPreviewPlanId] = useState<string | null>(null);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
 
   // Custom modal state
   const [modalVisible, setModalVisible] = useState(false);
@@ -295,6 +356,8 @@ export default function PricingScreen() {
 
   const { data: serverPlans = [], isLoading } = useSubscriptionPlans();
   const { data: currentSubscription } = useCurrentSubscription();
+  const { data: preview, isLoading: previewLoading } =
+    useSubscriptionChangePreview(previewPlanId);
 
   const plans = buildDisplayPlans(serverPlans);
 
@@ -308,20 +371,21 @@ export default function PricingScreen() {
     setModalVisible(true);
   };
 
-  const handleSelectPlan = async (serverPlanId: string) => {
+  const confirmAndPay = async (serverPlanId: string) => {
+    setConfirmVisible(false);
     setProcessingPlanId(serverPlanId);
-
     try {
       const { success } = await payForSubscription(serverPlanId);
-
       if (success) {
         showModal(
           "success",
-          "🎉 Abonnement activé!",
-          "Votre abonnement a été activé avec succès. Bienvenue!",
+          "🎉 Abonnement mis à jour !",
+          preview?.isDowngrade
+            ? `Votre abonnement a été rétrogradé vers "${preview.targetPlanName}". Votre crédit a été converti en ${Math.round((preview.creditCents / Math.round(preview.targetPlanPrice * 100)) * 30)} jours supplémentaires.`
+            : "Votre abonnement a été activé avec succès. Bienvenue !",
           [
             {
-              text: "Super!",
+              text: "Super !",
               primary: true,
               onPress: () => {
                 setModalVisible(false);
@@ -341,7 +405,7 @@ export default function PricingScreen() {
               primary: true,
               onPress: () => {
                 setModalVisible(false);
-                handleSelectPlan(serverPlanId);
+                confirmAndPay(serverPlanId);
               },
             },
             {
@@ -353,12 +417,27 @@ export default function PricingScreen() {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erreur inconnue";
-      showModal("error", "⚠️ Erreur", `Une erreur s'est produite: ${message}`, [
-        { text: "OK", primary: true, onPress: () => setModalVisible(false) },
-      ]);
+      showModal(
+        "error",
+        "⚠️ Erreur",
+        `Une erreur s'est produite : ${message}`,
+        [{ text: "OK", primary: true, onPress: () => setModalVisible(false) }],
+      );
     } finally {
       setProcessingPlanId(null);
+      setPendingPlanId(null);
+      setPreviewPlanId(null);
     }
+  };
+
+  const handleSelectPlan = (serverPlanId: string) => {
+    if (!currentSubscription) {
+      confirmAndPay(serverPlanId);
+      return;
+    }
+    setPendingPlanId(serverPlanId);
+    setPreviewPlanId(serverPlanId);
+    setConfirmVisible(true);
   };
 
   return (
@@ -412,25 +491,91 @@ export default function PricingScreen() {
                   Facile à annuler à tout moment
                 </Text>
               </View>
-              {plans.map((plan, index) => (
-                <PlanCard
-                  key={plan.id}
-                  id={plan.serverPlanId}
-                  name={plan.name}
-                  price={plan.price}
-                  billingPeriod={plan.billingPeriod}
-                  description={plan.description}
-                  features={plan.features}
-                  isPopular={plan.isPopular}
-                  targetAudience={plan.targetAudience}
-                  hasPrioritySupport={plan.hasPrioritySupport}
-                  hasAdvancedAnalytics={plan.hasAdvancedAnalytics}
-                  isCurrent={currentSubscription?.planId === plan.serverPlanId}
-                  isProcessing={processingPlanId === plan.serverPlanId}
-                  onSelect={handleSelectPlan}
-                  delay={index * 100}
-                />
-              ))}
+              {plans.map((plan, index) => {
+                const isCurrent =
+                  currentSubscription?.planId === plan.serverPlanId &&
+                  currentSubscription.status === "ACTIVE";
+                let changeType: "upgrade" | "downgrade" | null = null;
+                if (!isCurrent && currentSubscription?.status === "ACTIVE") {
+                  changeType =
+                    plan.price > (currentSubscription.plan.price ?? 0)
+                      ? "upgrade"
+                      : "downgrade";
+                }
+                const creditDays =
+                  changeType === "downgrade" && currentSubscription
+                    ? (() => {
+                        const now = new Date();
+                        const exp = new Date(currentSubscription.expiresAt);
+                        const start = new Date(currentSubscription.startedAt);
+                        const totalDays =
+                          Math.round(
+                            (exp.getTime() - start.getTime()) / 86_400_000,
+                          ) || 30;
+                        const daysLeft = Math.ceil(
+                          Math.max(0, exp.getTime() - now.getTime()) /
+                            86_400_000,
+                        );
+                        const creditCents = Math.round(
+                          (daysLeft / totalDays) *
+                            Math.round(
+                              (currentSubscription.plan.price ?? 0) * 100,
+                            ),
+                        );
+                        return Math.round(
+                          (creditCents / Math.round(plan.price * 100)) * 30,
+                        );
+                      })()
+                    : undefined;
+                const amountDueCents =
+                  changeType === "upgrade" && currentSubscription
+                    ? (() => {
+                        const now = new Date();
+                        const exp = new Date(currentSubscription.expiresAt);
+                        const start = new Date(currentSubscription.startedAt);
+                        const totalDays =
+                          Math.round(
+                            (exp.getTime() - start.getTime()) / 86_400_000,
+                          ) || 30;
+                        const daysLeft = Math.ceil(
+                          Math.max(0, exp.getTime() - now.getTime()) /
+                            86_400_000,
+                        );
+                        const creditCents = Math.round(
+                          (daysLeft / totalDays) *
+                            Math.round(
+                              (currentSubscription.plan.price ?? 0) * 100,
+                            ),
+                        );
+                        return Math.max(
+                          0,
+                          Math.round(plan.price * 100) - creditCents,
+                        );
+                      })()
+                    : undefined;
+                return (
+                  <PlanCard
+                    key={plan.id}
+                    id={plan.serverPlanId}
+                    name={plan.name}
+                    price={plan.price}
+                    billingPeriod={plan.billingPeriod}
+                    description={plan.description}
+                    features={plan.features}
+                    isPopular={plan.isPopular}
+                    targetAudience={plan.targetAudience}
+                    hasPrioritySupport={plan.hasPrioritySupport}
+                    hasAdvancedAnalytics={plan.hasAdvancedAnalytics}
+                    isCurrent={isCurrent}
+                    isProcessing={processingPlanId === plan.serverPlanId}
+                    onSelect={handleSelectPlan}
+                    delay={index * 100}
+                    changeType={changeType}
+                    amountDueCents={amountDueCents}
+                    creditDays={creditDays}
+                  />
+                );
+              })}
             </>
           )}
         </View>
@@ -491,6 +636,219 @@ export default function PricingScreen() {
         </TouchableOpacity>
       </ScrollView>
 
+      {/* Change Confirmation Modal */}
+      <Modal
+        visible={confirmVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setConfirmVisible(false)}
+        >
+          <Pressable
+            style={styles.modalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {previewLoading || !preview ? (
+              <ActivityIndicator
+                size="large"
+                color={COLORS.primary.DEFAULT}
+                style={{ marginVertical: 32 }}
+              />
+            ) : (
+              <>
+                <View
+                  style={[
+                    styles.modalIconContainer,
+                    preview.isUpgrade
+                      ? styles.modalIconSuccess
+                      : styles.modalIconInfo,
+                  ]}
+                >
+                  {preview.isUpgrade ? (
+                    <TrendingUp size={32} color={COLORS.success} />
+                  ) : (
+                    <TrendingDown size={32} color={COLORS.primary.DEFAULT} />
+                  )}
+                </View>
+
+                <Text style={styles.modalTitle}>
+                  {preview.isUpgrade
+                    ? "Passer à une offre supérieure"
+                    : "Rétrograder votre offre"}
+                </Text>
+
+                {/* Plan transition row */}
+                <View style={styles.planTransitionRow}>
+                  <Text style={styles.planTransitionName}>
+                    {preview.currentPlanName}
+                  </Text>
+                  <ArrowRight size={16} color={COLORS.secondary[400]} />
+                  <Text
+                    style={[
+                      styles.planTransitionName,
+                      styles.planTransitionTarget,
+                    ]}
+                  >
+                    {preview.targetPlanName}
+                  </Text>
+                </View>
+
+                {/* Credit/amount summary */}
+                <View style={styles.prorateBox}>
+                  <View style={styles.prorateRow}>
+                    <Calendar size={14} color={COLORS.secondary[500]} />
+                    <Text style={styles.prorateLabel}>
+                      Jours restants sur votre plan actuel
+                    </Text>
+                    <Text style={styles.prorateValue}>
+                      {preview.daysRemaining} j
+                    </Text>
+                  </View>
+                  <View style={styles.prorateRow}>
+                    <CreditCard size={14} color={COLORS.secondary[500]} />
+                    <Text style={styles.prorateLabel}>Crédit disponible</Text>
+                    <Text style={styles.prorateValue}>
+                      {(preview.creditCents / 100).toFixed(2)} €
+                    </Text>
+                  </View>
+                  <View style={[styles.prorateRow, styles.prorateTotal]}>
+                    {preview.isUpgrade ? (
+                      <>
+                        <TrendingUp size={14} color={COLORS.primary.DEFAULT} />
+                        <Text
+                          style={[
+                            styles.prorateLabel,
+                            styles.prorateTotalLabel,
+                          ]}
+                        >
+                          À payer aujourd&apos;hui
+                        </Text>
+                        <Text
+                          style={[
+                            styles.prorateValue,
+                            styles.prorateTotalValue,
+                          ]}
+                        >
+                          {(preview.amountDueCents / 100).toFixed(2)} €
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <Calendar size={14} color={COLORS.success} />
+                        <Text
+                          style={[
+                            styles.prorateLabel,
+                            styles.prorateTotalLabel,
+                          ]}
+                        >
+                          Jours offerts sur la nouvelle offre
+                        </Text>
+                        <Text
+                          style={[
+                            styles.prorateValue,
+                            { color: COLORS.success },
+                          ]}
+                        >
+                          +
+                          {Math.round(
+                            (preview.creditCents /
+                              Math.round(preview.targetPlanPrice * 100)) *
+                              30,
+                          )}{" "}
+                          j
+                        </Text>
+                      </>
+                    )}
+                  </View>
+                </View>
+
+                {/* Gained / lost features */}
+                {preview.gainedFeatures.length > 0 && (
+                  <View style={styles.featureDeltaSection}>
+                    <Text style={styles.featureDeltaTitle}>
+                      {preview.isUpgrade ? "Vous gagnez" : "Vous conservez"}
+                    </Text>
+                    {preview.gainedFeatures.map((f) => (
+                      <View key={f} style={styles.featureDeltaRow}>
+                        <Plus size={12} color={COLORS.success} />
+                        <Text
+                          style={[
+                            styles.featureDeltaText,
+                            { color: COLORS.success },
+                          ]}
+                        >
+                          {f}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+                {preview.lostFeatures.length > 0 && (
+                  <View style={styles.featureDeltaSection}>
+                    <Text
+                      style={[
+                        styles.featureDeltaTitle,
+                        { color: COLORS.error.DEFAULT },
+                      ]}
+                    >
+                      Vous perdez
+                    </Text>
+                    {preview.lostFeatures.map((f) => (
+                      <View key={f} style={styles.featureDeltaRow}>
+                        <Minus size={12} color={COLORS.error.DEFAULT} />
+                        <Text
+                          style={[
+                            styles.featureDeltaText,
+                            { color: COLORS.error.DEFAULT },
+                          ]}
+                        >
+                          {f}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                <Text style={styles.resourceRetentionNote}>
+                  Les ressources que vous avez achetées restent accessibles.
+                </Text>
+
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.modalButtonPrimary]}
+                    onPress={() =>
+                      pendingPlanId && confirmAndPay(pendingPlanId)
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.modalButtonText,
+                        styles.modalButtonTextPrimary,
+                      ]}
+                    >
+                      {preview.isDowngrade
+                        ? "Confirmer la rétrogradation"
+                        : preview.amountDueCents === 0
+                          ? "Confirmer (gratuit)"
+                          : `Payer ${(preview.amountDueCents / 100).toFixed(2)} €`}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.modalButton}
+                    onPress={() => setConfirmVisible(false)}
+                  >
+                    <Text style={styles.modalButtonText}>Annuler</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* Custom Modal */}
       <Modal
         visible={modalVisible}
@@ -549,13 +907,6 @@ export default function PricingScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-
-            <TouchableOpacity
-              style={styles.modalClose}
-              onPress={() => setModalVisible(false)}
-            >
-              <X size={20} color={COLORS.secondary[400]} />
-            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
@@ -895,7 +1246,118 @@ const styles = StyleSheet.create({
     color: COLORS.neutral.white,
   },
   selectButtonTextCurrent: {
+    color: COLORS.secondary[400],
+  },
+  changePreviewBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: COLORS.primary[50],
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 10,
+  },
+  changePreviewDowngrade: {
+    backgroundColor: COLORS.warning + "15",
+  },
+  changePreviewText: {
+    flex: 1,
+    fontFamily: FONTS.secondary,
+    fontSize: 12,
+    color: COLORS.primary.DEFAULT,
+    fontWeight: "500",
+  },
+  changePreviewDowngradeText: {
+    color: COLORS.warning,
+  },
+  planTransitionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
+  planTransitionName: {
+    fontFamily: FONTS.secondary,
+    fontSize: 14,
     color: COLORS.secondary[500],
+    fontWeight: "600",
+  },
+  planTransitionTarget: {
+    color: COLORS.primary.DEFAULT,
+  },
+  prorateBox: {
+    width: "100%",
+    backgroundColor: COLORS.neutral[50],
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.neutral[200],
+  },
+  prorateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  prorateLabel: {
+    flex: 1,
+    fontFamily: FONTS.secondary,
+    fontSize: 13,
+    color: COLORS.secondary[500],
+  },
+  prorateValue: {
+    fontFamily: FONTS.secondary,
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.secondary[700],
+  },
+  prorateTotal: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.neutral[200],
+    paddingTop: 8,
+    marginTop: 4,
+  },
+  prorateTotalLabel: {
+    color: COLORS.secondary[800],
+    fontWeight: "600",
+  },
+  prorateTotalValue: {
+    color: COLORS.primary.DEFAULT,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  featureDeltaSection: {
+    width: "100%",
+    marginBottom: 10,
+  },
+  featureDeltaTitle: {
+    fontFamily: FONTS.secondary,
+    fontSize: 12,
+    fontWeight: "700",
+    color: COLORS.secondary[600],
+    marginBottom: 4,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  featureDeltaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 3,
+  },
+  featureDeltaText: {
+    fontFamily: FONTS.secondary,
+    fontSize: 13,
+  },
+  resourceRetentionNote: {
+    fontFamily: FONTS.secondary,
+    fontSize: 12,
+    color: COLORS.secondary[400],
+    textAlign: "center",
+    fontStyle: "italic",
+    marginBottom: 16,
   },
   infoCard: {
     marginHorizontal: SPACING.lg,

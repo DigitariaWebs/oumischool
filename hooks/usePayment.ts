@@ -82,7 +82,10 @@ export function usePayment() {
    */
   const runPaymentSheet = useCallback(
     async (
-      createIntent: () => Promise<{ clientSecret: string; orderId: string }>,
+      createIntent: () => Promise<{
+        clientSecret: string | null;
+        orderId: string | null;
+      }>,
     ): Promise<{ success: boolean; orderId: string | null }> => {
       dispatch(paymentStart());
 
@@ -94,6 +97,10 @@ export function usePayment() {
 
         // 2. Create the payment intent on backend
         const { clientSecret, orderId } = await createIntent();
+        if (!clientSecret || !orderId) {
+          dispatch(paymentFailure("Invalid payment intent"));
+          return { success: false, orderId: null };
+        }
 
         // 3. Initialize PaymentSheet
         const { error: initError } = await initPaymentSheet({
@@ -150,9 +157,27 @@ export function usePayment() {
   );
 
   const payForSubscription = useCallback(
-    (planId: string) =>
-      runPaymentSheet(() => paymentsApi.createSubscriptionIntent({ planId })),
-    [runPaymentSheet],
+    async (
+      planId: string,
+    ): Promise<{ success: boolean; orderId: string | null }> => {
+      try {
+        const intent = await paymentsApi.createSubscriptionIntent({ planId });
+        if (intent.immediate) {
+          dispatch(paymentSuccess({ orderId: "", status: "PAID" }));
+          return { success: true, orderId: null };
+        }
+        return runPaymentSheet(() =>
+          Promise.resolve(
+            intent as unknown as { clientSecret: string; orderId: string },
+          ),
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Payment failed";
+        dispatch(paymentFailure(message));
+        return { success: false, orderId: null };
+      }
+    },
+    [runPaymentSheet, dispatch],
   );
 
   return { payForSession, payForResource, payForSubscription };

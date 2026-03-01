@@ -40,10 +40,11 @@ export interface StripeCustomerResponse {
 }
 
 export interface PaymentIntentResponse {
-  clientSecret: string;
-  orderId: string;
+  clientSecret: string | null;
+  orderId: string | null;
   amount: number;
   sessionId?: string;
+  immediate?: boolean;
 }
 
 export interface Order {
@@ -53,14 +54,14 @@ export interface Order {
   amount: number;
   currency: string;
   createdAt: string;
-  items: Array<{
+  items: {
     id: string;
     description: string;
     unitAmount: number;
     quantity: number;
     resourceId?: string;
     sessionId?: string;
-  }>;
+  }[];
 }
 
 export interface SessionIntentPayload {
