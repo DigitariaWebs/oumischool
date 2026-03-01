@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -18,7 +18,6 @@ import {
   RefreshCw,
   CreditCard,
   Clock,
-  Bug,
   Check,
   Sparkles,
   Users,
@@ -282,8 +281,6 @@ const PlanCard: React.FC<PlanCardProps> = ({
 export default function PricingScreen() {
   const router = useRouter();
   const [processingPlanId, setProcessingPlanId] = useState<string | null>(null);
-  const [debugMode, setDebugMode] = useState(false);
-  const [debugLogs, setDebugLogs] = useState<string[]>([]);
 
   // Custom modal state
   const [modalVisible, setModalVisible] = useState(false);
@@ -301,11 +298,6 @@ export default function PricingScreen() {
 
   const plans = buildDisplayPlans(serverPlans);
 
-  const addLog = useCallback((message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    setDebugLogs((prev) => [`[${timestamp}] ${message}`, ...prev].slice(0, 20));
-  }, []);
-
   const showModal = (
     type: "success" | "error" | "info",
     title: string,
@@ -317,14 +309,10 @@ export default function PricingScreen() {
   };
 
   const handleSelectPlan = async (serverPlanId: string) => {
-    addLog(`Selecting plan: ${serverPlanId}`);
     setProcessingPlanId(serverPlanId);
-    addLog(`Calling payment API...`);
 
     try {
-      addLog(`Processing payment for plan: ${serverPlanId}`);
-      const { success, orderId } = await payForSubscription(serverPlanId);
-      addLog(`Payment result - success: ${success}, orderId: ${orderId}`);
+      const { success } = await payForSubscription(serverPlanId);
 
       if (success) {
         showModal(
@@ -362,11 +350,9 @@ export default function PricingScreen() {
             },
           ],
         );
-        addLog(`Payment failed for plan: ${serverPlanId}`);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erreur inconnue";
-      addLog(`Error: ${message}`);
       showModal("error", "⚠️ Erreur", `Une erreur s'est produite: ${message}`, [
         { text: "OK", primary: true, onPress: () => setModalVisible(false) },
       ]);
@@ -503,32 +489,6 @@ export default function PricingScreen() {
             Des questions ? Consultez notre FAQ
           </Text>
         </TouchableOpacity>
-
-        {debugMode && (
-          <Card variant="outlined" padding="md" style={styles.debugCard}>
-            <View style={styles.debugHeader}>
-              <Bug size={18} color={COLORS.secondary[600]} />
-              <Text style={styles.debugTitle}>Debug Logs</Text>
-              <TouchableOpacity
-                onPress={() => setDebugLogs([])}
-                style={styles.debugClear}
-              >
-                <Text style={styles.debugClearText}>Clear</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.debugLogs}>
-              {debugLogs.length === 0 ? (
-                <Text style={styles.debugEmpty}>No logs yet...</Text>
-              ) : (
-                debugLogs.map((log, index) => (
-                  <Text key={index} style={styles.debugLogText}>
-                    {log}
-                  </Text>
-                ))
-              )}
-            </View>
-          </Card>
-        )}
       </ScrollView>
 
       {/* Custom Modal */}

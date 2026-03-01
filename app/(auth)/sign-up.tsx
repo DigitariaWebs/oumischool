@@ -47,6 +47,7 @@ import { ASSETS } from "@/config/assets";
 import { SPACING, RADIUS } from "@/constants/tokens";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
+import { ErrorAlert } from "@/components/ui";
 import { useRegister } from "@/hooks/api/auth";
 import { useAppDispatch } from "@/store/hooks";
 import { loginSuccess } from "@/store/slices/authSlice";
@@ -337,6 +338,7 @@ export default function SignUpScreen() {
             acceptedTerms={acceptedTerms}
             setAcceptedTerms={setAcceptedTerms}
             error={error}
+            setError={setError}
             isLoading={registerMutation.isPending}
             onSubmit={handleRegister}
             role={role!}
@@ -367,6 +369,7 @@ export default function SignUpScreen() {
             bio={bio}
             setBio={setBio}
             error={error}
+            setError={setError}
             isLoading={updateTutorMutation.isPending}
             onSubmit={handleTutorPrefsContinue}
             colors={colors}
@@ -382,6 +385,7 @@ export default function SignUpScreen() {
             childDateOfBirth={childDateOfBirth}
             setChildDateOfBirth={setChildDateOfBirth}
             error={error}
+            setError={setError}
             isLoading={createChildMutation.isPending}
             onSubmit={handleCreateChild}
             onSkip={handleFinishParent}
@@ -559,6 +563,7 @@ function AccountStep({
   acceptedTerms,
   setAcceptedTerms,
   error,
+  setError,
   isLoading,
   onSubmit,
   role,
@@ -577,6 +582,7 @@ function AccountStep({
   acceptedTerms: boolean;
   setAcceptedTerms: (v: boolean) => void;
   error: string | null;
+  setError: (v: string | null) => void;
   isLoading: boolean;
   onSubmit: () => void;
   role: Role;
@@ -677,7 +683,9 @@ function AccountStep({
           </Text>
         </TouchableOpacity>
 
-        {error && <Text style={styles.errorText}>{error}</Text>}
+        {error && (
+          <ErrorAlert message={error} onDismiss={() => setError(null)} />
+        )}
 
         <Button
           title="Créer mon compte"
@@ -886,6 +894,7 @@ function TutorPrefsStep({
   bio,
   setBio,
   error,
+  setError,
   isLoading,
   onSubmit,
   colors,
@@ -901,6 +910,7 @@ function TutorPrefsStep({
   bio: string;
   setBio: (v: string) => void;
   error: string | null;
+  setError: (v: string | null) => void;
   isLoading: boolean;
   onSubmit: () => void;
   colors: { main: string; light: string; dark: string };
@@ -1178,7 +1188,9 @@ function TutorPrefsStep({
         />
         <Text style={styles.charCount}>{bio.length}/300</Text>
 
-        {error && <Text style={styles.errorText}>{error}</Text>}
+        {error && (
+          <ErrorAlert message={error} onDismiss={() => setError(null)} />
+        )}
 
         <Button
           title="Continuer"
@@ -1201,6 +1213,7 @@ function ChildStep({
   childDateOfBirth,
   setChildDateOfBirth,
   error,
+  setError,
   isLoading,
   onSubmit,
   onSkip,
@@ -1213,6 +1226,7 @@ function ChildStep({
   childDateOfBirth: string;
   setChildDateOfBirth: (v: string) => void;
   error: string | null;
+  setError: (v: string | null) => void;
   isLoading: boolean;
   onSubmit: () => void;
   onSkip: () => void;
@@ -1361,7 +1375,9 @@ function ChildStep({
           </Animated.View>
         )}
 
-        {error && <Text style={styles.errorText}>{error}</Text>}
+        {error && (
+          <ErrorAlert message={error} onDismiss={() => setError(null)} />
+        )}
 
         <Button
           title="Ajouter et continuer"
@@ -1688,14 +1704,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     height: 52,
     borderRadius: 30,
-  },
-
-  // Error
-  errorText: {
-    color: COLORS.error.DEFAULT,
-    fontSize: 13,
-    marginBottom: 12,
-    textAlign: "center",
+    marginBottom: 16,
   },
 
   // Footer

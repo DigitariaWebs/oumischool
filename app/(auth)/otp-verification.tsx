@@ -18,6 +18,7 @@ import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
+import { ErrorAlert } from "@/components/ui";
 
 const HeaderBackground = () => (
   <View style={styles.headerBackgroundContainer}>
@@ -177,7 +178,7 @@ export default function ResetPasswordScreen() {
                               : "100%",
                         backgroundColor:
                           password.length < 6
-                            ? COLORS.error
+                            ? COLORS.error.DEFAULT
                             : password.length < 10
                               ? COLORS.warning
                               : COLORS.success,
@@ -191,7 +192,7 @@ export default function ResetPasswordScreen() {
                     {
                       color:
                         password.length < 6
-                          ? COLORS.error
+                          ? COLORS.error.DEFAULT
                           : password.length < 10
                             ? COLORS.warning
                             : COLORS.success,
@@ -209,12 +210,7 @@ export default function ResetPasswordScreen() {
 
             {/* Error Message */}
             {error && (
-              <Animated.Text
-                entering={FadeInDown.duration(300)}
-                style={styles.errorText}
-              >
-                {error}
-              </Animated.Text>
+              <ErrorAlert message={error} onDismiss={() => setError("")} />
             )}
 
             <Button
@@ -318,12 +314,6 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.secondary,
     fontSize: 12,
     fontWeight: "600",
-  },
-  errorText: {
-    fontFamily: FONTS.secondary,
-    fontSize: 14,
-    color: COLORS.error,
-    marginTop: 12,
   },
   helpText: {
     fontFamily: FONTS.secondary,

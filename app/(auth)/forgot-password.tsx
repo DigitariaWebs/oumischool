@@ -13,10 +13,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Mail, ArrowLeft, CheckCircle, Sparkles } from "lucide-react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
-import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
+import { ErrorAlert } from "@/components/ui";
 import { useForgotPassword } from "@/hooks/api/auth";
 
 export default function ForgotPasswordScreen() {
@@ -127,16 +127,7 @@ export default function ForgotPasswordScreen() {
             />
 
             {error && (
-              <Text
-                style={{
-                  color: "#EF4444",
-                  fontSize: 13,
-                  marginBottom: 12,
-                  textAlign: "center",
-                }}
-              >
-                {error}
-              </Text>
+              <ErrorAlert message={error} onDismiss={() => setError(null)} />
             )}
 
             <Button

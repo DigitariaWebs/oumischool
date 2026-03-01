@@ -4,7 +4,6 @@ import {
   CreateChildPayload,
   UpdateChildPayload,
   UpdateParentProfilePayload,
-  ChildProgress,
 } from "./api";
 import { parentKeys } from "./keys";
 

@@ -113,7 +113,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const user = useAppSelector((state) => state.auth.user);
   const { data: childrenFromApi = [], isLoading } = useChildren();
-  const userName = user?.firstName || user?.email?.split("@")[0] || "Parent";
+  const userName = user?.name || user?.email?.split("@")[0] || "Parent";
 
   const children = childrenFromApi.map((child) => ({
     id: child.id,
@@ -128,7 +128,7 @@ export default function HomeScreen() {
     {
       icon: <Plus size={20} color={THEME.colors.subtext} />,
       title: "Ajouter",
-      onPress: () => router.push("/children-tab"),
+      onPress: () => router.push("/children-tab?openModal=true"),
       hapticType: "medium" as const,
     },
     {

@@ -16,6 +16,7 @@ import { FONTS } from "@/config/fonts";
 import { ASSETS } from "@/config/assets";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
+import { ErrorAlert } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks";
 import { loginSuccess } from "@/store/slices/authSlice";
 import { useLogin } from "@/hooks/api/auth";
@@ -186,16 +187,7 @@ export default function SignInScreen() {
           </TouchableOpacity>
 
           {error && (
-            <Text
-              style={{
-                color: "#EF4444",
-                fontSize: 13,
-                marginBottom: 12,
-                textAlign: "center",
-              }}
-            >
-              {error}
-            </Text>
+            <ErrorAlert message={error} onDismiss={() => setError(null)} />
           )}
 
           <Button
@@ -343,10 +335,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   signInButton: {
-    height: 54,
-    borderRadius: 18,
+    height: 52,
+    borderRadius: 30,
     backgroundColor: "#6366F1",
-    marginBottom: 24,
+    marginBottom: 16,
   },
 
   // Divider

@@ -3,70 +3,13 @@ import React from "react";
 import { Home, Users, User, GraduationCap, Library } from "lucide-react-native";
 import { View, StyleSheet, Pressable, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Haptics from "expo-haptics";
 
 import { THEME } from "@/config/theme";
 import { COLORS } from "@/config/colors";
 import { FONTS } from "@/config/fonts";
 
-function TabItem({
-  onPress,
-  isFocused,
-  icon,
-  label,
-  getIconColor,
-  getLabelColor,
-}: {
-  onPress: () => void;
-  isFocused: boolean;
-  icon: any;
-  label: string;
-  getIconColor: (isFocused: boolean) => string;
-  getLabelColor: (isFocused: boolean) => string;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.tabItemWrapper,
-        pressed && styles.tabItemPressed,
-      ]}
-    >
-      <View
-        style={[
-          styles.tabIconContainer,
-          isFocused && styles.tabIconContainerActive,
-        ]}
-      >
-        {icon &&
-          icon({
-            color: getIconColor(isFocused),
-            focused: isFocused,
-          })}
-      </View>
-      <Text
-        style={[
-          styles.tabLabel,
-          { color: getLabelColor(isFocused) },
-          isFocused && styles.tabLabelActive,
-        ]}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
-
-  const getIconColor = (isFocused: boolean) => {
-    return isFocused ? THEME.colors.primary : COLORS.secondary[400];
-  };
-
-  const getLabelColor = (isFocused: boolean) => {
-    return isFocused ? THEME.colors.primary : COLORS.secondary[400];
-  };
 
   return (
     <View
@@ -78,28 +21,45 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           const isFocused = state.index === index;
 
           const onPress = () => {
-            Haptics.selectionAsync();
             const event = navigation.emit({
               type: "tabPress",
               target: route.key,
               canPreventDefault: true,
             });
-
             if (!isFocused && !event.defaultPrevented) {
               navigation.navigate(route.name);
             }
           };
 
           return (
-            <TabItem
+            <Pressable
               key={route.key}
               onPress={onPress}
-              isFocused={isFocused}
-              icon={options.tabBarIcon}
-              label={options.title}
-              getIconColor={getIconColor}
-              getLabelColor={getLabelColor}
-            />
+              style={({ pressed }) => [
+                styles.tabItemWrapper,
+                pressed && styles.tabPressed,
+              ]}
+            >
+              <View
+                style={[
+                  styles.tabIconContainer,
+                  isFocused && styles.tabIconContainerActive,
+                ]}
+              >
+                {options.tabBarIcon &&
+                  options.tabBarIcon({
+                    color: isFocused
+                      ? THEME.colors.primary
+                      : COLORS.secondary[400],
+                    focused: isFocused,
+                  })}
+              </View>
+              <Text
+                style={[styles.tabLabel, isFocused && styles.tabLabelActive]}
+              >
+                {options.title}
+              </Text>
+            </Pressable>
           );
         })}
       </View>
@@ -176,15 +136,20 @@ const styles = StyleSheet.create({
     width: "92%",
     borderWidth: 1,
     borderColor: THEME.colors.border,
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
   },
   tabItemWrapper: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  tabItemPressed: {
+  tabPressed: {
     opacity: 0.7,
+    transform: [{ scale: 0.96 }],
   },
   tabIconContainer: {
     width: 44,
@@ -193,7 +158,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 4,
-    backgroundColor: "transparent",
+    overflow: "hidden",
   },
   tabIconContainerActive: {
     backgroundColor: COLORS.primary[50],

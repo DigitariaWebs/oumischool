@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,9 @@ import {
   Modal,
   RefreshControl,
   Linking,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -22,9 +25,7 @@ import {
   Download,
   Eye,
   Trash2,
-  Edit3,
   MoreVertical,
-  ChevronDown,
   Plus,
   X,
   Search,
@@ -32,6 +33,7 @@ import {
   Lock,
   Unlock,
   ArrowUpDown,
+  Upload,
 } from "lucide-react-native";
 
 import {
@@ -92,7 +94,6 @@ interface Resource {
   downloads: number;
   views: number;
   createdAt: string;
-  updatedAt: string;
 }
 
 export default function TutorResourcesScreen() {
@@ -101,16 +102,294 @@ export default function TutorResourcesScreen() {
   const { data: myStudentsData = [] } = useMyStudents();
   const updateMutation = useUpdateResource();
   const deleteMutation = useDeleteResource();
+  const uploadResourceMutation = useUploadResource();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [subjectFilter, setSubjectFilter] = useState<string>("ALL");
-  const [showEditModal, setShowEditModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [selectedResource, setSelectedResource] = useState<Resource | null>(
     null,
   );
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const [newResource, setNewResource] = useState({
+    title: "",
+    type: "PDF",
+    targetStudentId: "",
+    subject: "",
+    isPaid: false,
+    price: "",
+    uploadedFileName: "",
+    uploadedFileUri: "",
+    uploadedFileSize: "",
+    uploadedFileMimeType: "",
+  });
+
+  const students = useMemo(
+    () =>
+      (Array.isArray(myStudentsData) ? myStudentsData : []).map(
+        (item: any, index: number) => {
+          const childId =
+            asNonEmptyString(item?.child?.id) ??
+            asNonEmptyString(item?.child?.childId) ??
+            `student-${index}`;
+          return {
+            id: childId,
+            name: resolveStudentDisplayName(item, childId),
+            image:
+              item?.child?.avatar ??
+              "https://cdn-icons-png.flaticon.com/512/4140/4140048.png",
+          };
+        },
+      ),
+    [myStudentsData],
+  );
+
+  useEffect(() => {
+    if (!newResource.targetStudentId && students[0]?.id) {
+      setNewResource((prev) => ({ ...prev, targetStudentId: students[0].id }));
+    }
+  }, [newResource.targetStudentId, students]);
+
+  const asNonEmptyString = (value: unknown): string | null => {
+    if (typeof value !== "string") return null;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  };
+
+  const resolveStudentDisplayName = (item: any, studentId: string): string => {
+    const userFirstName = asNonEmptyString(item?.child?.user?.firstName);
+    const userLastName = asNonEmptyString(item?.child?.user?.lastName);
+    const composedUserName = [userFirstName ?? "", userLastName ?? ""]
+      .join(" ")
+      .trim();
+    const emailPrefix = asNonEmptyString(item?.child?.user?.email)?.split(
+      "@",
+    )[0];
+    const candidates = [
+      composedUserName,
+      item?.child?.fullName,
+      item?.child?.name,
+      item?.childName,
+      item?.studentName,
+      emailPrefix,
+      item?.name,
+    ].filter((value): value is string => Boolean(value));
+
+    return candidates[0] ?? "Élève";
+  };
+
+  const handlePickFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "image/*", "video/*"],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const sizeInKB = asset.size ? Math.round(asset.size / 1024) : null;
+        const sizeLabel = sizeInKB
+          ? sizeInKB >= 1024
+            ? `${(sizeInKB / 1024).toFixed(1)} MB`
+            : `${sizeInKB} KB`
+          : "—";
+
+        setNewResource((prev) => ({
+          ...prev,
+          uploadedFileName: asset.name,
+          uploadedFileUri: asset.uri,
+          uploadedFileSize: sizeLabel,
+          uploadedFileMimeType: asset.mimeType ?? "",
+        }));
+      }
+    } catch {
+      Alert.alert("Erreur", "Impossible d'ouvrir le sélecteur de fichiers.");
+    }
+  };
+
+  const handleAddResource = async () => {
+    if (!newResource.title) {
+      Alert.alert("Erreur", "Veuillez donner un titre à la ressource.");
+      return;
+    }
+    if (!newResource.uploadedFileUri) {
+      Alert.alert("Erreur", "Veuillez uploader un fichier.");
+      return;
+    }
+    if (!newResource.subject) {
+      Alert.alert("Erreur", "Veuillez sélectionner une matière.");
+      return;
+    }
+    if (newResource.isPaid && !newResource.price) {
+      Alert.alert("Erreur", "Veuillez indiquer le prix de la ressource.");
+      return;
+    }
+
+    const targetStudent = students.find(
+      (student) => student.id === newResource.targetStudentId,
+    );
+    const normalizedSubject =
+      SUBJECT_NORMALIZATION[newResource.subject] ?? newResource.subject;
+    const normalizedType =
+      newResource.type === "Vidéo"
+        ? "video"
+        : newResource.type === "Quiz"
+          ? "other"
+          : "document";
+
+    const formData = new FormData();
+    formData.append("title", newResource.title.trim());
+    formData.append("subject", normalizedSubject);
+    formData.append("type", normalizedType);
+    formData.append("status", "PUBLISHED");
+    formData.append(
+      "tags",
+      targetStudent?.name ? `student:${targetStudent.name}` : "student",
+    );
+    if (newResource.isPaid) {
+      formData.append("tags", "paid");
+      formData.append("tags", `price:${newResource.price}`);
+      formData.append("isPaid", "true");
+      formData.append(
+        "price",
+        String(Math.round(parseFloat(newResource.price) * 100)),
+      );
+    } else {
+      formData.append("tags", "free");
+      formData.append("isPaid", "false");
+    }
+
+    formData.append("file", {
+      uri: newResource.uploadedFileUri,
+      name: newResource.uploadedFileName || `resource-${Date.now()}.pdf`,
+      type: newResource.uploadedFileMimeType || "application/pdf",
+    } as any);
+
+    try {
+      setIsUploading(true);
+      await uploadResourceMutation.mutateAsync(formData);
+      Alert.alert(
+        "Ressource Partagée",
+        `"${newResource.title}" a été uploadée et publiée.`,
+        [
+          {
+            text: "Super !",
+            onPress: () => {
+              setShowShareModal(false);
+              setNewResource({
+                title: "",
+                type: "PDF",
+                targetStudentId: students[0]?.id ?? "",
+                subject: tutorSubjects[0] || "",
+                isPaid: false,
+                price: "",
+                uploadedFileName: "",
+                uploadedFileUri: "",
+                uploadedFileSize: "",
+                uploadedFileMimeType: "",
+              });
+              refetch();
+            },
+          },
+        ],
+      );
+    } catch (error) {
+      Alert.alert(
+        "Upload impossible",
+        error instanceof Error
+          ? error.message
+          : "Le serveur a rejeté le fichier.",
+      );
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!newResource.title) {
+      Alert.alert("Erreur", "Veuillez donner un titre à la ressource.");
+      return;
+    }
+    if (!newResource.uploadedFileUri) {
+      Alert.alert("Erreur", "Veuillez uploader un fichier.");
+      return;
+    }
+    if (!newResource.subject) {
+      Alert.alert("Erreur", "Veuillez sélectionner une matière.");
+      return;
+    }
+
+    const targetStudent = students.find(
+      (student) => student.id === newResource.targetStudentId,
+    );
+    const normalizedSubject =
+      SUBJECT_NORMALIZATION[newResource.subject] ?? newResource.subject;
+    const normalizedType =
+      newResource.type === "Vidéo"
+        ? "video"
+        : newResource.type === "Quiz"
+          ? "other"
+          : "document";
+
+    const formData = new FormData();
+    formData.append("title", newResource.title.trim());
+    formData.append("subject", normalizedSubject);
+    formData.append("type", normalizedType);
+    formData.append("status", "DRAFT");
+    formData.append(
+      "tags",
+      targetStudent?.name ? `student:${targetStudent.name}` : "student",
+    );
+    if (newResource.isPaid) {
+      formData.append("tags", "paid");
+      formData.append("tags", `price:${newResource.price}`);
+      formData.append("isPaid", "true");
+      formData.append(
+        "price",
+        String(Math.round(parseFloat(newResource.price) * 100)),
+      );
+    } else {
+      formData.append("tags", "free");
+      formData.append("isPaid", "false");
+    }
+
+    formData.append("file", {
+      uri: newResource.uploadedFileUri,
+      name: newResource.uploadedFileName || `resource-${Date.now()}.pdf`,
+      type: newResource.uploadedFileMimeType || "application/pdf",
+    } as any);
+
+    try {
+      setIsUploading(true);
+      await uploadResourceMutation.mutateAsync(formData);
+      Alert.alert(
+        "Brouillon enregistré",
+        `"${newResource.title}" a été enregistré en brouillon.`,
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              setShowShareModal(false);
+              refetch();
+            },
+          },
+        ],
+      );
+    } catch (error) {
+      Alert.alert(
+        "Erreur",
+        error instanceof Error
+          ? error.message
+          : "Impossible d'enregistrer le brouillon.",
+      );
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const tutorSubjects = useMemo(
     () => tutorProfile?.subjects ?? [],
@@ -118,11 +397,9 @@ export default function TutorResourcesScreen() {
   );
 
   const myResources = useMemo(() => {
-    return apiResources
-      .filter(
-        (r: Resource) => r.status !== "ARCHIVED" || statusFilter === "ARCHIVED",
-      )
-      .map((r: Resource) => ({
+    return (apiResources as Resource[])
+      .filter((r) => r.status !== "ARCHIVED" || statusFilter === "ARCHIVED")
+      .map((r) => ({
         ...r,
         studentName: r.tags
           .find((t) => t.startsWith("student:"))
@@ -208,7 +485,7 @@ export default function TutorResourcesScreen() {
     try {
       await updateMutation.mutateAsync({
         id: selectedResource.id,
-        status: newStatus,
+        body: { status: newStatus as "DRAFT" | "PUBLISHED" | "ARCHIVED" },
       });
       setShowStatusModal(false);
       refetch();
@@ -232,7 +509,9 @@ export default function TutorResourcesScreen() {
   const renderResourceCard = (resource: Resource) => {
     const TypeIcon = TYPE_ICONS[resource.type] || FileText;
     const typeStyle = TYPE_COLORS[resource.type] || TYPE_COLORS.other;
-    const statusStyle = STATUS_COLORS[resource.status] || STATUS_COLORS.DRAFT;
+    const statusStyle =
+      STATUS_COLORS[resource.status as keyof typeof STATUS_COLORS] ||
+      STATUS_COLORS.DRAFT;
 
     return (
       <View key={resource.id} style={styles.resourceCard}>
@@ -370,6 +649,12 @@ export default function TutorResourcesScreen() {
             <Text style={styles.headerLabel}>MES RESSOURCES</Text>
             <Text style={styles.headerTitle}>Gestionnaire</Text>
           </View>
+          <TouchableOpacity
+            style={styles.shareButton}
+            onPress={() => setShowShareModal(true)}
+          >
+            <Plus size={20} color="white" />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.statsGrid}>
@@ -569,14 +854,16 @@ export default function TutorResourcesScreen() {
       <Modal visible={showStatusModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.statusModal}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Changer le statut</Text>
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitleText}>Changer le statut</Text>
               <TouchableOpacity onPress={() => setShowStatusModal(false)}>
                 <X size={24} color="#1E293B" />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalSubtitle}>{selectedResource?.title}</Text>
+            <Text style={styles.modalSubtitleText}>
+              {selectedResource?.title}
+            </Text>
 
             <View style={styles.statusOptions}>
               <TouchableOpacity
@@ -668,6 +955,293 @@ export default function TutorResourcesScreen() {
             </View>
           </View>
         </View>
+      </Modal>
+
+      <Modal visible={showShareModal} animationType="slide" transparent={true}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.shareModalContent}>
+              <View style={styles.modalHeaderRow}>
+                <Text style={styles.modalTitleText}>
+                  Partager une ressource
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setNewResource({
+                      title: "",
+                      type: "PDF",
+                      targetStudentId: students[0]?.id ?? "",
+                      subject: tutorSubjects[0] || "",
+                      isPaid: false,
+                      price: "",
+                      uploadedFileName: "",
+                      uploadedFileUri: "",
+                      uploadedFileSize: "",
+                      uploadedFileMimeType: "",
+                    });
+                    setShowShareModal(false);
+                  }}
+                >
+                  <X size={24} color="#1E293B" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                style={{ flex: 1 }}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ paddingBottom: 30 }}
+              >
+                <Text style={styles.inputLabelField}>Titre de la leçon</Text>
+                <TextInput
+                  style={styles.inputField}
+                  placeholder="Ex: Le cycle de l'eau"
+                  value={newResource.title}
+                  onChangeText={(t) =>
+                    setNewResource((prev) => ({ ...prev, title: t }))
+                  }
+                  placeholderTextColor="#94A3B8"
+                />
+
+                <Text style={styles.inputLabelField}>Fichier à partager</Text>
+                <TouchableOpacity
+                  style={styles.uploadZoneField}
+                  onPress={handlePickFile}
+                >
+                  {newResource.uploadedFileName ? (
+                    <View style={styles.uploadedFileRow}>
+                      <FileText size={18} color="#6366F1" />
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={styles.uploadedFileNameText}
+                          numberOfLines={1}
+                        >
+                          {newResource.uploadedFileName}
+                        </Text>
+                        {newResource.uploadedFileSize ? (
+                          <Text style={styles.uploadedFileSizeText}>
+                            {newResource.uploadedFileSize}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <TouchableOpacity
+                        onPress={() =>
+                          setNewResource((prev) => ({
+                            ...prev,
+                            uploadedFileName: "",
+                            uploadedFileUri: "",
+                            uploadedFileSize: "",
+                            uploadedFileMimeType: "",
+                          }))
+                        }
+                      >
+                        <X size={16} color="#EF4444" />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <>
+                      <Upload size={22} color="#6366F1" />
+                      <Text style={styles.uploadLabelText}>
+                        Appuyez pour uploader
+                      </Text>
+                      <Text style={styles.uploadSubText}>
+                        PDF, image, vidéo…
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <Text style={styles.inputLabelField}>Matière</Text>
+                <View style={styles.chipsRow}>
+                  {tutorSubjects.length === 0 ? (
+                    <Text style={{ color: "#EF4444", fontSize: 12 }}>
+                      Aucune matière assignée
+                    </Text>
+                  ) : (
+                    tutorSubjects.map((subject) => (
+                      <TouchableOpacity
+                        key={subject}
+                        style={[
+                          styles.chip,
+                          newResource.subject === subject && styles.chipActive,
+                        ]}
+                        onPress={() =>
+                          setNewResource((prev) => ({
+                            ...prev,
+                            subject,
+                          }))
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.chipText,
+                            newResource.subject === subject &&
+                              styles.chipTextActive,
+                          ]}
+                        >
+                          {SUBJECT_NORMALIZATION[subject] ?? subject}
+                        </Text>
+                        {newResource.subject === subject && (
+                          <Check size={14} color="white" />
+                        )}
+                      </TouchableOpacity>
+                    ))
+                  )}
+                </View>
+
+                <Text style={styles.inputLabelField}>Pour quel élève ?</Text>
+                <View style={styles.chipsRow}>
+                  {students.map((s) => (
+                    <TouchableOpacity
+                      key={s.id}
+                      style={[
+                        styles.chip,
+                        newResource.targetStudentId === s.id &&
+                          styles.chipActive,
+                      ]}
+                      onPress={() =>
+                        setNewResource((prev) => ({
+                          ...prev,
+                          targetStudentId: s.id,
+                        }))
+                      }
+                    >
+                      <Image
+                        source={{ uri: s.image }}
+                        style={styles.miniAvatarImg}
+                      />
+                      <Text
+                        style={[
+                          styles.chipText,
+                          newResource.targetStudentId === s.id &&
+                            styles.chipTextActive,
+                        ]}
+                      >
+                        {s.name}
+                      </Text>
+                      {newResource.targetStudentId === s.id && (
+                        <Check size={14} color="white" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={styles.inputLabelField}>Format</Text>
+                <View style={styles.chipsRow}>
+                  {["PDF", "Quiz", "Vidéo"].map((t) => (
+                    <TouchableOpacity
+                      key={t}
+                      style={[
+                        styles.formatChip,
+                        newResource.type === t && styles.formatChipActive,
+                      ]}
+                      onPress={() =>
+                        setNewResource((prev) => ({ ...prev, type: t }))
+                      }
+                    >
+                      <Text
+                        style={[
+                          styles.formatChipText,
+                          newResource.type === t && styles.formatChipTextActive,
+                        ]}
+                      >
+                        {t}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={styles.inputLabelField}>Accès</Text>
+                <View style={styles.chipsRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.accessChip,
+                      !newResource.isPaid && styles.accessChipActiveGreen,
+                    ]}
+                    onPress={() =>
+                      setNewResource((prev) => ({
+                        ...prev,
+                        isPaid: false,
+                        price: "",
+                      }))
+                    }
+                  >
+                    <Unlock
+                      size={14}
+                      color={!newResource.isPaid ? "white" : "#64748B"}
+                    />
+                    <Text
+                      style={[
+                        styles.accessChipText,
+                        !newResource.isPaid && styles.accessChipTextActive,
+                      ]}
+                    >
+                      Gratuit
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.accessChip,
+                      newResource.isPaid && styles.accessChipActivePurple,
+                    ]}
+                    onPress={() =>
+                      setNewResource((prev) => ({ ...prev, isPaid: true }))
+                    }
+                  >
+                    <Lock
+                      size={14}
+                      color={newResource.isPaid ? "white" : "#64748B"}
+                    />
+                    <Text
+                      style={[
+                        styles.accessChipText,
+                        newResource.isPaid && styles.accessChipTextActive,
+                      ]}
+                    >
+                      Payant
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {newResource.isPaid && (
+                  <View style={styles.priceRowField}>
+                    <Text style={styles.priceSymbolText}>€</Text>
+                    <TextInput
+                      style={styles.priceInputField}
+                      placeholder="Prix (ex: 4.99)"
+                      keyboardType="decimal-pad"
+                      value={newResource.price}
+                      onChangeText={(t) =>
+                        setNewResource((prev) => ({ ...prev, price: t }))
+                      }
+                      placeholderTextColor="#94A3B8"
+                    />
+                  </View>
+                )}
+
+                <View style={styles.buttonsRow}>
+                  <TouchableOpacity
+                    style={[styles.submitBtnField, styles.draftBtnField]}
+                    onPress={handleSaveDraft}
+                    disabled={isUploading}
+                  >
+                    <Text style={styles.draftBtnTextField}>Sauvegarder</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.submitBtnField, styles.publishBtnField]}
+                    onPress={handleAddResource}
+                    disabled={isUploading}
+                  >
+                    <Text style={styles.submitBtnTextField}>Publier</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -1013,4 +1587,160 @@ const styles = StyleSheet.create({
   statusOptionTextDanger: {
     color: "#991B1B",
   },
+  shareButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#6366F1",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  shareModalContent: {
+    backgroundColor: "white",
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    padding: 24,
+    flex: 1,
+    marginTop: 60,
+  },
+  modalHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitleText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1E293B",
+  },
+  modalSubtitleText: {
+    fontSize: 14,
+    color: "#64748B",
+    marginBottom: 20,
+  },
+  inputLabelField: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#64748B",
+    marginBottom: 10,
+    marginTop: 12,
+  },
+  inputField: {
+    backgroundColor: "#F8FAFC",
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    fontSize: 15,
+    color: "#1E293B",
+  },
+  uploadZoneField: {
+    borderWidth: 2,
+    borderColor: "#E0E7FF",
+    borderStyle: "dashed",
+    borderRadius: 14,
+    padding: 20,
+    alignItems: "center",
+    backgroundColor: "#F5F7FF",
+  },
+  uploadedFileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    width: "100%",
+  },
+  uploadedFileNameText: { fontSize: 13, color: "#1E293B", fontWeight: "600" },
+  uploadedFileSizeText: { fontSize: 11, color: "#94A3B8", marginTop: 2 },
+  uploadLabelText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#6366F1",
+    marginTop: 6,
+  },
+  uploadSubText: { fontSize: 11, color: "#94A3B8", marginTop: 2 },
+  chipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 8,
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    gap: 8,
+  },
+  chipActive: { backgroundColor: "#6366F1", borderColor: "#6366F1" },
+  chipText: { fontSize: 13, fontWeight: "600", color: "#1E293B" },
+  chipTextActive: { color: "white" },
+  miniAvatarImg: { width: 24, height: 24, borderRadius: 12 },
+  formatChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  formatChipActive: { backgroundColor: "#1E293B", borderColor: "#1E293B" },
+  formatChipText: { color: "#64748B", fontWeight: "600" },
+  formatChipTextActive: { color: "white" },
+  accessChip: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  accessChipActiveGreen: { backgroundColor: "#10B981", borderColor: "#10B981" },
+  accessChipActivePurple: {
+    backgroundColor: "#6366F1",
+    borderColor: "#6366F1",
+  },
+  accessChipText: { fontSize: 14, fontWeight: "600", color: "#64748B" },
+  accessChipTextActive: { color: "white" },
+  priceRowField: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
+    paddingHorizontal: 14,
+    marginTop: 12,
+  },
+  priceSymbolText: { fontSize: 18, color: "#64748B", marginRight: 8 },
+  priceInputField: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 14,
+    color: "#1E293B",
+  },
+  buttonsRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 24,
+  },
+  submitBtnField: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 15,
+    alignItems: "center",
+    flex: 1,
+  },
+  draftBtnField: {
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  draftBtnTextField: { color: "#64748B", fontSize: 15, fontWeight: "600" },
+  publishBtnField: { backgroundColor: "#6366F1" },
+  submitBtnTextField: { color: "white", fontSize: 15, fontWeight: "bold" },
 });

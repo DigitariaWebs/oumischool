@@ -46,6 +46,8 @@ async function request<T>(
         : undefined,
   });
 
+  if (res.status === 204) return undefined as T;
+
   const json = await res.json();
   if (!res.ok || !json.success) {
     throw new Error(json?.error?.message ?? `Request failed: ${res.status}`);

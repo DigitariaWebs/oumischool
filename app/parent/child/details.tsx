@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,6 @@ import {
   TextInput,
   Modal,
   Platform,
-  Image,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -34,17 +33,22 @@ import {
   User,
   Cake,
   GraduationCap,
+  Trash2,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
 } from "lucide-react-native";
 
 import { FONTS } from "@/config/fonts";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { updateChild } from "@/store/slices/childrenSlice";
 import AssignLessonModal from "@/components/AssignLessonModal";
-import { useChild, useUpdateChild } from "@/hooks/api/parent";
+import { useChild, useUpdateChild, useDeleteChild } from "@/hooks/api/parent";
 import { useSessions } from "@/hooks/api/sessions";
 import { useActivities } from "@/hooks/api/performance";
 import type { PerformanceRecord } from "@/hooks/api/performance";
 import { resolveSubjectDisplayName } from "@/utils/sessionDisplay";
+import { THEME } from "@/config/theme";
 
 interface LessonDetails {
   progressHistory: { date: string; progress: number }[];
@@ -78,7 +82,7 @@ interface Activity {
   color: string;
 }
 
-const AVATAR_COLORS = [
+const CHILD_COLORS = [
   "#3B82F6",
   "#EC4899",
   "#10B981",
@@ -88,6 +92,14 @@ const AVATAR_COLORS = [
   "#14B8A6",
   "#F97316",
 ];
+
+function colorFromId(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return CHILD_COLORS[Math.abs(hash) % CHILD_COLORS.length];
+}
 
 const GRADES = [
   "Maternelle",
@@ -103,12 +115,6 @@ const GRADES = [
 ];
 
 // Images pour les enfants
-const childImages = [
-  "https://cdn-icons-png.flaticon.com/512/4140/4140048.png",
-  "https://cdn-icons-png.flaticon.com/512/4140/4140049.png",
-  "https://cdn-icons-png.flaticon.com/512/4140/4140050.png",
-  "https://cdn-icons-png.flaticon.com/512/4140/4140051.png",
-];
 
 function formatRelativeLabel(input: string): string {
   const date = new Date(input);
@@ -197,6 +203,12 @@ const calculateAge = (dateOfBirth: string): number => {
   return age;
 };
 
+type ModalConfig = {
+  type: "confirm-delete" | "error" | "success";
+  title: string;
+  message: string;
+};
+
 export default function ChildDetailsScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -204,6 +216,7 @@ export default function ChildDetailsScreen() {
   const childId = params.id as string;
   const { data: apiChild, isLoading: isChildLoading } = useChild(childId);
   const updateChildMutation = useUpdateChild();
+  const deleteChildMutation = useDeleteChild();
   const { data: sessionsData = [] } = useSessions();
 
   const localChild = useAppSelector((state) =>
@@ -218,11 +231,11 @@ export default function ChildDetailsScreen() {
       dateOfBirth:
         apiChild.dateOfBirth ?? new Date().toISOString().split("T")[0],
       grade: apiChild.grade,
-      color: "#6366F1",
+      color: colorFromId(apiChild.id),
     };
   }, [apiChild, localChild]);
 
-  const childColor = child?.color || "#6366F1";
+  const childColor = child?.color || colorFromId(childId);
   const liveLessons = useMemo((): Lesson[] => {
     const rows = Array.isArray(sessionsData) ? sessionsData : [];
     return rows
@@ -291,9 +304,7 @@ export default function ChildDetailsScreen() {
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [editedGrade, setEditedGrade] = useState(child?.grade || "");
-  const [editedColor, setEditedColor] = useState(
-    child?.color || AVATAR_COLORS[0],
-  );
+  const [editedColor, setEditedColor] = useState(child?.color);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [expandedLesson, setExpandedLesson] = useState<string | null>(null);
   const [assignModalVisible, setAssignModalVisible] = useState(false);
@@ -348,6 +359,50 @@ export default function ChildDetailsScreen() {
   );
   const totalSessions = lessons.length;
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalConfig, setModalConfig] = useState<ModalConfig>({
+    type: "confirm-delete",
+    title: "",
+    message: "",
+  });
+
+  const showModal = useCallback((config: ModalConfig) => {
+    setModalConfig(config);
+    setModalVisible(true);
+  }, []);
+
+  const handleDeletePress = useCallback(() => {
+    showModal({
+      type: "confirm-delete",
+      title: "Supprimer ce profil ?",
+      message: `Le profil de ${child?.name} sera définitivement supprimé. Cette action est irréversible.`,
+    });
+  }, [child?.name, showModal]);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    setModalVisible(false);
+    try {
+      setIsDeleting(true);
+      await deleteChildMutation.mutateAsync(childId);
+      router.back();
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Impossible de supprimer ce profil.";
+      showModal({
+        type: "error",
+        title: "Suppression impossible",
+        message,
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [childId, deleteChildMutation, router, showModal]);
+
   if (!child) {
     return (
       <SafeAreaView style={styles.container}>
@@ -367,19 +422,18 @@ export default function ChildDetailsScreen() {
   }
 
   const handleSave = async () => {
-    if (editedName.trim() && editedDateOfBirth && editedGrade) {
-      try {
-        await updateChildMutation.mutateAsync({
-          id: childId,
-          body: {
-            name: editedName.trim(),
-            dateOfBirth: editedDateOfBirth,
-            grade: editedGrade,
-          },
-        });
-      } catch {
-        // API failed — still update local Redux cache so the UI reflects changes
-      }
+    if (!editedName.trim() || !editedDateOfBirth || !editedGrade) return;
+    try {
+      setIsSaving(true);
+      setSaveError(null);
+      await updateChildMutation.mutateAsync({
+        id: childId,
+        body: {
+          name: editedName.trim(),
+          dateOfBirth: editedDateOfBirth,
+          grade: editedGrade,
+        },
+      });
       dispatch(
         updateChild({
           id: childId,
@@ -392,6 +446,12 @@ export default function ChildDetailsScreen() {
         }),
       );
       setIsEditing(false);
+    } catch (err) {
+      setSaveError(
+        err instanceof Error ? err.message : "Impossible de sauvegarder.",
+      );
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -400,7 +460,7 @@ export default function ChildDetailsScreen() {
       setShowDatePicker(false);
     }
     if (selectedDate) {
-      setEditedDateOfBirth(selectedDate.toISOString().split("T")[0]);
+      setEditedDateOfBirth(selectedDate.toISOString());
     }
   };
 
@@ -409,6 +469,7 @@ export default function ChildDetailsScreen() {
     setEditedDateOfBirth(child.dateOfBirth);
     setEditedGrade(child.grade);
     setEditedColor(child.color);
+    setSaveError(null);
     setIsEditing(false);
   };
 
@@ -481,8 +542,8 @@ export default function ChildDetailsScreen() {
           <Star
             key={star}
             size={16}
-            color={star <= level ? "#F59E0B" : "#E2E8F0"}
-            fill={star <= level ? "#F59E0B" : "transparent"}
+            color={star <= level ? childColor : "#E2E8F0"}
+            fill={star <= level ? childColor : "transparent"}
           />
         ))}
       </View>
@@ -508,20 +569,44 @@ export default function ChildDetailsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Bouton retour */}
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <ChevronLeft size={22} color="#1E293B" />
-        </TouchableOpacity>
+        {/* Bouton retour + supprimer */}
+        <View style={styles.topNav}>
+          <TouchableOpacity
+            style={[
+              styles.backButton,
+              {
+                borderColor: childColor + "40",
+                backgroundColor: childColor + "10",
+              },
+            ]}
+            onPress={() => router.back()}
+          >
+            <ChevronLeft size={22} color={childColor} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={handleDeletePress}
+            disabled={isDeleting}
+          >
+            <Trash2 size={18} color={THEME.colors.error} />
+          </TouchableOpacity>
+        </View>
 
         {/* Carte profil */}
-        <View style={styles.profileCard}>
+        <View style={[styles.profileCard, { borderColor: childColor + "40" }]}>
           {!isEditing ? (
             <TouchableOpacity
-              style={styles.editButton}
-              onPress={() => setIsEditing(true)}
+              style={[
+                styles.editButton,
+                {
+                  borderColor: childColor + "40",
+                  backgroundColor: childColor + "10",
+                },
+              ]}
+              onPress={() => {
+                setSaveError(null);
+                setIsEditing(true);
+              }}
             >
               <Edit size={18} color={childColor} />
             </TouchableOpacity>
@@ -530,12 +615,23 @@ export default function ChildDetailsScreen() {
               <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={handleCancel}
+                disabled={isSaving}
               >
                 <X size={18} color="#64748B" />
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.saveButton, { backgroundColor: childColor }]}
+                style={[
+                  styles.saveButton,
+                  { backgroundColor: childColor },
+                  isSaving && { opacity: 0.6 },
+                ]}
                 onPress={handleSave}
+                disabled={
+                  isSaving ||
+                  !editedName.trim() ||
+                  !editedDateOfBirth ||
+                  !editedGrade
+                }
               >
                 <Save size={18} color="white" />
               </TouchableOpacity>
@@ -543,7 +639,13 @@ export default function ChildDetailsScreen() {
           )}
 
           <View style={styles.profileHeader}>
-            <Image source={{ uri: childImages[0] }} style={styles.avatar} />
+            <View
+              style={[styles.avatarCircle, { backgroundColor: childColor }]}
+            >
+              <Text style={styles.avatarInitial}>
+                {child.name.charAt(0).toUpperCase()}
+              </Text>
+            </View>
             {!isEditing ? (
               <View style={styles.profileInfo}>
                 <Text style={styles.profileName}>{child.name}</Text>
@@ -560,7 +662,7 @@ export default function ChildDetailsScreen() {
                     <Text style={styles.inputLabelText}>Nom</Text>
                   </View>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { borderColor: childColor + "50" }]}
                     value={editedName}
                     onChangeText={setEditedName}
                     placeholder="Nom de l'enfant"
@@ -575,7 +677,10 @@ export default function ChildDetailsScreen() {
                     <Text style={styles.inputLabelText}>Date de naissance</Text>
                   </View>
                   <TouchableOpacity
-                    style={styles.dateButton}
+                    style={[
+                      styles.dateButton,
+                      { borderColor: childColor + "50" },
+                    ]}
                     onPress={() => setShowDatePicker(true)}
                   >
                     <Text style={styles.dateButtonText}>
@@ -624,6 +729,12 @@ export default function ChildDetailsScreen() {
                 </View>
               </View>
             )}
+
+            {isEditing && saveError && (
+              <View style={styles.saveErrorBox}>
+                <Text style={styles.saveErrorText}>{saveError}</Text>
+              </View>
+            )}
           </View>
 
           {/* Stats */}
@@ -657,14 +768,18 @@ export default function ChildDetailsScreen() {
             </View>
           </View>
 
-          <View style={styles.streakCard}>
+          <View style={[styles.streakCard, { borderColor: childColor + "40" }]}>
             <View style={styles.streakRow}>
               <View style={styles.streakMain}>
-                <Text style={styles.streakValue}>{currentStreak}</Text>
+                <Text style={[styles.streakValue, { color: childColor }]}>
+                  {currentStreak}
+                </Text>
                 <Text style={styles.streakLabel}>jours</Text>
               </View>
               <View style={styles.streakRecord}>
-                <Text style={styles.streakRecordValue}>{streakRecord}</Text>
+                <Text style={[styles.streakRecordValue, { color: childColor }]}>
+                  {streakRecord}
+                </Text>
                 <Text style={styles.streakRecordLabel}>record</Text>
               </View>
             </View>
@@ -683,7 +798,10 @@ export default function ChildDetailsScreen() {
                         backgroundColor: childColor,
                         opacity: getHeatmapOpacity(day.timeSpent),
                       },
-                      day.isToday && styles.heatmapBlockToday,
+                      day.isToday && [
+                        styles.heatmapBlockToday,
+                        { borderColor: childColor },
+                      ],
                     ]}
                   />
                   <Text style={styles.heatmapLabel}>{day.dayName}</Text>
@@ -768,7 +886,10 @@ export default function ChildDetailsScreen() {
 
         {/* Activité récente */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Activité récente</Text>
+          <View style={styles.sectionTitleContainer}>
+            <Zap size={18} color={childColor} />
+            <Text style={styles.sectionTitle}>Activité récente</Text>
+          </View>
           {activities.map((activity, index) => (
             <View key={activity.id} style={styles.activityItem}>
               <View
@@ -860,7 +981,7 @@ export default function ChildDetailsScreen() {
                         styles.progressFill,
                         {
                           width: `${lesson.progress}%`,
-                          backgroundColor: getStatusColor(lesson.status),
+                          backgroundColor: childColor,
                         },
                       ]}
                     />
@@ -879,20 +1000,41 @@ export default function ChildDetailsScreen() {
                   <View style={styles.expandedSection}>
                     <Text style={styles.expandedSectionTitle}>Performance</Text>
                     <View style={styles.metricsRow}>
-                      <View style={styles.metric}>
-                        <Text style={styles.metricValue}>
+                      <View
+                        style={[
+                          styles.metric,
+                          { backgroundColor: childColor + "10" },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.metricValue, { color: childColor }]}
+                        >
                           {lesson.details.performance.accuracy}%
                         </Text>
                         <Text style={styles.metricLabel}>Précision</Text>
                       </View>
-                      <View style={styles.metric}>
-                        <Text style={styles.metricValue}>
+                      <View
+                        style={[
+                          styles.metric,
+                          { backgroundColor: childColor + "10" },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.metricValue, { color: childColor }]}
+                        >
                           {lesson.details.performance.timeSpent}m
                         </Text>
                         <Text style={styles.metricLabel}>Temps</Text>
                       </View>
-                      <View style={styles.metric}>
-                        <Text style={styles.metricValue}>
+                      <View
+                        style={[
+                          styles.metric,
+                          { backgroundColor: childColor + "10" },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.metricValue, { color: childColor }]}
+                        >
                           {lesson.details.performance.attempts}
                         </Text>
                         <Text style={styles.metricLabel}>Tentatives</Text>
@@ -932,18 +1074,45 @@ export default function ChildDetailsScreen() {
 
         {/* Succès */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Succès récents</Text>
+          <View style={styles.sectionTitleContainer}>
+            <Trophy size={18} color={childColor} />
+            <Text style={styles.sectionTitle}>Succès récents</Text>
+          </View>
           <View style={styles.achievementsRow}>
-            <View style={styles.achievement}>
-              <Award size={24} color="#F59E0B" />
+            <View
+              style={[
+                styles.achievement,
+                {
+                  borderColor: childColor + "30",
+                  backgroundColor: childColor + "08",
+                },
+              ]}
+            >
+              <Award size={24} color={childColor} />
               <Text style={styles.achievementText}>Maître des Maths</Text>
             </View>
-            <View style={styles.achievement}>
-              <Flame size={24} color="#EF4444" />
+            <View
+              style={[
+                styles.achievement,
+                {
+                  borderColor: childColor + "30",
+                  backgroundColor: childColor + "08",
+                },
+              ]}
+            >
+              <Flame size={24} color={childColor} />
               <Text style={styles.achievementText}>7 jours</Text>
             </View>
-            <View style={styles.achievement}>
-              <BookOpen size={24} color="#3B82F6" />
+            <View
+              style={[
+                styles.achievement,
+                {
+                  borderColor: childColor + "30",
+                  backgroundColor: childColor + "08",
+                },
+              ]}
+            >
+              <BookOpen size={24} color={childColor} />
               <Text style={styles.achievementText}>10 leçons</Text>
             </View>
           </View>
@@ -1002,6 +1171,75 @@ export default function ChildDetailsScreen() {
         childStrengths={childStrengths}
         childGrade={child.grade}
       />
+
+      {/* Action modal */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.actionModalOverlay}>
+          <View style={styles.actionModalContent}>
+            {/* Icon */}
+            <View
+              style={[
+                styles.actionModalIcon,
+                modalConfig.type === "confirm-delete" &&
+                  styles.actionModalIconWarn,
+                modalConfig.type === "error" && styles.actionModalIconError,
+                modalConfig.type === "success" && styles.actionModalIconSuccess,
+              ]}
+            >
+              {modalConfig.type === "confirm-delete" && (
+                <AlertTriangle size={28} color="#D97706" />
+              )}
+              {modalConfig.type === "error" && (
+                <XCircle size={28} color={THEME.colors.error} />
+              )}
+              {modalConfig.type === "success" && (
+                <CheckCircle size={28} color={THEME.colors.success} />
+              )}
+            </View>
+
+            <Text style={styles.actionModalTitle}>{modalConfig.title}</Text>
+            <Text style={styles.actionModalMessage}>{modalConfig.message}</Text>
+
+            <View style={styles.actionModalButtons}>
+              {modalConfig.type === "confirm-delete" && (
+                <>
+                  <TouchableOpacity
+                    style={styles.actionModalBtnSecondary}
+                    onPress={() => setModalVisible(false)}
+                  >
+                    <Text style={styles.actionModalBtnSecondaryText}>
+                      Annuler
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.actionModalBtnDanger}
+                    onPress={handleDeleteConfirm}
+                  >
+                    <Trash2 size={15} color="white" />
+                    <Text style={styles.actionModalBtnDangerText}>
+                      Supprimer
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+              {(modalConfig.type === "error" ||
+                modalConfig.type === "success") && (
+                <TouchableOpacity
+                  style={styles.actionModalBtnSecondary}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.actionModalBtnSecondaryText}>Fermer</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1013,7 +1251,23 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 100,
+  },
+  topNav: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  deleteButton: {
+    width: 40,
+    height: 40,
+    borderRadius: THEME.radius.md,
+    backgroundColor: THEME.colors.error + "12",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: THEME.colors.error + "30",
   },
 
   // Bouton retour
@@ -1074,19 +1328,40 @@ const styles = StyleSheet.create({
   saveButton: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  saveErrorBox: {
+    backgroundColor: "#FEF2F2",
+    borderRadius: THEME.radius.md,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+  },
+  saveErrorText: {
+    fontSize: 13,
+    color: THEME.colors.error,
   },
   profileHeader: {
     alignItems: "center",
     marginBottom: 16,
   },
-  avatar: {
+  avatarCircle: {
     width: 80,
     height: 80,
-    borderRadius: 24,
+    borderRadius: 40,
     marginBottom: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarInitial: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 34,
+    color: "white",
+    fontWeight: "600",
   },
   profileInfo: {
     alignItems: "center",
@@ -1593,7 +1868,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // Modal
+  // Lesson assign modal (bottom sheet)
   modalOverlay: {
     flex: 1,
     justifyContent: "flex-end",
@@ -1621,6 +1896,90 @@ const styles = StyleSheet.create({
   modalButton: {
     fontSize: 15,
     fontWeight: "600",
+  },
+
+  // Action modal (centered)
+  actionModalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(15, 23, 42, 0.55)",
+    paddingHorizontal: 24,
+  },
+  actionModalContent: {
+    backgroundColor: THEME.colors.white,
+    borderRadius: THEME.radius.xxl,
+    padding: 28,
+    width: "100%",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 10,
+  },
+  actionModalIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+    backgroundColor: THEME.colors.secondaryLight,
+  },
+  actionModalIconWarn: {
+    backgroundColor: "#FEF3C7",
+  },
+  actionModalIconError: {
+    backgroundColor: "#FEF2F2",
+  },
+  actionModalIconSuccess: {
+    backgroundColor: "#F0FDF4",
+  },
+  actionModalTitle: {
+    fontFamily: FONTS.fredoka,
+    fontSize: 20,
+    color: THEME.colors.text,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  actionModalMessage: {
+    fontSize: 14,
+    color: THEME.colors.subtext,
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  actionModalButtons: {
+    width: "100%",
+    gap: 10,
+  },
+  actionModalBtnSecondary: {
+    paddingVertical: 13,
+    borderRadius: THEME.radius.full,
+    backgroundColor: THEME.colors.secondaryLight,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: THEME.colors.border,
+  },
+  actionModalBtnSecondaryText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: THEME.colors.subtext,
+  },
+  actionModalBtnDanger: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 13,
+    borderRadius: THEME.radius.full,
+    backgroundColor: THEME.colors.error,
+  },
+  actionModalBtnDangerText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "white",
   },
 
   // Error

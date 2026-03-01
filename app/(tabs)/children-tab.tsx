@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   Image,
   ActivityIndicator,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Plus,
@@ -27,7 +27,6 @@ import {
   useCreateChild,
   useChildProgress,
 } from "@/hooks/api/parent";
-import { AnimatedProgress } from "@/components/ui/animated-progress";
 import { HapticPressable } from "@/components/ui/haptic-pressable";
 
 interface Child {
@@ -61,6 +60,14 @@ const CHILD_COLORS = [
   "#F97316",
 ];
 
+function colorFromId(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return CHILD_COLORS[Math.abs(hash) % CHILD_COLORS.length];
+}
+
 const calculateAge = (dateOfBirth: string): number => {
   const today = new Date();
   const birthDate = new Date(dateOfBirth);
@@ -81,6 +88,13 @@ export default function ChildrenTab() {
   const { data: childrenFromApi = [], isLoading, refetch } = useChildren();
   const createChild = useCreateChild();
   const [addModalVisible, setAddModalVisible] = useState(false);
+  const { openModal } = useLocalSearchParams<{ openModal?: string }>();
+
+  useEffect(() => {
+    if (openModal === "true") {
+      setAddModalVisible(true);
+    }
+  }, [openModal]);
 
   const children: Child[] = childrenFromApi.map((child, index) => ({
     id: child.id,
@@ -91,7 +105,7 @@ export default function ChildrenTab() {
     lessonsCompleted: 0,
     totalLessons: 20,
     avatar: childImages[index % childImages.length],
-    color: CHILD_COLORS[index % CHILD_COLORS.length],
+    color: colorFromId(child.id),
   }));
 
   const totalChildren = children.length;
@@ -193,14 +207,6 @@ export default function ChildrenTab() {
                 }
               />
             ))}
-
-            <TouchableOpacity
-              style={styles.addChildButton}
-              onPress={() => setAddModalVisible(true)}
-            >
-              <Plus size={18} color={THEME.colors.subtext} />
-              <Text style={styles.addChildButtonText}>Ajouter un enfant</Text>
-            </TouchableOpacity>
           </>
         )}
       </ScrollView>
@@ -218,7 +224,6 @@ function ChildCard({ child, onPress }: { child: Child; onPress: () => void }) {
   const { data: progressData, isLoading: progressLoading } = useChildProgress(
     child.id,
   );
-  const progress = progressData?.progress ?? child.progress;
   const lessonsCompleted =
     progressData?.lessonsCompleted ?? child.lessonsCompleted;
   const totalLessons = progressData?.totalLessons ?? child.totalLessons;
@@ -227,21 +232,40 @@ function ChildCard({ child, onPress }: { child: Child; onPress: () => void }) {
 
   return (
     <HapticPressable
-      style={styles.childCard}
+      style={[styles.childCard, {}]}
       onPress={onPress}
       hapticType="light"
       scale={0.97}
     >
       <View style={styles.cardHeader}>
-        <Image source={{ uri: child.avatar }} style={styles.avatar} />
+        <View
+          style={[
+            styles.avatarWrapper,
+            {
+              backgroundColor: child.color + "20",
+              borderColor: child.color + "40",
+            },
+          ]}
+        >
+          <Image source={{ uri: child.avatar }} style={styles.avatar} />
+        </View>
         <View style={styles.childInfo}>
           <Text style={styles.childName}>{child.name}</Text>
           <Text style={styles.childDetails}>
             {calculateAge(child.dateOfBirth)} ans • {child.grade}
           </Text>
         </View>
-        <TouchableOpacity style={styles.editButton} onPress={onPress}>
-          <Edit size={16} color={THEME.colors.secondaryText} />
+        <TouchableOpacity
+          style={[
+            styles.editButton,
+            {
+              borderColor: child.color + "40",
+              backgroundColor: child.color + "10",
+            },
+          ]}
+          onPress={onPress}
+        >
+          <Edit size={16} color={child.color} />
         </TouchableOpacity>
       </View>
 
@@ -282,17 +306,6 @@ function ChildCard({ child, onPress }: { child: Child; onPress: () => void }) {
           </View>
         </View>
       )}
-
-      <View style={styles.progressContainer}>
-        <AnimatedProgress
-          progress={progress}
-          height={6}
-          fillColor={child.color}
-          backgroundColor={THEME.colors.secondaryLight}
-          borderRadius={3}
-        />
-        <Text style={styles.progressText}>{progress}%</Text>
-      </View>
     </HapticPressable>
   );
 }
@@ -433,7 +446,7 @@ const styles = StyleSheet.create({
     borderRadius: THEME.radius.xl,
     padding: THEME.spacing.lg,
     marginBottom: THEME.spacing.lg,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: THEME.colors.border,
   },
   cardHeader: {
@@ -441,11 +454,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: THEME.spacing.lg,
   },
-  avatar: {
-    width: 48,
-    height: 48,
+  avatarWrapper: {
+    width: 52,
+    height: 52,
     borderRadius: THEME.radius.lg,
+    borderWidth: 1.5,
     marginRight: THEME.spacing.md,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: THEME.radius.md,
   },
   childInfo: {
     flex: 1,
@@ -464,11 +485,9 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: THEME.radius.sm,
-    backgroundColor: THEME.colors.white,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: THEME.colors.border,
+    borderWidth: 1.5,
   },
 
   // Stats
@@ -510,24 +529,5 @@ const styles = StyleSheet.create({
     color: THEME.colors.text,
     minWidth: 38,
     textAlign: "right",
-  },
-
-  // Add button (style "Add source")
-  addChildButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: THEME.spacing.sm,
-    backgroundColor: THEME.colors.secondaryLight,
-    paddingVertical: THEME.spacing.lg,
-    borderRadius: 30,
-    marginTop: THEME.spacing.sm,
-    borderWidth: 1,
-    borderColor: THEME.colors.secondaryBorder,
-  },
-  addChildButtonText: {
-    fontSize: 15,
-    color: THEME.colors.subtext,
-    fontWeight: "600",
   },
 });

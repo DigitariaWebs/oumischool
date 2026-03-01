@@ -17,6 +17,7 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { FONTS } from "@/config/fonts";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
+import { ErrorAlert } from "@/components/ui";
 import { useResetPassword, useForgotPassword } from "@/hooks/api/auth";
 
 export default function OTPVerificationScreen() {
@@ -260,12 +261,7 @@ export default function OTPVerificationScreen() {
 
             {/* Message d'erreur */}
             {error && (
-              <Animated.Text
-                entering={FadeInDown.duration(300)}
-                style={styles.errorText}
-              >
-                {error}
-              </Animated.Text>
+              <ErrorAlert message={error} onDismiss={() => setError("")} />
             )}
 
             {/* Timer / Renvoyer */}
@@ -415,14 +411,6 @@ const styles = StyleSheet.create({
   },
   otpInputError: {
     borderColor: "#EF4444",
-  },
-
-  // Erreur
-  errorText: {
-    fontSize: 13,
-    color: "#EF4444",
-    textAlign: "center",
-    marginBottom: 16,
   },
 
   // Resend
